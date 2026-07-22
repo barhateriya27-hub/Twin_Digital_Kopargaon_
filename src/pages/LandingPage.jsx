@@ -30,6 +30,7 @@ import {
   Volume2
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 export const LandingPage = () => {
   const navigate = useNavigate();
@@ -213,14 +214,14 @@ export const LandingPage = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-orange-500 selection:text-white ${fontSize === 'large' ? 'text-lg' : fontSize === 'small' ? 'text-sm' : ''}`}>
+    <div className={`min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-sans selection:bg-[#F97316] selection:text-white ${fontSize === 'large' ? 'text-lg' : fontSize === 'small' ? 'text-sm' : ''}`}>
       
       {/* 1. OFFICIAL GOVT TRICOLOR TOP BAR */}
       <div className="w-full bg-slate-900 text-slate-300 text-[11px] font-medium border-b border-slate-800 z-50 relative">
         {/* Tricolor Stripe */}
         <div className="h-[4px] w-full flex">
           <div className="h-full w-1/3 bg-[#FF9933]"></div>
-          <div className="h-full w-1/3 bg-white"></div>
+          <div className="h-full w-1/3 bg-white dark:bg-slate-800"></div>
           <div className="h-full w-1/3 bg-[#138808]"></div>
         </div>
         
@@ -238,21 +239,21 @@ export const LandingPage = () => {
             <div className="flex items-center gap-1 border-l border-slate-700 pl-3">
               <button 
                 onClick={() => setFontSize('small')} 
-                className={`w-5 h-5 flex items-center justify-center rounded border transition-colors ${fontSize === 'small' ? 'bg-orange-500 border-orange-500 text-white' : 'border-slate-700 hover:border-slate-500'}`}
+                className={`w-5 h-5 flex items-center justify-center rounded border transition-colors ${fontSize === 'small' ? 'bg-[#F97316] border-orange-500 text-white' : 'border-slate-700 hover:border-slate-500'}`}
                 title="Decrease Font Size"
               >
                 A-
               </button>
               <button 
                 onClick={() => setFontSize('normal')} 
-                className={`w-5 h-5 flex items-center justify-center rounded border transition-colors ${fontSize === 'normal' ? 'bg-orange-500 border-orange-500 text-white' : 'border-slate-700 hover:border-slate-500'}`}
+                className={`w-5 h-5 flex items-center justify-center rounded border transition-colors ${fontSize === 'normal' ? 'bg-[#F97316] border-orange-500 text-white' : 'border-slate-700 hover:border-slate-500'}`}
                 title="Normal Font Size"
               >
                 A
               </button>
               <button 
                 onClick={() => setFontSize('large')} 
-                className={`w-5 h-5 flex items-center justify-center rounded border transition-colors ${fontSize === 'large' ? 'bg-orange-500 border-orange-500 text-white' : 'border-slate-700 hover:border-slate-500'}`}
+                className={`w-5 h-5 flex items-center justify-center rounded border transition-colors ${fontSize === 'large' ? 'bg-[#F97316] border-orange-500 text-white' : 'border-slate-700 hover:border-slate-500'}`}
                 title="Increase Font Size"
               >
                 A+
@@ -260,32 +261,35 @@ export const LandingPage = () => {
             </div>
 
             {/* Bilingual Switcher */}
-            <div className="flex items-center rounded overflow-hidden border border-slate-700">
-              <button 
-                onClick={() => setLanguage('en')} 
-                className={`px-2 py-0.5 font-bold transition-all ${language === 'en' ? 'bg-orange-500 text-slate-900' : 'bg-slate-900 text-slate-400 hover:text-white'}`}
-              >
-                EN
-              </button>
-              <button 
-                onClick={() => setLanguage('mr')} 
-                className={`px-2 py-0.5 font-bold transition-all ${language === 'mr' ? 'bg-orange-500 text-slate-900' : 'bg-slate-900 text-slate-400 hover:text-white'}`}
-              >
-                मराठी
-              </button>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center rounded overflow-hidden border border-slate-700">
+                <button 
+                  onClick={() => setLanguage('en')} 
+                  className={`px-2 py-0.5 font-bold transition-all ${language === 'en' ? 'bg-[#F97316] text-slate-900 dark:text-slate-100' : 'bg-slate-900 text-slate-400 hover:text-white'}`}
+                >
+                  EN
+                </button>
+                <button 
+                  onClick={() => setLanguage('mr')} 
+                  className={`px-2 py-0.5 font-bold transition-all ${language === 'mr' ? 'bg-[#F97316] text-slate-900 dark:text-slate-100' : 'bg-slate-900 text-slate-400 hover:text-white'}`}
+                >
+                  मराठी
+                </button>
+              </div>
+              <ThemeToggle />
             </div>
           </div>
         </div>
       </div>
 
       {/* 2. OFFICIAL MUNICIPAL HEADER */}
-      <header className="bg-white border-b border-slate-200 shadow-sm relative z-40 py-4">
+      <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 shadow-sm relative z-40 py-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
           
           {/* Logo Brand */}
           <div className="flex items-center gap-4 text-center md:text-left">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 p-0.5 flex items-center justify-center shadow-md">
-              <div className="w-full h-full bg-white rounded-[14px] flex items-center justify-center">
+              <div className="w-full h-full bg-white dark:bg-slate-800 rounded-[14px] flex items-center justify-center">
                 {/* State Emblem/Seal Stylized Silhouette */}
                 <svg viewBox="0 0 100 100" className="w-12 h-12 text-orange-600">
                   <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" strokeWidth="3" />
@@ -297,13 +301,13 @@ export const LandingPage = () => {
               </div>
             </div>
             <div>
-              <h1 className="font-black text-xl lg:text-2xl text-gov-navy tracking-tight leading-tight">
+              <h1 className="font-black text-xl lg:text-2xl text-gov-navy dark:text-slate-100 tracking-tight leading-tight">
                 {currentT.title}
               </h1>
-              <p className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <p className="text-[10px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 {currentT.subtitle}
               </p>
-              <div className="inline-block px-2.5 py-0.5 bg-orange-50 text-[10px] text-orange-700 font-bold border border-orange-200 rounded-full mt-1">
+              <div className="inline-block px-2.5 py-0.5 bg-orange-50 dark:bg-orange-950/20 text-[10px] text-orange-700 font-bold border border-orange-200 rounded-full mt-1">
                 🌐 {currentT.tagline}
               </div>
             </div>
@@ -311,24 +315,24 @@ export const LandingPage = () => {
 
           {/* Central Government Partners & Digital India badges */}
           <div className="hidden lg:flex items-center gap-6">
-            <div className="flex flex-col items-end border-r border-slate-200 pr-5">
+            <div className="flex flex-col items-end border-r border-slate-200 dark:border-slate-700 pr-5">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Digital India</span>
               <span className="text-sm font-black text-blue-700">डिजिटल इंडिया</span>
             </div>
-            <div className="flex flex-col items-end border-r border-slate-200 pr-5">
+            <div className="flex flex-col items-end border-r border-slate-200 dark:border-slate-700 pr-5">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Swachh Bharat</span>
               <span className="text-sm font-black text-emerald-700">स्वच्छ भारत अभियान</span>
             </div>
             <div className="text-right">
               <span className="block text-[10px] text-slate-400 font-bold">HELPLINE TOLL-FREE</span>
-              <span className="block text-base font-extrabold text-gov-navy">1800-233-1042</span>
+              <span className="block text-base font-extrabold text-gov-navy dark:text-slate-100">1800-233-1042</span>
             </div>
           </div>
         </div>
       </header>
 
       {/* 3. SCROLLING NOTICE MARQUEE */}
-      <div className="bg-orange-500/10 border-b border-orange-200 text-gov-navy py-2 px-4 relative overflow-hidden z-30">
+      <div className="bg-[#F97316]/10 dark:bg-[#F97316]/5 border-b border-orange-200 text-gov-navy dark:text-slate-200 py-2 px-4 relative overflow-hidden z-30">
         <div className="max-w-7xl mx-auto flex items-center gap-3">
           <div className="bg-orange-600 text-white text-[10px] font-bold px-2 py-1 rounded shrink-0 flex items-center gap-1 shadow-sm uppercase">
             <Volume2 className="w-3.5 h-3.5" />
@@ -350,7 +354,7 @@ export const LandingPage = () => {
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(249,115,22,0.12),transparent_60%)] pointer-events-none"></div>
           
           <div className="max-w-3xl relative z-10 space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-400 text-xs font-semibold">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F97316]/20 dark:bg-[#F97316]/10 border border-orange-500/40 text-orange-400 text-xs font-semibold">
               <Sparkles className="w-3.5 h-3.5" /> Smart Governance e-Infrastructure
             </div>
             
@@ -371,21 +375,21 @@ export const LandingPage = () => {
           </div>
 
           {/* TWO PRINCIPAL PORTALS ACCESSIBLE */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10 text-slate-800">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10 text-slate-800 dark:text-slate-200">
             
             {/* PORTAL A: CITIZEN GATEWAY */}
             <motion.div
               whileHover={{ y: -4 }}
-              className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-lg flex flex-col justify-between"
+              className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-lg flex flex-col justify-between"
             >
               <div>
-                <div className="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center mb-5 border border-orange-100">
+                <div className="w-12 h-12 rounded-xl bg-orange-50 dark:bg-orange-950/20 text-orange-600 flex items-center justify-center mb-5 border border-orange-100 dark:border-orange-900/30">
                   <UserCheck className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-extrabold text-gov-navy flex items-center gap-2 mb-2">
+                <h3 className="text-lg font-extrabold text-gov-navy dark:text-slate-100 flex items-center gap-2 mb-2">
                   👤 {currentT.citizenTitle}
                 </h3>
-                <p className="text-slate-600 text-xs leading-relaxed mb-6">
+                <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed mb-6">
                   {currentT.citizenDesc}
                 </p>
               </div>
@@ -402,16 +406,16 @@ export const LandingPage = () => {
             {/* PORTAL B: MUNICIPAL OFFICERS COMMAND CENTER */}
             <motion.div
               whileHover={{ y: -4 }}
-              className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-lg flex flex-col justify-between"
+              className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700/80 shadow-lg flex flex-col justify-between"
             >
               <div>
-                <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center mb-5 border border-slate-200">
+                <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-900/50 text-slate-700 dark:text-slate-300 flex items-center justify-center mb-5 border border-slate-200 dark:border-slate-700">
                   <Building2 className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-extrabold text-gov-navy flex items-center gap-2 mb-2">
+                <h3 className="text-lg font-extrabold text-gov-navy dark:text-slate-100 flex items-center gap-2 mb-2">
                   🏛 {currentT.municipalityTitle}
                 </h3>
-                <p className="text-slate-600 text-xs leading-relaxed mb-6">
+                <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed mb-6">
                   {currentT.municipalityDesc}
                 </p>
               </div>
@@ -432,8 +436,8 @@ export const LandingPage = () => {
         {/* 5. ONLINE SERVICES GRID */}
         <section className="py-8 mb-12">
           <div className="text-center max-w-3xl mx-auto mb-10">
-            <h3 className="text-2xl font-extrabold text-gov-navy">{currentT.servicesTitle}</h3>
-            <p className="text-slate-500 text-xs mt-1">{currentT.servicesSubtitle}</p>
+            <h3 className="text-2xl font-extrabold text-gov-navy dark:text-slate-100">{currentT.servicesTitle}</h3>
+            <p className="text-slate-500 dark:text-slate-400 text-xs mt-1">{currentT.servicesSubtitle}</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -441,75 +445,75 @@ export const LandingPage = () => {
               <div 
                 key={idx}
                 onClick={srv.action}
-                className={`p-6 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group ${srv.action ? 'cursor-pointer border-orange-200 hover:border-orange-400' : ''}`}
+                className={`p-6 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all group ${srv.action ? 'cursor-pointer border-orange-200 hover:border-orange-400' : ''}`}
               >
                 <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-slate-50 rounded-xl group-hover:bg-orange-50 transition-colors">
+                  <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl group-hover:bg-orange-50 dark:bg-orange-950/20 transition-colors">
                     {srv.icon}
                   </div>
-                  <span className="text-[9px] font-mono font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded uppercase">
+                  <span className="text-[9px] font-mono font-bold text-slate-400 bg-slate-100 dark:bg-slate-900/50 px-2 py-0.5 rounded uppercase">
                     {srv.tag}
                   </span>
                 </div>
-                <h4 className="font-extrabold text-sm text-gov-navy mb-1.5 flex items-center gap-1.5">
+                <h4 className="font-extrabold text-sm text-gov-navy dark:text-slate-200 mb-1.5 flex items-center gap-1.5">
                   {srv.title}
                   {srv.action && <ChevronRight className="w-4 h-4 text-orange-500" />}
                 </h4>
-                <p className="text-slate-500 text-xs leading-relaxed">{srv.desc}</p>
+                <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">{srv.desc}</p>
               </div>
             ))}
           </div>
         </section>
 
         {/* 6. SPATIAL DIGITAL TWIN COMMAND BOARD (LIGHT ACCENT STYLE) */}
-        <section className="bg-slate-100/80 rounded-3xl p-8 border border-slate-200 relative overflow-hidden mb-12">
+        <section className="bg-slate-100 dark:bg-slate-900/50/80 rounded-3xl p-8 border border-slate-200 dark:border-slate-700 relative overflow-hidden mb-12">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
             <div className="space-y-4 max-w-xl">
               <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-orange-700 bg-orange-100 px-3 py-1 rounded-full border border-orange-200">
                 <Radio className="w-3.5 h-3.5 animate-pulse text-orange-600" />
                 {currentT.gisStream}
               </span>
-              <h3 className="text-2xl lg:text-3xl font-extrabold text-gov-navy leading-tight">
+              <h3 className="text-2xl lg:text-3xl font-extrabold text-gov-navy dark:text-slate-100 leading-tight">
                 {currentT.digitalTwinTitle}
               </h3>
-              <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
+              <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm leading-relaxed">
                 {currentT.digitalTwinSubtitle}
               </p>
 
               {/* Counter Statistics */}
               <div className="grid grid-cols-2 gap-4 pt-2">
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm text-center">
                   <span className="block text-2xl font-black text-orange-600 font-mono">
                     {stats.complaints.toLocaleString()}+
                   </span>
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
                     {currentT.resolvedCount}
                   </span>
                 </div>
                 
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm text-center">
                   <span className="block text-2xl font-black text-emerald-600 font-mono">
                     {stats.healthScore}/100
                   </span>
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
                     {currentT.healthIndex}
                   </span>
                 </div>
 
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm text-center">
                   <span className="block text-2xl font-black text-blue-600 font-mono">
                     {stats.wards}
                   </span>
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
                     {currentT.connectedWards}
                   </span>
                 </div>
 
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm text-center">
                   <span className="block text-2xl font-black text-amber-600 font-mono">
                     {stats.latency} ms
                   </span>
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
                     {currentT.telemetryLatency}
                   </span>
                 </div>
@@ -541,52 +545,52 @@ export const LandingPage = () => {
         </section>
 
         {/* 7. LEADERSHIP DESK SECTION */}
-        <section className="py-8 border-t border-slate-200">
+        <section className="py-8 border-t border-slate-200 dark:border-slate-700">
           <div className="text-center max-w-3xl mx-auto mb-10">
-            <h3 className="text-2xl font-extrabold text-gov-navy">{currentT.leadershipTitle}</h3>
-            <p className="text-slate-500 text-xs mt-1">{currentT.leadershipSubtitle}</p>
+            <h3 className="text-2xl font-extrabold text-gov-navy dark:text-slate-100">{currentT.leadershipTitle}</h3>
+            <p className="text-slate-500 dark:text-slate-400 text-xs mt-1">{currentT.leadershipSubtitle}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             
             {/* PM Card */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center flex flex-col justify-between">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm text-center flex flex-col justify-between">
               <div>
-                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-100 border-2 border-orange-500 flex items-center justify-center text-orange-600 font-extrabold text-2xl shadow-inner">
+                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-100 dark:bg-slate-900/50 border-2 border-orange-500 flex items-center justify-center text-orange-600 font-extrabold text-2xl shadow-inner">
                   NM
                 </div>
-                <h4 className="font-extrabold text-base text-slate-800">{currentT.pmName}</h4>
+                <h4 className="font-extrabold text-base text-slate-800 dark:text-slate-200">{currentT.pmName}</h4>
                 <p className="text-xs text-slate-400 font-semibold">{currentT.pmRole}</p>
               </div>
-              <p className="text-[10px] text-slate-500 italic mt-4 border-t border-slate-100 pt-3">
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 italic mt-4 border-t border-slate-100 dark:border-slate-800 pt-3">
                 "Promoting Digital India across municipal administrations to build high-trust governance."
               </p>
             </div>
 
             {/* CM Card */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center flex flex-col justify-between">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm text-center flex flex-col justify-between">
               <div>
-                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-100 border-2 border-orange-500 flex items-center justify-center text-orange-600 font-extrabold text-2xl shadow-inner">
+                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-100 dark:bg-slate-900/50 border-2 border-orange-500 flex items-center justify-center text-orange-600 font-extrabold text-2xl shadow-inner">
                   ES
                 </div>
-                <h4 className="font-extrabold text-base text-slate-800">{currentT.cmName}</h4>
+                <h4 className="font-extrabold text-base text-slate-800 dark:text-slate-200">{currentT.cmName}</h4>
                 <p className="text-xs text-slate-400 font-semibold">{currentT.cmRole}</p>
               </div>
-              <p className="text-[10px] text-slate-500 italic mt-4 border-t border-slate-100 pt-3">
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 italic mt-4 border-t border-slate-100 dark:border-slate-800 pt-3">
                 "Bringing cutting edge digital infrastructure directly to the municipal levels in Maharashtra."
               </p>
             </div>
 
             {/* Chief Officer Card */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center flex flex-col justify-between border-l-4 border-l-orange-500">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm text-center flex flex-col justify-between border-l-4 border-l-orange-500">
               <div>
-                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-100 border-2 border-orange-500 flex items-center justify-center text-orange-600 font-extrabold text-2xl shadow-inner">
+                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-100 dark:bg-slate-900/50 border-2 border-orange-500 flex items-center justify-center text-orange-600 font-extrabold text-2xl shadow-inner">
                   CO
                 </div>
-                <h4 className="font-extrabold text-base text-slate-800">{currentT.coName}</h4>
+                <h4 className="font-extrabold text-base text-slate-800 dark:text-slate-200">{currentT.coName}</h4>
                 <p className="text-xs text-slate-400 font-semibold">{currentT.coRole}</p>
               </div>
-              <p className="text-[11px] text-gov-navy font-semibold italic mt-4 border-t border-slate-100 pt-3 leading-relaxed">
+              <p className="text-[11px] text-gov-navy dark:text-slate-200 font-semibold italic mt-4 border-t border-slate-100 dark:border-slate-800 pt-3 leading-relaxed">
                 {currentT.coMessage}
               </p>
             </div>
@@ -605,7 +609,7 @@ export const LandingPage = () => {
               <span className="font-extrabold text-slate-200 block text-sm tracking-wide">
                 {currentT.title}
               </span>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
                 {currentT.footerDis}
               </p>
             </div>
@@ -630,7 +634,7 @@ export const LandingPage = () => {
 
             <div>
               <span className="font-bold text-slate-300 block mb-3 uppercase tracking-wider text-[11px]">Contact Address</span>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
                 Kopargaon Municipal Council Office,<br />
                 Station Road, Kopargaon,<br />
                 District Ahmednagar, Maharashtra - 423601<br />
@@ -639,7 +643,7 @@ export const LandingPage = () => {
             </div>
           </div>
 
-          <div className="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] text-slate-500">
+          <div className="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] text-slate-500 dark:text-slate-400">
             <div>
               © 2026 Kopargaon Municipal Council. All Rights Reserved.
             </div>

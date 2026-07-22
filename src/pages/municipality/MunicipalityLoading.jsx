@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Cpu, CheckCircle2, Shield } from 'lucide-react';
+import { Building2, Cpu, CheckCircle2 } from 'lucide-react';
 
 export const MunicipalityLoading = () => {
   const navigate = useNavigate();
@@ -21,8 +21,7 @@ export const MunicipalityLoading = () => {
   ];
 
   useEffect(() => {
-    // Total duration ~ 3 seconds
-    const intervalTime = 300; // 300ms * 9 = 2700ms (~3 seconds)
+    const intervalTime = 300; 
 
     const timer = setInterval(() => {
       setCurrentStep(prev => {
@@ -32,7 +31,6 @@ export const MunicipalityLoading = () => {
           return next;
         } else {
           clearInterval(timer);
-          // Redirect to WOW screen after completion
           setTimeout(() => {
             navigate('/municipality/wow');
           }, 400);
@@ -45,36 +43,39 @@ export const MunicipalityLoading = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center relative overflow-hidden px-4 selection:bg-orange-500 selection:text-white">
-      {/* Dark Cyberpunk Radar Background */}
-      <div className="absolute inset-0 bg-grid-cyber opacity-30 pointer-events-none"></div>
-      <div className="absolute w-[600px] h-[600px] bg-orange-500/10 rounded-full blur-3xl pointer-events-none animate-pulse-glow"></div>
-      <div className="absolute w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-900 dark:bg-slate-900 text-[#1E293B] dark:text-slate-200 flex flex-col items-center justify-center relative overflow-hidden px-4 selection:bg-[#F97316] selection:text-white">
+      
+      {/* Tricolor Ribbon */}
+      <div className="h-[4px] w-full flex shrink-0 absolute top-0 left-0 right-0 z-50">
+        <div className="h-full w-1/3 bg-[#FF9933]"></div>
+        <div className="h-full w-1/3 bg-white dark:bg-slate-800"></div>
+        <div className="h-full w-1/3 bg-[#138808]"></div>
+      </div>
 
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-xl w-full text-center relative z-10 glass-panel p-10 rounded-3xl border border-orange-500/40 shadow-2xl shadow-orange-500/10"
+        className="max-w-xl w-full text-center relative z-10 bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 p-10 rounded-3xl shadow-xl shadow-slate-200/50"
       >
         {/* Large Glowing Logo */}
         <div className="relative w-24 h-24 mx-auto mb-6">
-          <div className="absolute inset-0 rounded-2xl bg-orange-500/20 blur-xl animate-pulse"></div>
-          <div className="w-full h-full rounded-2xl bg-slate-900 border-2 border-orange-400 flex items-center justify-center text-orange-400 shadow-xl shadow-orange-500/30">
-            <Building2 className="w-12 h-12 animate-pulse" />
+          <div className="absolute inset-0 rounded-2xl bg-orange-50 blur-xl animate-pulse"></div>
+          <div className="w-full h-full rounded-2xl bg-white dark:bg-slate-800 border-2 border-[#F97316] flex items-center justify-center text-[#F97316] shadow-md shadow-[#F97316]/10">
+            <Building2 className="w-12 h-12" />
           </div>
         </div>
 
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-100 mb-1">
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#0F172A] dark:text-slate-100 mb-1">
           AI DIGITAL TWIN OF KOPARGAON
         </h1>
-        <p className="text-xs font-mono text-orange-400 tracking-widest uppercase mb-8">
+        <p className="text-xs font-bold text-[#F97316] tracking-widest uppercase mb-8">
           SMART CITY DECISION SUPPORT SYSTEM
         </p>
 
         {/* Animated Progress Bar */}
-        <div className="w-full bg-slate-900 h-3 rounded-full border border-orange-500/30 p-0.5 mb-6 overflow-hidden">
+        <div className="w-full bg-[#F8FAFC] dark:bg-slate-900 h-3 rounded-full border border-[#E2E8F0] dark:border-slate-700 p-0.5 mb-6 overflow-hidden">
           <motion.div
-            className="h-full bg-gradient-to-r from-orange-500 via-blue-500 to-purple-500 rounded-full"
+            className="h-full bg-gradient-to-r from-[#F97316] to-[#22C55E] rounded-full"
             initial={{ width: '0%' }}
             animate={{ width: `${progress}%` }}
             transition={{ ease: "easeInOut", duration: 0.3 }}
@@ -82,7 +83,7 @@ export const MunicipalityLoading = () => {
         </div>
 
         {/* Sequential Loading Message Fade */}
-        <div className="h-12 flex items-center justify-center font-mono text-sm">
+        <div className="h-12 flex items-center justify-center font-sans text-sm">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStep}
@@ -90,26 +91,26 @@ export const MunicipalityLoading = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className={`flex items-center gap-2 ${
+              className={`flex items-center gap-2 font-bold ${
                 currentStep === loadingMessages.length - 1 
-                  ? 'text-emerald-400 font-bold text-base' 
-                  : 'text-orange-300'
+                  ? 'text-[#22C55E] text-base' 
+                  : 'text-[#F97316]'
               }`}
             >
               {currentStep === loadingMessages.length - 1 ? (
-                <CheckCircle2 className="w-5 h-5 text-emerald-400 animate-bounce" />
+                <CheckCircle2 className="w-5 h-5 text-[#22C55E] animate-bounce" />
               ) : (
-                <Cpu className="w-4 h-4 text-orange-400 animate-spin" />
+                <Cpu className="w-4 h-4 text-[#F97316] animate-spin" />
               )}
               {loadingMessages[currentStep]}
             </motion.div>
           </AnimatePresence>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-slate-800 text-[11px] font-mono text-slate-500 flex items-center justify-between">
+        <div className="mt-8 pt-6 border-t border-[#E2E8F0] dark:border-slate-700 text-[11px] font-semibold text-[#64748B] dark:text-slate-400 flex items-center justify-between">
           <span>SECURITY PROTOCOL: AES-256</span>
-          <span className="flex items-center gap-1.5 text-orange-400">
-            <span className="w-2 h-2 rounded-full bg-orange-400 animate-ping"></span> KPG-NODE-ONLINE
+          <span className="flex items-center gap-1.5 text-[#F97316]">
+            <span className="w-2 h-2 rounded-full bg-[#F97316] animate-ping"></span> KPG-NODE-ONLINE
           </span>
         </div>
       </motion.div>

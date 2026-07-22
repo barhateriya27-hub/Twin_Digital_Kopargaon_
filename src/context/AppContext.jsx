@@ -141,6 +141,26 @@ const initialAlerts = [
 ];
 
 export const AppProvider = ({ children }) => {
+  // Theme state
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem('kpg_app_theme');
+    return saved ? saved : 'light';
+  });
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('kpg_app_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  };
+
   // Citizen state
   const [citizenUser, setCitizenUser] = useState(() => {
     const saved = localStorage.getItem('kpg_citizen_user');
@@ -327,6 +347,8 @@ export const AppProvider = ({ children }) => {
 
   return (
     <AppContext.Provider value={{
+      theme,
+      toggleTheme,
       citizenUser,
       officerUser,
       complaints,
