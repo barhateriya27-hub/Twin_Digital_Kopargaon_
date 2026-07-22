@@ -12,14 +12,14 @@ export const Toast = () => {
     success: <CheckCircle2 className="w-5 h-5 text-emerald-400" />,
     warning: <AlertTriangle className="w-5 h-5 text-amber-400" />,
     error: <XCircle className="w-5 h-5 text-rose-400" />,
-    info: <Info className="w-5 h-5 text-cyan-400" />
+    info: <Info className="w-5 h-5 text-blue-400" />
   };
 
   const bgStyles = {
     success: 'bg-slate-900/90 border-emerald-500/40 text-emerald-100 shadow-emerald-950/50',
     warning: 'bg-slate-900/90 border-amber-500/40 text-amber-100 shadow-amber-950/50',
     error: 'bg-slate-900/90 border-rose-500/40 text-rose-100 shadow-rose-950/50',
-    info: 'bg-slate-900/90 border-cyan-500/40 text-cyan-100 shadow-cyan-950/50'
+    info: 'bg-slate-900/90 border-blue-500/40 text-blue-100 shadow-blue-950/50'
   };
 
   return (

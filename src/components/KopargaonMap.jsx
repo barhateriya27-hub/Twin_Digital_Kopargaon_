@@ -41,17 +41,17 @@ export const KopargaonMap = ({ onSelectComplaint }) => {
   });
 
   return (
-    <div className="bg-slate-900/90 rounded-3xl border border-cyan-500/30 p-6 relative overflow-hidden flex flex-col justify-between shadow-2xl">
+    <div className="bg-white rounded-3xl border border-slate-200 p-6 relative overflow-hidden flex flex-col justify-between shadow-sm text-slate-800">
       {/* Background Cyber Grid */}
       <div className="absolute inset-0 bg-grid-cyber opacity-40 pointer-events-none"></div>
 
       {/* Map Header bar */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-4 relative z-10">
         <div>
-          <div className="flex items-center gap-2 text-xs font-mono text-cyan-400">
-            <Radio className="w-4 h-4 animate-pulse text-cyan-400" /> KOPARGAON SPATIAL DIGITAL TWIN GIS MAP
+          <div className="flex items-center gap-2 text-xs font-mono text-orange-600">
+            <Radio className="w-4 h-4 animate-pulse text-orange-600" /> KOPARGAON SPATIAL DIGITAL TWIN GIS MAP
           </div>
-          <p className="text-xs text-slate-400">Live IoT sensor overlays, ward boundary vectors & complaint markers</p>
+          <p className="text-xs text-slate-500">Live IoT sensor overlays, ward boundary vectors & complaint markers</p>
         </div>
 
         <div className="flex items-center gap-3 text-xs font-mono">
@@ -68,10 +68,10 @@ export const KopargaonMap = ({ onSelectComplaint }) => {
       </div>
 
       {/* SVG Map Container */}
-      <div className="relative w-full h-[420px] bg-slate-950/90 rounded-2xl border border-slate-800 overflow-hidden flex items-center justify-center">
+      <div className="relative w-full h-[420px] bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden flex items-center justify-center">
         {/* Animated Radar Line */}
         <div className="absolute inset-0 pointer-events-none opacity-20">
-          <div className="w-full h-full border border-cyan-500/20 rounded-full animate-ping"></div>
+          <div className="w-full h-full border border-orange-500/20 rounded-full animate-ping"></div>
         </div>
 
         <svg viewBox="0 0 750 600" className="w-full h-full cursor-grab">
@@ -102,7 +102,7 @@ export const KopargaonMap = ({ onSelectComplaint }) => {
                 cx={w.x}
                 cy={w.y}
                 r="35"
-                fill={selectedWard?.id === w.id ? 'rgba(0, 240, 255, 0.15)' : 'rgba(15, 23, 42, 0.6)'}
+                fill={selectedWard?.id === w.id ? 'rgba(0, 240, 255, 0.15)' : 'rgba(248, 250, 252, 0.95)'}
                 stroke={w.health < 80 ? '#f43f5e' : w.health < 90 ? '#f59e0b' : '#10b981'}
                 strokeWidth="1.5"
                 strokeDasharray={w.health < 80 ? '3,3' : 'none'}
@@ -111,7 +111,7 @@ export const KopargaonMap = ({ onSelectComplaint }) => {
                 x={w.x}
                 y={w.y + 4}
                 textAnchor="middle"
-                fill="#94a3b8"
+                fill="#475569"
                 fontSize="10"
                 fontFamily="monospace"
                 fontWeight="bold"
@@ -151,10 +151,10 @@ export const KopargaonMap = ({ onSelectComplaint }) => {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="absolute bottom-4 left-4 right-4 sm:right-auto max-w-sm glass-panel p-4 rounded-2xl border border-cyan-400/60 text-xs shadow-2xl z-20"
+            className="absolute bottom-4 left-4 right-4 sm:right-auto max-w-sm bg-white p-4 rounded-2xl border border-slate-200 text-slate-800 shadow-lg text-xs shadow-2xl z-20"
           >
             <div className="flex items-center justify-between mb-1">
-              <span className="font-mono font-bold text-cyan-400">{hoveredPin.id}</span>
+              <span className="font-mono font-bold text-orange-600">{hoveredPin.id}</span>
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                 hoveredPin.priority === 'Critical' ? 'bg-rose-500/20 text-rose-300' : 'bg-blue-500/20 text-blue-300'
               }`}>
@@ -162,8 +162,8 @@ export const KopargaonMap = ({ onSelectComplaint }) => {
               </span>
             </div>
             <h4 className="font-bold text-slate-100 mb-1">{hoveredPin.title}</h4>
-            <p className="text-slate-400 text-[11px] line-clamp-1 mb-2">{hoveredPin.locationName}</p>
-            <div className="flex items-center justify-between text-[10px] text-cyan-300 pt-2 border-t border-slate-800 font-mono">
+            <p className="text-slate-500 text-[11px] line-clamp-1 mb-2">{hoveredPin.locationName}</p>
+            <div className="flex items-center justify-between text-[10px] text-orange-600 pt-2 border-t border-slate-200 font-mono">
               <span>Status: {hoveredPin.status}</span>
               <span>Dept: {hoveredPin.department}</span>
             </div>
@@ -172,14 +172,14 @@ export const KopargaonMap = ({ onSelectComplaint }) => {
       </div>
 
       {/* Selected Ward Info Bar */}
-      <div className="mt-4 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-wrap items-center justify-between gap-4 text-xs font-mono">
+      <div className="mt-4 p-4 rounded-2xl bg-slate-950/80 border border-slate-200 flex flex-wrap items-center justify-between gap-4 text-xs font-mono">
         <div>
-          <span className="text-slate-400">Selected Sector: </span>
-          <span className="font-bold text-cyan-400">{selectedWard ? selectedWard.name : 'Kopargaon Metropolitan District'}</span>
+          <span className="text-slate-500">Selected Sector: </span>
+          <span className="font-bold text-orange-600">{selectedWard ? selectedWard.name : 'Kopargaon Metropolitan District'}</span>
         </div>
         <div className="flex items-center gap-4 text-slate-300">
           <span>Health Score: <strong className="text-emerald-400">{selectedWard ? selectedWard.health : 94}/100</strong></span>
-          <span>Telemetry: <strong className="text-cyan-400">Active (42ms)</strong></span>
+          <span>Telemetry: <strong className="text-orange-600">Active (42ms)</strong></span>
         </div>
       </div>
     </div>

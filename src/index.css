@@ -77,3 +77,60 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 240, 255, 0.6);
 }
+
+/* Official Government Theme Utilities */
+.bg-gov-saffron {
+  background-color: #FF9933;
+}
+
+.bg-gov-green {
+  background-color: #138808;
+}
+
+.bg-gov-navy {
+  background-color: #0A2540;
+}
+
+.border-gov-saffron {
+  border-color: #FF9933;
+}
+
+.border-gov-green {
+  border-color: #138808;
+}
+
+.text-gov-saffron {
+  color: #FF9933;
+}
+
+.text-gov-green {
+  color: #138808;
+}
+
+.text-gov-navy {
+  color: #0A2540;
+}
+
+/* Marquee Scrolling Animation */
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  display: inline-block;
+  white-space: nowrap;
+  animation: marquee 30s linear infinite;
+}
+
+.animate-marquee-container:hover .animate-marquee {
+  animation-play-state: paused;
+}
+
+/* Text Gradient for Official Portal Banner */
+.text-gradient-gov {
+  background: linear-gradient(135deg, #FF9933 0%, #0A2540 50%, #138808 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+

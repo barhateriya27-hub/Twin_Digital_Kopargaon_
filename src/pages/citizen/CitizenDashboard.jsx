@@ -92,20 +92,27 @@ export const CitizenDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-sky-500 selection:text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-orange-500 selection:text-white">
+      {/* Tricolor Ribbon */}
+      <div className="h-[4px] w-full flex shrink-0">
+        <div className="h-full w-1/3 bg-[#FF9933]"></div>
+        <div className="h-full w-1/3 bg-white"></div>
+        <div className="h-full w-1/3 bg-[#138808]"></div>
+      </div>
+
       {/* TOP NAVBAR */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-sky-600 flex items-center justify-center text-white shadow-md shadow-sky-600/30">
+            <div className="w-11 h-11 rounded-xl bg-orange-500 flex items-center justify-center text-white shadow-md shadow-orange-500/20">
               <Building2 className="w-6 h-6" />
             </div>
             <div>
               <span className="font-extrabold text-lg text-slate-900 block leading-tight">
-                Kopargaon <span className="text-sky-600">Citizen Hub</span>
+                कोपरगाव <span className="text-orange-600">नागरी तक्रार निवारण</span>
               </span>
-              <span className="text-xs text-slate-500 font-medium block">
-                Ward {citizenUser?.ward || 4} Resident Portal
+              <span className="text-[10px] sm:text-xs text-slate-500 font-semibold block">
+                Kopargaon Citizen Hub • Ward {citizenUser?.ward || 4}
               </span>
             </div>
           </div>
@@ -115,7 +122,7 @@ export const CitizenDashboard = () => {
             <button
               onClick={() => setActiveTab('overview')}
               className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
-                activeTab === 'overview' ? 'bg-white text-sky-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                activeTab === 'overview' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Home className="w-4 h-4" /> Home
@@ -123,7 +130,7 @@ export const CitizenDashboard = () => {
             <button
               onClick={() => setActiveTab('report')}
               className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
-                activeTab === 'report' ? 'bg-white text-sky-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                activeTab === 'report' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <PlusCircle className="w-4 h-4 text-emerald-600" /> Report Complaint
@@ -131,7 +138,7 @@ export const CitizenDashboard = () => {
             <button
               onClick={() => setActiveTab('track')}
               className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
-                activeTab === 'track' ? 'bg-white text-sky-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                activeTab === 'track' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <ClipboardList className="w-4 h-4" /> Track Complaints
@@ -139,7 +146,7 @@ export const CitizenDashboard = () => {
             <button
               onClick={() => setActiveTab('alerts')}
               className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
-                activeTab === 'alerts' ? 'bg-white text-sky-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                activeTab === 'alerts' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Bell className="w-4 h-4 text-amber-500" /> City Alerts
@@ -147,7 +154,7 @@ export const CitizenDashboard = () => {
             <button
               onClick={() => setActiveTab('profile')}
               className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
-                activeTab === 'profile' ? 'bg-white text-sky-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                activeTab === 'profile' ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <User className="w-4 h-4" /> Profile
@@ -173,16 +180,16 @@ export const CitizenDashboard = () => {
 
         {/* Mobile Tab Bar */}
         <div className="md:hidden flex items-center justify-around border-t border-slate-200 py-2 bg-slate-50 text-xs font-semibold">
-          <button onClick={() => setActiveTab('overview')} className={`flex flex-col items-center gap-1 ${activeTab === 'overview' ? 'text-sky-600' : 'text-slate-500'}`}>
+          <button onClick={() => setActiveTab('overview')} className={`flex flex-col items-center gap-1 ${activeTab === 'overview' ? 'text-orange-600' : 'text-slate-500'}`}>
             <Home className="w-4 h-4" /> Home
           </button>
-          <button onClick={() => setActiveTab('report')} className={`flex flex-col items-center gap-1 ${activeTab === 'report' ? 'text-sky-600' : 'text-slate-500'}`}>
+          <button onClick={() => setActiveTab('report')} className={`flex flex-col items-center gap-1 ${activeTab === 'report' ? 'text-orange-600' : 'text-slate-500'}`}>
             <PlusCircle className="w-4 h-4" /> Report
           </button>
-          <button onClick={() => setActiveTab('track')} className={`flex flex-col items-center gap-1 ${activeTab === 'track' ? 'text-sky-600' : 'text-slate-500'}`}>
+          <button onClick={() => setActiveTab('track')} className={`flex flex-col items-center gap-1 ${activeTab === 'track' ? 'text-orange-600' : 'text-slate-500'}`}>
             <ClipboardList className="w-4 h-4" /> Track
           </button>
-          <button onClick={() => setActiveTab('alerts')} className={`flex flex-col items-center gap-1 ${activeTab === 'alerts' ? 'text-sky-600' : 'text-slate-500'}`}>
+          <button onClick={() => setActiveTab('alerts')} className={`flex flex-col items-center gap-1 ${activeTab === 'alerts' ? 'text-orange-600' : 'text-slate-500'}`}>
             <Bell className="w-4 h-4" /> Alerts
           </button>
         </div>
@@ -194,7 +201,7 @@ export const CitizenDashboard = () => {
         {activeTab === 'overview' && (
           <div className="space-y-8">
             {/* Welcome Banner */}
-            <div className="bg-gradient-to-r from-sky-600 via-blue-600 to-teal-600 rounded-3xl p-8 text-white shadow-xl shadow-sky-600/15 relative overflow-hidden">
+            <div className="bg-gradient-to-r from-[#002B49] via-slate-900 to-orange-950 rounded-3xl p-8 text-white shadow-xl shadow-orange-500/15 relative overflow-hidden">
               <div className="relative z-10 max-w-2xl">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-mono mb-4 backdrop-blur-md">
                   <Sparkles className="w-3.5 h-3.5" /> SMART CITY CITIZEN DASHBOARD
@@ -202,21 +209,21 @@ export const CitizenDashboard = () => {
                 <h1 className="text-3xl font-extrabold mb-2">
                   Welcome back, {citizenUser?.name || 'Resident'}!
                 </h1>
-                <p className="text-sky-100 text-sm leading-relaxed mb-6">
+                <p className="text-orange-100 text-sm leading-relaxed mb-6">
                   You are connected to Kopargaon Ward {citizenUser?.ward || 4} Digital Support Node. Submit civic issues and monitor live municipal resolutions.
                 </p>
 
                 <div className="flex flex-wrap items-center gap-4">
                   <button
                     onClick={() => setActiveTab('report')}
-                    className="px-6 py-3 bg-white text-sky-700 font-bold rounded-xl shadow-lg hover:bg-sky-50 transition-all flex items-center gap-2 text-sm"
+                    className="px-6 py-3 bg-white text-orange-700 font-bold rounded-xl shadow-lg hover:bg-orange-50 transition-all flex items-center gap-2 text-sm"
                   >
-                    <PlusCircle className="w-5 h-5 text-sky-600" />
+                    <PlusCircle className="w-5 h-5 text-orange-600" />
                     Report New Complaint
                   </button>
                   <button
                     onClick={() => setActiveTab('track')}
-                    className="px-6 py-3 bg-sky-700/60 hover:bg-sky-700/80 text-white font-bold rounded-xl border border-white/20 backdrop-blur-md transition-all flex items-center gap-2 text-sm"
+                    className="px-6 py-3 bg-orange-700/60 hover:bg-orange-700/80 text-white font-bold rounded-xl border border-white/20 backdrop-blur-md transition-all flex items-center gap-2 text-sm"
                   >
                     <ClipboardList className="w-5 h-5" />
                     View History ({userComplaints.length})
@@ -231,11 +238,11 @@ export const CitizenDashboard = () => {
                 onClick={() => setActiveTab('report')}
                 className="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all cursor-pointer group"
               >
-                <div className="w-12 h-12 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600 mb-4 group-hover:scale-110 transition-transform">
+                <div className="w-12 h-12 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600 mb-4 group-hover:scale-110 transition-transform">
                   <PlusCircle className="w-6 h-6" />
                 </div>
                 <h3 className="font-bold text-slate-900 text-lg mb-1 flex items-center justify-between">
-                  Report Complaint <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-0.5 transition-all" />
+                  Report Complaint <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-orange-600 group-hover:translate-x-0.5 transition-all" />
                 </h3>
                 <p className="text-xs text-slate-500">File potholes, garbage, water leaks, lighting or traffic</p>
               </div>
@@ -289,7 +296,7 @@ export const CitizenDashboard = () => {
                 </div>
                 <button
                   onClick={() => setActiveTab('track')}
-                  className="text-xs font-bold text-sky-600 hover:underline flex items-center gap-1"
+                  className="text-xs font-bold text-orange-600 hover:underline flex items-center gap-1"
                 >
                   View All ({userComplaints.length}) <ChevronRight className="w-4 h-4" />
                 </button>
@@ -303,7 +310,7 @@ export const CitizenDashboard = () => {
                       setSelectedComplaint(item);
                       setActiveTab('track');
                     }}
-                    className="p-4 rounded-2xl border border-slate-100 hover:border-sky-200 bg-slate-50/50 hover:bg-sky-50/30 transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    className="p-4 rounded-2xl border border-slate-100 hover:border-orange-200 bg-slate-50/50 hover:bg-orange-50/30 transition-all cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                   >
                     <div className="flex items-start gap-4">
                       <img
@@ -313,7 +320,7 @@ export const CitizenDashboard = () => {
                       />
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-mono text-xs font-bold text-sky-700 bg-sky-100 px-2 py-0.5 rounded">
+                          <span className="font-mono text-xs font-bold text-orange-700 bg-orange-100 px-2 py-0.5 rounded">
                             {item.id}
                           </span>
                           <span className="text-xs font-semibold text-slate-500">
@@ -347,7 +354,7 @@ export const CitizenDashboard = () => {
           <div className="max-w-3xl mx-auto">
             <div className="bg-white rounded-3xl p-8 border border-slate-200/90 shadow-lg shadow-slate-200/40">
               <div className="flex items-center gap-3 mb-6 pb-6 border-b border-slate-100">
-                <div className="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600">
+                <div className="w-12 h-12 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600">
                   <PlusCircle className="w-6 h-6" />
                 </div>
                 <div>
@@ -363,18 +370,24 @@ export const CitizenDashboard = () => {
                     Issue Category
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                    {['Garbage', 'Pothole', 'Water Leakage', 'Street Light', 'Traffic'].map(cat => (
+                    {[
+                      { value: 'Garbage', label: 'Solid Waste / घनकचरा' },
+                      { value: 'Pothole', label: 'Road Pothole / खड्डे' },
+                      { value: 'Water Leakage', label: 'Water Leakage / पाणी गळती' },
+                      { value: 'Street Light', label: 'Street Lights / पथदिवे' },
+                      { value: 'Traffic', label: 'Traffic / रहदारी' }
+                    ].map(cat => (
                       <button
                         type="button"
-                        key={cat}
-                        onClick={() => setReportCategory(cat)}
-                        className={`p-3 rounded-xl border text-xs font-bold transition-all text-center ${
-                          reportCategory === cat 
-                            ? 'bg-sky-600 text-white border-sky-600 shadow-md shadow-sky-600/20' 
+                        key={cat.value}
+                        onClick={() => setReportCategory(cat.value)}
+                        className={`p-3 rounded-xl border text-xs font-bold transition-all text-center flex flex-col justify-center items-center h-16 ${
+                          reportCategory === cat.value 
+                            ? 'bg-orange-600 text-white border-orange-600 shadow-md shadow-orange-600/20' 
                             : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                         }`}
                       >
-                        {cat}
+                        {cat.label}
                       </button>
                     ))}
                   </div>
@@ -390,7 +403,7 @@ export const CitizenDashboard = () => {
                     value={reportTitle}
                     onChange={(e) => setReportTitle(e.target.value)}
                     placeholder="e.g. Deep pothole on Station Road near Market"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white text-sm"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white text-sm"
                     required
                   />
                 </div>
@@ -404,7 +417,7 @@ export const CitizenDashboard = () => {
                     <select
                       value={reportWard}
                       onChange={(e) => setReportWard(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white"
                     >
                       {Array.from({ length: 28 }, (_, i) => i + 1).map(w => (
                         <option key={w} value={w}>Ward {w} (Kopargaon)</option>
@@ -421,7 +434,7 @@ export const CitizenDashboard = () => {
                       value={reportLocation}
                       onChange={(e) => setReportLocation(e.target.value)}
                       placeholder="e.g. Near Municipal High School"
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white text-sm"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white text-sm"
                     />
                   </div>
                 </div>
@@ -436,7 +449,7 @@ export const CitizenDashboard = () => {
                     value={reportDescription}
                     onChange={(e) => setReportDescription(e.target.value)}
                     placeholder="Describe the issue in detail to assist municipal maintenance crews..."
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white text-sm"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white text-sm"
                     required
                   />
                 </div>
@@ -460,7 +473,7 @@ export const CitizenDashboard = () => {
                       </div>
                     ) : (
                       <label className="cursor-pointer flex flex-col items-center">
-                        <Upload className="w-8 h-8 text-sky-500 mb-2" />
+                        <Upload className="w-8 h-8 text-orange-500 mb-2" />
                         <span className="text-sm font-bold text-slate-700">Click to upload photo</span>
                         <span className="text-xs text-slate-400 mt-1">Supports JPG, PNG (Max 5MB)</span>
                         <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
@@ -473,7 +486,7 @@ export const CitizenDashboard = () => {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-4 px-6 bg-gradient-to-r from-sky-600 to-emerald-600 hover:from-sky-500 hover:to-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-sky-600/25 transition-all flex items-center justify-center gap-2 text-base"
+                    className="w-full py-4 px-6 bg-gradient-to-r from-orange-600 to-emerald-600 hover:from-orange-500 hover:to-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-orange-600/25 transition-all flex items-center justify-center gap-2 text-base"
                   >
                     {isSubmitting ? (
                       <>
@@ -503,7 +516,7 @@ export const CitizenDashboard = () => {
               </div>
               <button
                 onClick={() => setActiveTab('report')}
-                className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5"
               >
                 <PlusCircle className="w-4 h-4" /> New Complaint
               </button>
@@ -518,12 +531,12 @@ export const CitizenDashboard = () => {
                     onClick={() => setSelectedComplaint(c)}
                     className={`p-5 rounded-2xl border transition-all cursor-pointer ${
                       selectedComplaint?.id === c.id
-                        ? 'bg-sky-50 border-sky-400 shadow-md'
+                        ? 'bg-orange-50 border-sky-400 shadow-md'
                         : 'bg-white border-slate-200/90 hover:border-sky-300 shadow-sm'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-mono text-xs font-bold text-sky-700 bg-sky-100 px-2.5 py-1 rounded-md">
+                      <span className="font-mono text-xs font-bold text-orange-700 bg-orange-100 px-2.5 py-1 rounded-md">
                         {c.id}
                       </span>
                       <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
@@ -555,7 +568,7 @@ export const CitizenDashboard = () => {
                     <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pb-6 border-b border-slate-100">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-mono text-sm font-bold text-sky-700 bg-sky-100 px-3 py-1 rounded-lg">
+                          <span className="font-mono text-sm font-bold text-orange-700 bg-orange-100 px-3 py-1 rounded-lg">
                             {selectedComplaint.id}
                           </span>
                           <span className="text-xs font-semibold text-slate-500">
@@ -582,7 +595,7 @@ export const CitizenDashboard = () => {
                         {/* Connecting Line */}
                         <div className="absolute top-1/2 left-0 right-0 h-1 bg-slate-200 -translate-y-1/2 z-0"></div>
                         <div 
-                          className="absolute top-1/2 left-0 h-1 bg-gradient-to-r from-sky-500 to-emerald-500 -translate-y-1/2 z-0 transition-all duration-500"
+                          className="absolute top-1/2 left-0 h-1 bg-gradient-to-r from-orange-500 to-emerald-500 -translate-y-1/2 z-0 transition-all duration-500"
                           style={{
                             width: `${(getStepIndex(selectedComplaint.status) / (statusSteps.length - 1)) * 100}%`
                           }}
@@ -600,7 +613,7 @@ export const CitizenDashboard = () => {
                               }`}>
                                 {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : idx + 1}
                               </div>
-                              <span className={`text-xs font-bold mt-2 ${isCurrent ? 'text-sky-600 font-extrabold' : isCompleted ? 'text-slate-800' : 'text-slate-400'}`}>
+                              <span className={`text-xs font-bold mt-2 ${isCurrent ? 'text-orange-600 font-extrabold' : isCompleted ? 'text-slate-800' : 'text-slate-400'}`}>
                                 {step}
                               </span>
                             </div>
@@ -624,7 +637,7 @@ export const CitizenDashboard = () => {
                         <div>
                           <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Location</h4>
                           <p className="text-sm font-bold text-slate-800 flex items-center gap-1">
-                            <MapPin className="w-4 h-4 text-sky-600" /> {selectedComplaint.locationName}
+                            <MapPin className="w-4 h-4 text-orange-600" /> {selectedComplaint.locationName}
                           </p>
                         </div>
 
@@ -657,7 +670,7 @@ export const CitizenDashboard = () => {
                       <div className="space-y-3">
                         {selectedComplaint.timeline?.map((t, i) => (
                           <div key={i} className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3 text-xs">
-                            <Clock className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+                            <Clock className="w-4 h-4 text-orange-600 shrink-0 mt-0.5" />
                             <div className="flex-1">
                               <div className="flex items-center justify-between font-bold text-slate-800 mb-0.5">
                                 <span>Status: {t.status}</span>
@@ -694,7 +707,7 @@ export const CitizenDashboard = () => {
                 <div key={alert.id} className="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-sm flex items-start gap-4">
                   <div className={`p-3 rounded-xl shrink-0 ${
                     alert.type === 'critical' ? 'bg-rose-100 text-rose-600' :
-                    alert.type === 'warning' ? 'bg-amber-100 text-amber-600' : 'bg-sky-100 text-sky-600'
+                    alert.type === 'warning' ? 'bg-amber-100 text-amber-600' : 'bg-orange-100 text-orange-600'
                   }`}>
                     <AlertTriangle className="w-6 h-6" />
                   </div>
@@ -719,7 +732,7 @@ export const CitizenDashboard = () => {
           <div className="max-w-2xl mx-auto">
             <div className="bg-white rounded-3xl p-8 border border-slate-200/90 shadow-sm">
               <div className="flex items-center gap-4 mb-8 pb-6 border-b border-slate-100">
-                <div className="w-16 h-16 rounded-full bg-sky-600 text-white font-bold text-2xl flex items-center justify-center shadow-lg shadow-sky-600/25">
+                <div className="w-16 h-16 rounded-full bg-orange-600 text-white font-bold text-2xl flex items-center justify-center shadow-lg shadow-orange-600/25">
                   {citizenUser?.name?.charAt(0) || 'C'}
                 </div>
                 <div>

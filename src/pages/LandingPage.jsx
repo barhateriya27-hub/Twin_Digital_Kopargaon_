@@ -21,7 +21,13 @@ import {
   ChevronRight,
   Server,
   BarChart3,
-  Bot
+  Bot,
+  FileText,
+  DollarSign,
+  Droplet,
+  HeartHandshake,
+  ShieldAlert,
+  Volume2
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -33,6 +39,9 @@ export const LandingPage = () => {
     wards: 0,
     latency: 0
   });
+
+  const [language, setLanguage] = useState('en'); // 'en' | 'mr'
+  const [fontSize, setFontSize] = useState('normal'); // 'small' | 'normal' | 'large'
 
   useEffect(() => {
     // Animated counter effect
@@ -47,422 +56,602 @@ export const LandingPage = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const features = [
+  // Bilingual text dictionary
+  const t = {
+    en: {
+      govtOfIndia: "Government of India",
+      govtOfMaha: "Government of Maharashtra",
+      accessibility: "Screen Reader Access",
+      title: "KOPARGAON MUNICIPAL COUNCIL",
+      subtitle: "कोपरगाव नगरपरिषद • DISTRICT AHMEDNAGAR",
+      tagline: "Digital Smart City Governance Portal",
+      announcements: "LATEST ANNOUNCEMENTS",
+      marqueeText: "⚠️ Godavari River Basin monitoring level is NORMAL (22,000 cusecs discharge). | 📄 Pay Property Tax online before July 31st to claim 5% prompt payment discount. | 💡 Citizen Grievance Portal is fully active. All 28 wards connected.",
+      portalTitle: "Select Portal to Proceed",
+      citizenTitle: "Citizen Services / नागरी सेवा",
+      citizenDesc: "Submit grievances (Potholes, Sanitation, Water rupture, streetlights), track resolution live, and obtain municipal status alerts.",
+      citizenBtn: "Proceed to Citizen Portal",
+      municipalityTitle: "Command Room / नियंत्रण कक्ष",
+      municipalityDesc: "Authorized municipal personnel login to access GIS digital twin maps, AI complaint triage, and run spatial simulations.",
+      municipalityBtn: "Access Security Command Center",
+      servicesTitle: "Online Municipal Services",
+      servicesSubtitle: "Direct citizen utilities & applications",
+      pTax: "Property Tax",
+      pTaxDesc: "Pay property tax bills & view outstanding demands.",
+      wTax: "Water Charges",
+      wTaxDesc: "Online water connection billing & billing calculator.",
+      birthCert: "Birth & Death Registry",
+      birthCertDesc: "Download forms or apply for civil registry records.",
+      grievance: "Grievance Redressal (MahaGrievance)",
+      grievanceDesc: "Report garbage, leaks, potholes & traffic issues.",
+      tradeLicense: "Trade Licenses",
+      tradeLicenseDesc: "Apply for new shop acts or renew business licenses.",
+      buildingPlan: "Building Permit & NOC",
+      buildingPlanDesc: "Submit building layouts for town planning approval.",
+      digitalTwinTitle: "Kopargaon Spatial Digital Twin command room",
+      digitalTwinSubtitle: "A real-time visual replica of city physical assets & telemetry",
+      gisStream: "GIS SPATIAL NODES ACTIVE",
+      resolvedCount: "Complaints Resolved",
+      healthIndex: "City Health Index",
+      connectedWards: "Wards Digitized",
+      telemetryLatency: "IoT Sensor Latency",
+      leadershipTitle: "Administrative & Public Leadership",
+      leadershipSubtitle: "Guiding Kopargaon towards a digitized & clean tomorrow",
+      pmName: "Shri Narendra Modi",
+      pmRole: "Hon'ble Prime Minister of India",
+      cmName: "Shri Eknath Shinde",
+      cmRole: "Hon'ble Chief Minister of Maharashtra",
+      coName: "Dr. Sameer Kulkarni (IAS)",
+      coRole: "Chief Officer & Administrator, KMC",
+      coMessage: "\"Our AI Digital Twin represents a major step forward in transparent, fast, and data-backed municipal governance, directly connecting residents to the municipal council.\"",
+      footerDis: "Website designed, developed and hosted by Kopargaon Municipal Corporation. All content is monitored under Maharashtra Municipal Acts.",
+      privacy: "Privacy Policy",
+      terms: "Terms & Conditions",
+      contact: "Helpline Contact"
+    },
+    mr: {
+      govtOfIndia: "भारत सरकार",
+      govtOfMaha: "महाराष्ट्र शासन",
+      accessibility: "स्क्रीन रीडर प्रवेश",
+      title: "कोपरगाव नगरपरिषद",
+      subtitle: "KOPARGAON MUNICIPAL COUNCIL • जिल्हा अहमदनगर",
+      tagline: "डिजिटल स्मार्ट सिटी गव्हर्नन्स पोर्टल",
+      announcements: "नवीन घोषणा आणि सूचना",
+      marqueeText: "⚠️ गोदावरी नदी पात्रातील पाणी पातळी सुरक्षित आहे. | 📄 मालमत्ता कर ३१ जुलै पूर्वी भरून ५% सवलत मिळवा. | 💡 नागरी तक्रार निवारण पोर्टल पूर्णपणे कार्यरत आहे. सर्व २८ वॉर्ड जोडले गेले आहेत.",
+      portalTitle: "पुढील पोर्टल निवडा",
+      citizenTitle: "नागरी सुविधा पोर्टल",
+      citizenDesc: "कचरा समस्या, रस्त्यांवरील खड्डे, पाणी गळती आणि पथदिव्यांच्या तक्रारी नोंदवा व त्यांचे निवारण ट्रॅक करा.",
+      citizenBtn: "नागरी पोर्टल प्रवेश",
+      municipalityTitle: "नियंत्रण कक्ष (अधिकारी)",
+      municipalityDesc: "अधिकृत नगरपरिषद अधिकारी लॉगीन - GIS नकाशा, AI वर्गीकरण आणि शहर सिम्युलेशन नियंत्रण.",
+      municipalityBtn: "अधिकारी नियंत्रण कक्ष",
+      servicesTitle: "ऑनलाइन नागरी सेवा",
+      servicesSubtitle: "थेट नागरी सुविधा आणि अर्ज",
+      pTax: "मालमत्ता कर",
+      pTaxDesc: "मालमत्ता कर बिल भरा आणि मागील थकबाकी पहा.",
+      wTax: "पाणी पट्टी",
+      wTaxDesc: "नवीन नळ जोडणी व पाणी बिल ऑनलाइन भरणा.",
+      birthCert: "जन्म आणि मृत्यू नोंदणी",
+      birthCertDesc: "जन्म, मृत्यू किंवा विवाह दाखल्यासाठी अर्ज करा.",
+      grievance: "तक्रार निवारण (महा-तक्रार)",
+      grievanceDesc: "स्वच्छता, रस्ते, पाणी गळती आणि रहदारी संबंधित तक्रारी.",
+      tradeLicense: "व्यवसाय परवाना (गुमास्ता)",
+      tradeLicenseDesc: "नवीन व्यवसाय परवान्यासाठी किंवा नूतनीकरणासाठी अर्ज करा.",
+      buildingPlan: "इमारत बांधकाम परवानगी",
+      buildingPlanDesc: "नगररचना विभागाकडून इमारत आराखडा मंजुरी मिळवा.",
+      digitalTwinTitle: "कोपरगाव डिजिटल ट्विन नियंत्रण कक्ष",
+      digitalTwinSubtitle: "शहरातील भौतिक मालमत्ता आणि सेन्सर्सची रिअल-टाइम डिजिटल प्रतिकृती",
+      gisStream: "थेट GIS सेन्सर प्रवाह सुरू",
+      resolvedCount: "निवारण केलेल्या तक्रारी",
+      healthIndex: "शहर आरोग्य निर्देशांक",
+      connectedWards: "डिजिटलाइज्ड प्रभाग",
+      telemetryLatency: "IoT सेन्सर गती",
+      leadershipTitle: "प्रशासकीय आणि सार्वजनिक नेतृत्व",
+      leadershipSubtitle: "कोपरगावला अधिक स्वच्छ आणि डिजिटल बनवण्यासाठी कटिबद्ध",
+      pmName: "श्री नरेंद्र मोदी",
+      pmRole: "माननीय पंतप्रधान, भारत सरकार",
+      cmName: "श्री एकनाथ शिंदे",
+      cmRole: "माननीय मुख्यमंत्री, महाराष्ट्र राज्य",
+      coName: "डॉ. समीर कुलकर्णी (IAS)",
+      coRole: "मुख्य अधिकारी आणि प्रशासक, कोपरगाव नगरपरिषद",
+      coMessage: "\"डिजिटल ट्विन तंत्रज्ञान कोपरगावच्या नागरिकांना जलद आणि पारदर्शक सेवा पुरवण्यासाठी महत्त्वाचे पाऊल आहे. आम्ही नागरिकांच्या सोयीसाठी सदैव तत्पर आहोत.\"",
+      footerDis: "हे कोपरगाव नगरपरिषदेचे अधिकृत संकेतस्थळ आहे. सर्व मजकूर व माहिती महाराष्ट्र नगरपरिषद अधिनियमांनुसार नियंत्रित आहे.",
+      privacy: "गोपनीयता धोरण",
+      terms: "नियम आणि अटी",
+      contact: "हेल्पलाईन संपर्क"
+    }
+  };
+
+  const currentT = t[language];
+
+  // Services list mapping
+  const services = [
     {
-      icon: <Activity className="w-7 h-7 text-cyan-400" />,
-      title: "Real-time Telemetry",
-      description: "Continuous IoT sensor synchronization across all 28 wards monitoring water flow, grid loads, and road sensors."
+      icon: <DollarSign className="w-6 h-6 text-orange-600" />,
+      title: currentT.pTax,
+      desc: currentT.pTaxDesc,
+      tag: "TAX-ONLINE"
     },
     {
-      icon: <Bot className="w-7 h-7 text-purple-400" />,
-      title: "AI Auto-Classification",
-      description: "Machine learning triage engine automatically classifies citizen complaints, assigns severity ratings, and routes to departments."
+      icon: <Droplet className="w-6 h-6 text-blue-600" />,
+      title: currentT.wTax,
+      desc: currentT.wTaxDesc,
+      tag: "WATER-BILL"
     },
     {
-      icon: <Layers className="w-7 h-7 text-emerald-400" />,
-      title: "What-If Scenario Simulator",
-      description: "Run spatial city simulations to predict traffic impact, garbage truck fleet efficiency, and emergency response times."
+      icon: <FileText className="w-6 h-6 text-emerald-600" />,
+      title: currentT.birthCert,
+      desc: currentT.birthCertDesc,
+      tag: "CIVIL-REG"
     },
     {
-      icon: <Radio className="w-7 h-7 text-amber-400" />,
-      title: "Instant Grievance Tracking",
-      description: "End-to-end transparent resolution lifecycle tracking for citizens with automated notifications at every stage."
+      icon: <HeartHandshake className="w-6 h-6 text-purple-600" />,
+      title: currentT.grievance,
+      desc: currentT.grievanceDesc,
+      tag: "GRIEVANCE",
+      action: () => navigate('/citizen/login')
     },
     {
-      icon: <MapPin className="w-7 h-7 text-rose-400" />,
-      title: "GIS Vector Digital Twin",
-      description: "High-precision 3D GIS spatial overlay of Kopargaon infrastructure, Godavari river basin, and municipal boundaries."
+      icon: <Building2 className="w-6 h-6 text-indigo-600" />,
+      title: currentT.tradeLicense,
+      desc: currentT.tradeLicenseDesc,
+      tag: "TRADE-LIC"
     },
     {
-      icon: <Zap className="w-7 h-7 text-blue-400" />,
-      title: "Predictive Maintenance",
-      description: "Proactive infrastructure monitoring that predicts pipe leakages and road damage before public disruptions occur."
+      icon: <Layers className="w-6 h-6 text-amber-600" />,
+      title: currentT.buildingPlan,
+      desc: currentT.buildingPlanDesc,
+      tag: "TOWN-PLAN"
     }
   ];
 
-  const techStack = [
-    { name: "React 18", category: "Core UI", icon: "⚛️" },
-    { name: "Tailwind CSS", category: "Styling System", icon: "🎨" },
-    { name: "Framer Motion", category: "Animation", icon: "✨" },
-    { name: "Lucide React", category: "Iconography", icon: "💎" },
-    { name: "Recharts", category: "Data Analytics", icon: "📊" },
-    { name: "AI Decision Engine", category: "Machine Learning", icon: "🧠" }
-  ];
-
-  const team = [
-    { name: "Er. Rajesh Deshmukh", role: "Chief Smart City Architect", dept: "Public Works Department" },
-    { name: "Dr. Ananya Kulkarni", role: "Lead AI Systems Engineer", dept: "Digital Twin Lab" },
-    { name: "Vikram Patil", role: "GIS Data Operations Lead", dept: "Municipal Planning" }
-  ];
+  // Font sizing helper classes
+  const fontClass = () => {
+    if (fontSize === 'small') return 'text-xs';
+    if (fontSize === 'large') return 'text-lg';
+    return 'text-sm';
+  };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 overflow-hidden relative">
-      {/* Background Cyber Grid */}
-      <div className="absolute inset-0 bg-grid-cyber opacity-25 pointer-events-none"></div>
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute top-1/3 -right-40 w-96 h-96 bg-purple-500/15 rounded-full blur-3xl pointer-events-none"></div>
+    <div className={`min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-orange-500 selection:text-white ${fontSize === 'large' ? 'text-lg' : fontSize === 'small' ? 'text-sm' : ''}`}>
+      
+      {/* 1. OFFICIAL GOVT TRICOLOR TOP BAR */}
+      <div className="w-full bg-slate-900 text-slate-300 text-[11px] font-medium border-b border-slate-800 z-50 relative">
+        {/* Tricolor Stripe */}
+        <div className="h-[4px] w-full flex">
+          <div className="h-full w-1/3 bg-[#FF9933]"></div>
+          <div className="h-full w-1/3 bg-white"></div>
+          <div className="h-full w-1/3 bg-[#138808]"></div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-8 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <span className="hidden sm:inline border-r border-slate-700 pr-3">{currentT.govtOfIndia}</span>
+            <span>{currentT.govtOfMaha}</span>
+          </div>
 
-      {/* 1. STICKY NAVBAR */}
-      <header className="sticky top-0 z-40 backdrop-blur-xl bg-slate-950/80 border-b border-slate-800/80 transition-all">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 p-0.5 shadow-lg shadow-cyan-500/20">
-              <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-                <Building2 className="w-6 h-6 text-cyan-400" />
+          <div className="flex items-center gap-4">
+            {/* Screen Reader */}
+            <a href="#accessibility" className="hover:text-white transition-colors">{currentT.accessibility}</a>
+            
+            {/* Font Resize controls */}
+            <div className="flex items-center gap-1 border-l border-slate-700 pl-3">
+              <button 
+                onClick={() => setFontSize('small')} 
+                className={`w-5 h-5 flex items-center justify-center rounded border transition-colors ${fontSize === 'small' ? 'bg-orange-500 border-orange-500 text-white' : 'border-slate-700 hover:border-slate-500'}`}
+                title="Decrease Font Size"
+              >
+                A-
+              </button>
+              <button 
+                onClick={() => setFontSize('normal')} 
+                className={`w-5 h-5 flex items-center justify-center rounded border transition-colors ${fontSize === 'normal' ? 'bg-orange-500 border-orange-500 text-white' : 'border-slate-700 hover:border-slate-500'}`}
+                title="Normal Font Size"
+              >
+                A
+              </button>
+              <button 
+                onClick={() => setFontSize('large')} 
+                className={`w-5 h-5 flex items-center justify-center rounded border transition-colors ${fontSize === 'large' ? 'bg-orange-500 border-orange-500 text-white' : 'border-slate-700 hover:border-slate-500'}`}
+                title="Increase Font Size"
+              >
+                A+
+              </button>
+            </div>
+
+            {/* Bilingual Switcher */}
+            <div className="flex items-center rounded overflow-hidden border border-slate-700">
+              <button 
+                onClick={() => setLanguage('en')} 
+                className={`px-2 py-0.5 font-bold transition-all ${language === 'en' ? 'bg-orange-500 text-slate-900' : 'bg-slate-900 text-slate-400 hover:text-white'}`}
+              >
+                EN
+              </button>
+              <button 
+                onClick={() => setLanguage('mr')} 
+                className={`px-2 py-0.5 font-bold transition-all ${language === 'mr' ? 'bg-orange-500 text-slate-900' : 'bg-slate-900 text-slate-400 hover:text-white'}`}
+              >
+                मराठी
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. OFFICIAL MUNICIPAL HEADER */}
+      <header className="bg-white border-b border-slate-200 shadow-sm relative z-40 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
+          
+          {/* Logo Brand */}
+          <div className="flex items-center gap-4 text-center md:text-left">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 p-0.5 flex items-center justify-center shadow-md">
+              <div className="w-full h-full bg-white rounded-[14px] flex items-center justify-center">
+                {/* State Emblem/Seal Stylized Silhouette */}
+                <svg viewBox="0 0 100 100" className="w-12 h-12 text-orange-600">
+                  <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" strokeWidth="3" />
+                  <path d="M 30 70 Q 50 20, 70 70 Z" fill="none" stroke="currentColor" strokeWidth="4" />
+                  <circle cx="50" cy="45" r="10" fill="currentColor" />
+                  <line x1="50" y1="55" x2="50" y2="80" stroke="currentColor" strokeWidth="4" />
+                  <line x1="38" y1="75" x2="62" y2="75" stroke="currentColor" strokeWidth="3" />
+                </svg>
               </div>
             </div>
             <div>
-              <span className="font-extrabold text-lg tracking-tight text-slate-100 block leading-tight">
-                KOPARGAON <span className="text-cyan-400">DIGITAL TWIN</span>
-              </span>
-              <span className="text-[10px] font-mono uppercase tracking-widest text-cyan-500/80 block">
-                Municipal Decision Support System
-              </span>
+              <h1 className="font-black text-xl lg:text-2xl text-gov-navy tracking-tight leading-tight">
+                {currentT.title}
+              </h1>
+              <p className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                {currentT.subtitle}
+              </p>
+              <div className="inline-block px-2.5 py-0.5 bg-orange-50 text-[10px] text-orange-700 font-bold border border-orange-200 rounded-full mt-1">
+                🌐 {currentT.tagline}
+              </div>
             </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
-            <a href="#features" className="hover:text-cyan-400 transition-colors">Features</a>
-            <a href="#about" className="hover:text-cyan-400 transition-colors">About Twin</a>
-            <a href="#tech" className="hover:text-cyan-400 transition-colors">Technology</a>
-            <a href="#team" className="hover:text-cyan-400 transition-colors">Leadership</a>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/citizen/login')}
-              className="px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg border border-slate-700 hover:border-cyan-500/50 bg-slate-900 text-slate-200 hover:text-cyan-400 transition-all"
-            >
-              Citizen Login
-            </button>
-            <button
-              onClick={() => navigate('/municipality/loading')}
-              className="px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-slate-950 hover:opacity-90 shadow-md shadow-cyan-500/20 transition-all flex items-center gap-1.5"
-            >
-              <ShieldCheck className="w-4 h-4" />
-              Officer Access
-            </button>
+          {/* Central Government Partners & Digital India badges */}
+          <div className="hidden lg:flex items-center gap-6">
+            <div className="flex flex-col items-end border-r border-slate-200 pr-5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Digital India</span>
+              <span className="text-sm font-black text-blue-700">डिजिटल इंडिया</span>
+            </div>
+            <div className="flex flex-col items-end border-r border-slate-200 pr-5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Swachh Bharat</span>
+              <span className="text-sm font-black text-emerald-700">स्वच्छ भारत अभियान</span>
+            </div>
+            <div className="text-right">
+              <span className="block text-[10px] text-slate-400 font-bold">HELPLINE TOLL-FREE</span>
+              <span className="block text-base font-extrabold text-gov-navy">1800-233-1042</span>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* HERO SECTION */}
-      <section className="relative pt-12 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="text-center max-w-4xl mx-auto mb-16">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 text-xs font-mono mb-6"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            AI-POWERED SMART CITY DECISION SUPPORT SYSTEM
-          </motion.div>
+      {/* 3. SCROLLING NOTICE MARQUEE */}
+      <div className="bg-orange-500/10 border-b border-orange-200 text-gov-navy py-2 px-4 relative overflow-hidden z-30">
+        <div className="max-w-7xl mx-auto flex items-center gap-3">
+          <div className="bg-orange-600 text-white text-[10px] font-bold px-2 py-1 rounded shrink-0 flex items-center gap-1 shadow-sm uppercase">
+            <Volume2 className="w-3.5 h-3.5" />
+            {currentT.announcements}
+          </div>
+          <div className="animate-marquee-container overflow-hidden relative w-full h-5 flex items-center">
+            <div className="animate-marquee whitespace-nowrap text-xs font-semibold select-none flex gap-8">
+              <span>{currentT.marqueeText}</span>
+              <span>{currentT.marqueeText}</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-4xl sm:text-6xl font-extrabold tracking-tight mb-4 text-slate-100"
-          >
-            AI Digital Twin of <span className="text-gradient-cyan">Kopargaon</span>
-          </motion.h1>
+      {/* 4. MAIN HERO BANNER & PORTAL SELECTIONS */}
+      <main className="relative py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        {/* Welcome Section Banner */}
+        <div className="bg-gradient-to-r from-[#002B49] via-slate-900 to-gov-navy rounded-3xl p-8 lg:p-12 text-white shadow-xl mb-12 relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(249,115,22,0.12),transparent_60%)] pointer-events-none"></div>
+          
+          <div className="max-w-3xl relative z-10 space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/20 border border-orange-500/40 text-orange-400 text-xs font-semibold">
+              <Sparkles className="w-3.5 h-3.5" /> Smart Governance e-Infrastructure
+            </div>
+            
+            <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
+              {language === 'en' ? (
+                <>Smart Administration for <span className="text-orange-400">Kopargaon</span> Municipal Council</>
+              ) : (
+                <>कोपरगाव नगरपरिषदेचा <span className="text-orange-400">डिजिटल कारभार</span> - जलद आणि सुलभ</>
+              )}
+            </h2>
+            
+            <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+              {language === 'en' 
+                ? "This is the unified administrative framework of Kopargaon Municipal Council. Residents can register grievances, review spatial water and waste sensor telemetry, and check direct utility connections in real time."
+                : "कोपरगाव नगरपरिषदेच्या अधिकृत प्रणालीमध्ये आपले स्वागत आहे. नागरिक येथे त्यांच्या तक्रारी नोंदवू शकतात, कचरा व पाणी पुरवठ्याची रिअल-टाइम स्थिती पाहू शकतात आणि सर्व प्रकारच्या दाखल्यांसाठी अर्ज करू शकतात."
+              }
+            </p>
+          </div>
 
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-lg sm:text-xl font-mono text-cyan-400 tracking-widest uppercase mb-6"
-          >
-            Monitor • Predict • Simulate • Manage
-          </motion.p>
-
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="text-slate-300 text-base sm:text-lg max-w-3xl mx-auto leading-relaxed mb-12"
-          >
-            A state-of-the-art municipal decision platform bridging citizens and Kopargaon Municipal Corporation. Real-time GIS monitoring, automated AI complaint classification, predictive maintenance, and what-if urban simulations in one unified engine.
-          </motion.p>
-
-          {/* TWO MAIN PORTAL SELECTION CARDS (CENTERED) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-16 text-left">
-            {/* CARD 1: CITIZEN PORTAL */}
+          {/* TWO PRINCIPAL PORTALS ACCESSIBLE */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10 text-slate-800">
+            
+            {/* PORTAL A: CITIZEN GATEWAY */}
             <motion.div
-              whileHover={{ y: -8, scale: 1.02 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="glass-panel p-8 rounded-3xl border border-sky-500/30 relative overflow-hidden group shadow-xl hover:shadow-sky-500/20"
+              whileHover={{ y: -4 }}
+              className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-lg flex flex-col justify-between"
             >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/10 rounded-full blur-2xl group-hover:bg-sky-500/25 transition-all"></div>
-              
-              <div className="w-14 h-14 rounded-2xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-sky-400 mb-6 group-hover:scale-110 transition-transform">
-                <UserCheck className="w-7 h-7" />
+              <div>
+                <div className="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center mb-5 border border-orange-100">
+                  <UserCheck className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-extrabold text-gov-navy flex items-center gap-2 mb-2">
+                  👤 {currentT.citizenTitle}
+                </h3>
+                <p className="text-slate-600 text-xs leading-relaxed mb-6">
+                  {currentT.citizenDesc}
+                </p>
               </div>
-
-              <h3 className="text-2xl font-bold text-slate-100 mb-2 flex items-center gap-2">
-                👤 Citizen Portal
-              </h3>
-
-              <p className="text-slate-300 text-sm leading-relaxed mb-8">
-                Report city issues (Potholes, Garbage, Water Leakage, Traffic), track complaint resolution status live, and receive municipal city alerts in real-time.
-              </p>
 
               <button
                 onClick={() => navigate('/citizen/login')}
-                className="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-sky-500 to-emerald-500 hover:from-sky-400 hover:to-emerald-400 text-slate-950 font-bold flex items-center justify-center gap-2 shadow-lg shadow-sky-500/25 transition-all"
+                className="w-full py-3 px-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow-md shadow-orange-600/20 transition-all flex items-center justify-center gap-2 text-sm"
               >
-                Enter Citizen Portal
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                {currentT.citizenBtn}
+                <ArrowRight className="w-4 h-4" />
               </button>
             </motion.div>
 
-            {/* CARD 2: MUNICIPALITY PORTAL */}
+            {/* PORTAL B: MUNICIPAL OFFICERS COMMAND CENTER */}
             <motion.div
-              whileHover={{ y: -8, scale: 1.02 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="glass-panel p-8 rounded-3xl border border-purple-500/30 relative overflow-hidden group shadow-xl hover:shadow-purple-500/20"
+              whileHover={{ y: -4 }}
+              className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-lg flex flex-col justify-between"
             >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl group-hover:bg-purple-500/25 transition-all"></div>
-
-              <div className="w-14 h-14 rounded-2xl bg-purple-500/20 border border-purple-400/40 flex items-center justify-center text-purple-400 mb-6 group-hover:scale-110 transition-transform">
-                <Building2 className="w-7 h-7" />
+              <div>
+                <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center mb-5 border border-slate-200">
+                  <Building2 className="w-6 h-6" />
+                </div>
+                <h3 className="text-lg font-extrabold text-gov-navy flex items-center gap-2 mb-2">
+                  🏛 {currentT.municipalityTitle}
+                </h3>
+                <p className="text-slate-600 text-xs leading-relaxed mb-6">
+                  {currentT.municipalityDesc}
+                </p>
               </div>
-
-              <h3 className="text-2xl font-bold text-slate-100 mb-2 flex items-center gap-2">
-                🏛 Municipality Portal
-              </h3>
-
-              <p className="text-slate-300 text-sm leading-relaxed mb-8">
-                Monitor city operations, manage citizen complaints, access AI predictive insights, interactive GIS map overlays, and run urban What-if simulations.
-              </p>
 
               <button
                 onClick={() => navigate('/municipality/loading')}
-                className="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-cyan-400 via-purple-500 to-indigo-600 hover:opacity-95 text-slate-950 font-bold flex items-center justify-center gap-2 shadow-lg shadow-purple-500/25 transition-all"
+                className="w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 text-sm border border-slate-800"
               >
-                Enter Municipality Portal
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                <ShieldCheck className="w-4 h-4 text-orange-400" />
+                {currentT.municipalityBtn}
+                <ArrowRight className="w-4 h-4" />
               </button>
             </motion.div>
-          </div>
 
-          {/* ANIMATED STATISTICS */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto border border-slate-800 rounded-2xl p-6 bg-slate-900/60 backdrop-blur-md">
-            <div className="text-center p-3 border-r border-slate-800/80 last:border-r-0">
-              <div className="text-3xl font-extrabold text-cyan-400 font-mono">
-                {stats.complaints.toLocaleString()}+
-              </div>
-              <div className="text-xs text-slate-400 uppercase tracking-wider mt-1">Grievances Resolved</div>
-            </div>
-            <div className="text-center p-3 border-r border-slate-800/80 last:border-r-0">
-              <div className="text-3xl font-extrabold text-emerald-400 font-mono">
-                {stats.healthScore}/100
-              </div>
-              <div className="text-xs text-slate-400 uppercase tracking-wider mt-1">City Health Index</div>
-            </div>
-            <div className="text-center p-3 border-r border-slate-800/80 last:border-r-0">
-              <div className="text-3xl font-extrabold text-purple-400 font-mono">
-                {stats.wards}
-              </div>
-              <div className="text-xs text-slate-400 uppercase tracking-wider mt-1">Wards Connected</div>
-            </div>
-            <div className="text-center p-3">
-              <div className="text-3xl font-extrabold text-amber-400 font-mono">
-                {stats.latency} ms
-              </div>
-              <div className="text-xs text-slate-400 uppercase tracking-wider mt-1">IoT Telemetry Speed</div>
-            </div>
           </div>
         </div>
-      </section>
 
-      {/* SMART CITY GRAPHIC / ILLUSTRATION */}
-      <section className="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="glass-panel rounded-3xl p-8 border border-cyan-500/20 relative overflow-hidden">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-            <div className="space-y-4 max-w-xl">
-              <div className="inline-flex items-center gap-2 text-xs font-mono text-cyan-400 bg-cyan-950/60 px-3 py-1 rounded-full border border-cyan-500/30">
-                <Radio className="w-3.5 h-3.5 animate-pulse" /> LIVE GIS STREAM
+        {/* 5. ONLINE SERVICES GRID */}
+        <section className="py-8 mb-12">
+          <div className="text-center max-w-3xl mx-auto mb-10">
+            <h3 className="text-2xl font-extrabold text-gov-navy">{currentT.servicesTitle}</h3>
+            <p className="text-slate-500 text-xs mt-1">{currentT.servicesSubtitle}</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {services.map((srv, idx) => (
+              <div 
+                key={idx}
+                onClick={srv.action}
+                className={`p-6 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group ${srv.action ? 'cursor-pointer border-orange-200 hover:border-orange-400' : ''}`}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-slate-50 rounded-xl group-hover:bg-orange-50 transition-colors">
+                    {srv.icon}
+                  </div>
+                  <span className="text-[9px] font-mono font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded uppercase">
+                    {srv.tag}
+                  </span>
+                </div>
+                <h4 className="font-extrabold text-sm text-gov-navy mb-1.5 flex items-center gap-1.5">
+                  {srv.title}
+                  {srv.action && <ChevronRight className="w-4 h-4 text-orange-500" />}
+                </h4>
+                <p className="text-slate-500 text-xs leading-relaxed">{srv.desc}</p>
               </div>
-              <h2 className="text-3xl font-bold text-slate-100">
-                Kopargaon Spatial Digital Twin Network
-              </h2>
-              <p className="text-slate-300 text-sm leading-relaxed">
-                Integrating real-time spatial node telemetry from Sai Baba Temple corridor, Station Road, Godavari Riverbank, and Market Yard into a predictive AI neural network.
+            ))}
+          </div>
+        </section>
+
+        {/* 6. SPATIAL DIGITAL TWIN COMMAND BOARD (LIGHT ACCENT STYLE) */}
+        <section className="bg-slate-100/80 rounded-3xl p-8 border border-slate-200 relative overflow-hidden mb-12">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+            <div className="space-y-4 max-w-xl">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-orange-700 bg-orange-100 px-3 py-1 rounded-full border border-orange-200">
+                <Radio className="w-3.5 h-3.5 animate-pulse text-orange-600" />
+                {currentT.gisStream}
+              </span>
+              <h3 className="text-2xl lg:text-3xl font-extrabold text-gov-navy leading-tight">
+                {currentT.digitalTwinTitle}
+              </h3>
+              <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
+                {currentT.digitalTwinSubtitle}
               </p>
-              <div className="flex flex-wrap gap-4 text-xs font-mono text-slate-300 pt-2">
-                <span className="flex items-center gap-1.5 bg-slate-900/90 px-3 py-1.5 rounded-lg border border-slate-800">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" /> 28 Wards Active
-                </span>
-                <span className="flex items-center gap-1.5 bg-slate-900/90 px-3 py-1.5 rounded-lg border border-slate-800">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" /> 140+ Waste Sensors
-                </span>
-                <span className="flex items-center gap-1.5 bg-slate-900/90 px-3 py-1.5 rounded-lg border border-slate-800">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Godavari Flood Alert Grid
-                </span>
+
+              {/* Counter Statistics */}
+              <div className="grid grid-cols-2 gap-4 pt-2">
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                  <span className="block text-2xl font-black text-orange-600 font-mono">
+                    {stats.complaints.toLocaleString()}+
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                    {currentT.resolvedCount}
+                  </span>
+                </div>
+                
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                  <span className="block text-2xl font-black text-emerald-600 font-mono">
+                    {stats.healthScore}/100
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                    {currentT.healthIndex}
+                  </span>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                  <span className="block text-2xl font-black text-blue-600 font-mono">
+                    {stats.wards}
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                    {currentT.connectedWards}
+                  </span>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
+                  <span className="block text-2xl font-black text-amber-600 font-mono">
+                    {stats.latency} ms
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                    {currentT.telemetryLatency}
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Graphic representation */}
-            <div className="w-full md:w-96 h-64 bg-slate-900/90 rounded-2xl border border-cyan-500/30 p-4 relative overflow-hidden flex flex-col justify-between">
-              <div className="absolute inset-0 bg-grid-cyber opacity-40"></div>
-              <div className="flex items-center justify-between z-10 text-xs font-mono text-cyan-400">
-                <span>GIS NODE // KPG-CENTRAL</span>
+            {/* Smart City Vector Map Overview Representation */}
+            <div className="w-full lg:w-96 h-64 bg-slate-900 rounded-2xl border-2 border-slate-800 p-4 relative overflow-hidden flex flex-col justify-between text-white">
+              <div className="absolute inset-0 bg-grid-cyber opacity-20"></div>
+              
+              <div className="flex items-center justify-between z-10 text-[10px] font-mono text-orange-400">
+                <span>SYSTEM LIVE FEED // KPG-MUNICIPAL</span>
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
               </div>
+              
               <div className="relative z-10 flex items-center justify-center my-auto">
                 <div className="relative">
-                  <div className="w-32 h-32 rounded-full border-2 border-dashed border-cyan-500/50 animate-spin-slow flex items-center justify-center"></div>
-                  <Building2 className="w-12 h-12 text-cyan-400 absolute inset-0 m-auto" />
+                  <div className="w-24 h-24 rounded-full border border-dashed border-orange-500/50 animate-spin-slow flex items-center justify-center"></div>
+                  <Building2 className="w-8 h-8 text-orange-500 absolute inset-0 m-auto" />
                 </div>
               </div>
-              <div className="flex items-center justify-between z-10 text-[11px] text-slate-400 font-mono">
-                <span>Lat: 19.8913° N</span>
-                <span>Long: 74.4789° E</span>
+              
+              <div className="flex items-center justify-between z-10 text-[9px] text-slate-400 font-mono">
+                <span>Lat: 19.89° N</span>
+                <span>Long: 74.47° E</span>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* FEATURES GRID */}
-      <section id="features" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-3xl font-bold text-slate-100 mb-4">
-            Next-Gen Smart City Capabilities
-          </h2>
-          <p className="text-slate-400 text-sm">
-            Powered by modern cloud infrastructure, AI classification algorithms, and real-time citizen feedback loops.
-          </p>
-        </div>
+        {/* 7. LEADERSHIP DESK SECTION */}
+        <section className="py-8 border-t border-slate-200">
+          <div className="text-center max-w-3xl mx-auto mb-10">
+            <h3 className="text-2xl font-extrabold text-gov-navy">{currentT.leadershipTitle}</h3>
+            <p className="text-slate-500 text-xs mt-1">{currentT.leadershipSubtitle}</p>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {features.map((f, i) => (
-            <motion.div
-              key={i}
-              whileHover={{ y: -5 }}
-              className="glass-panel p-6 rounded-2xl border border-slate-800 hover:border-cyan-500/40 transition-all"
-            >
-              <div className="mb-4 p-3 bg-slate-900/80 rounded-xl w-fit border border-slate-800">
-                {f.icon}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            {/* PM Card */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center flex flex-col justify-between">
+              <div>
+                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-100 border-2 border-orange-500 flex items-center justify-center text-orange-600 font-extrabold text-2xl shadow-inner">
+                  NM
+                </div>
+                <h4 className="font-extrabold text-base text-slate-800">{currentT.pmName}</h4>
+                <p className="text-xs text-slate-400 font-semibold">{currentT.pmRole}</p>
               </div>
-              <h3 className="text-lg font-bold text-slate-100 mb-2">{f.title}</h3>
-              <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">{f.description}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
+              <p className="text-[10px] text-slate-500 italic mt-4 border-t border-slate-100 pt-3">
+                "Promoting Digital India across municipal administrations to build high-trust governance."
+              </p>
+            </div>
 
-      {/* ABOUT SECTION */}
-      <section id="about" className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="glass-panel p-8 sm:p-12 rounded-3xl border border-slate-800 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <span className="text-xs font-mono text-purple-400 uppercase tracking-widest block mb-2">ABOUT THE PLATFORM</span>
-            <h2 className="text-3xl font-bold text-slate-100 mb-4">
-              Digitizing Kopargaon Municipal Corporation
-            </h2>
-            <p className="text-slate-300 text-sm leading-relaxed mb-6">
-              Kopargaon is an essential urban center in Maharashtra along the Godavari river. The AI Digital Twin creates a virtual real-time replica of the city’s physical assets, civic grievances, and municipal resources to facilitate data-backed governance.
-            </p>
+            {/* CM Card */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center flex flex-col justify-between">
+              <div>
+                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-100 border-2 border-orange-500 flex items-center justify-center text-orange-600 font-extrabold text-2xl shadow-inner">
+                  ES
+                </div>
+                <h4 className="font-extrabold text-base text-slate-800">{currentT.cmName}</h4>
+                <p className="text-xs text-slate-400 font-semibold">{currentT.cmRole}</p>
+              </div>
+              <p className="text-[10px] text-slate-500 italic mt-4 border-t border-slate-100 pt-3">
+                "Bringing cutting edge digital infrastructure directly to the municipal levels in Maharashtra."
+              </p>
+            </div>
+
+            {/* Chief Officer Card */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center flex flex-col justify-between border-l-4 border-l-orange-500">
+              <div>
+                <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-slate-100 border-2 border-orange-500 flex items-center justify-center text-orange-600 font-extrabold text-2xl shadow-inner">
+                  CO
+                </div>
+                <h4 className="font-extrabold text-base text-slate-800">{currentT.coName}</h4>
+                <p className="text-xs text-slate-400 font-semibold">{currentT.coRole}</p>
+              </div>
+              <p className="text-[11px] text-gov-navy font-semibold italic mt-4 border-t border-slate-100 pt-3 leading-relaxed">
+                {currentT.coMessage}
+              </p>
+            </div>
+
+          </div>
+        </section>
+
+      </main>
+
+      {/* 8. FOOTER REDESIGN */}
+      <footer className="bg-slate-900 text-slate-400 text-xs py-12 border-t-4 border-gov-saffron">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="space-y-3">
-              <div className="flex items-start gap-3 text-sm text-slate-300">
-                <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
-                <span>Automated triage reduces grievance resolution delay by over 60%.</span>
-              </div>
-              <div className="flex items-start gap-3 text-sm text-slate-300">
-                <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
-                <span>Interactive what-if simulations help optimize waste truck routes and road repair budgets.</span>
-              </div>
-              <div className="flex items-start gap-3 text-sm text-slate-300">
-                <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
-                <span>Transparent tracking empowers citizens with live progress status.</span>
-              </div>
+              <span className="font-extrabold text-slate-200 block text-sm tracking-wide">
+                {currentT.title}
+              </span>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                {currentT.footerDis}
+              </p>
+            </div>
+
+            <div>
+              <span className="font-bold text-slate-300 block mb-3 uppercase tracking-wider text-[11px]">Govt Portals</span>
+              <ul className="space-y-1.5 text-[11px]">
+                <li><a href="https://india.gov.in" target="_blank" rel="noopener noreferrer" className="hover:text-orange-400 transition-colors">National Portal of India</a></li>
+                <li><a href="https://maharashtra.gov.in" target="_blank" rel="noopener noreferrer" className="hover:text-orange-400 transition-colors">Government of Maharashtra</a></li>
+                <li><a href="https://mygov.in" target="_blank" rel="noopener noreferrer" className="hover:text-orange-400 transition-colors">MyGov Digital Hub</a></li>
+              </ul>
+            </div>
+
+            <div>
+              <span className="font-bold text-slate-300 block mb-3 uppercase tracking-wider text-[11px]">Quick Links</span>
+              <ul className="space-y-1.5 text-[11px]">
+                <li><span className="hover:text-orange-400 cursor-pointer">{currentT.privacy}</span></li>
+                <li><span className="hover:text-orange-400 cursor-pointer">{currentT.terms}</span></li>
+                <li><span className="hover:text-orange-400 cursor-pointer">{currentT.contact}</span></li>
+              </ul>
+            </div>
+
+            <div>
+              <span className="font-bold text-slate-300 block mb-3 uppercase tracking-wider text-[11px]">Contact Address</span>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Kopargaon Municipal Council Office,<br />
+                Station Road, Kopargaon,<br />
+                District Ahmednagar, Maharashtra - 423601<br />
+                📩 support@kopargaon.gov.in
+              </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-slate-900/90 p-6 rounded-2xl border border-slate-800 text-center">
-              <Database className="w-8 h-8 text-cyan-400 mx-auto mb-3" />
-              <div className="text-2xl font-bold text-slate-100">28 Wards</div>
-              <div className="text-xs text-slate-400 mt-1">Spatial Mapping</div>
+          <div className="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] text-slate-500">
+            <div>
+              © 2026 Kopargaon Municipal Council. All Rights Reserved.
             </div>
-            <div className="bg-slate-900/90 p-6 rounded-2xl border border-slate-800 text-center">
-              <Cpu className="w-8 h-8 text-purple-400 mx-auto mb-3" />
-              <div className="text-2xl font-bold text-slate-100">98.4%</div>
-              <div className="text-xs text-slate-400 mt-1">AI Classifier Accuracy</div>
-            </div>
-            <div className="bg-slate-900/90 p-6 rounded-2xl border border-slate-800 text-center">
-              <Globe className="w-8 h-8 text-emerald-400 mx-auto mb-3" />
-              <div className="text-2xl font-bold text-slate-100">24/7</div>
-              <div className="text-xs text-slate-400 mt-1">Grievance Desk</div>
-            </div>
-            <div className="bg-slate-900/90 p-6 rounded-2xl border border-slate-800 text-center">
-              <ShieldCheck className="w-8 h-8 text-amber-400 mx-auto mb-3" />
-              <div className="text-2xl font-bold text-slate-100">Encrypted</div>
-              <div className="text-xs text-slate-400 mt-1">Government Security</div>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded bg-slate-800 text-[9px] font-mono text-orange-400">NIC STYLED SECURE PORTAL</span>
+              <span>v4.2</span>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* TECHNOLOGY SECTION */}
-      <section id="tech" className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <h2 className="text-3xl font-bold text-slate-100 mb-3">Enterprise Stack</h2>
-          <p className="text-slate-400 text-sm">Built with industry standard high-performance technology components.</p>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          {techStack.map((t, idx) => (
-            <div key={idx} className="bg-slate-900/70 p-5 rounded-2xl border border-slate-800 text-center hover:border-cyan-500/40 transition-colors">
-              <div className="text-3xl mb-2">{t.icon}</div>
-              <div className="font-bold text-sm text-slate-200">{t.name}</div>
-              <div className="text-[11px] font-mono text-cyan-400 mt-1">{t.category}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* TEAM SECTION */}
-      <section id="team" className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <h2 className="text-3xl font-bold text-slate-100 mb-3">Municipal Leadership & Development</h2>
-          <p className="text-slate-400 text-sm">Driven by Kopargaon Municipal Corporation innovation cell.</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {team.map((m, idx) => (
-            <div key={idx} className="glass-panel p-6 rounded-2xl border border-slate-800 text-center">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-tr from-cyan-500 to-purple-600 p-0.5">
-                <div className="w-full h-full bg-slate-950 rounded-full flex items-center justify-center text-cyan-400 font-bold text-xl">
-                  {m.name.charAt(0)}
-                </div>
-              </div>
-              <h3 className="font-bold text-base text-slate-100">{m.name}</h3>
-              <p className="text-xs font-mono text-cyan-400 mt-1">{m.role}</p>
-              <p className="text-xs text-slate-400 mt-2">{m.dept}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* FOOTER */}
-      <footer className="border-t border-slate-800 bg-slate-950/90 py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6 text-slate-400 text-xs">
-          <div className="flex items-center gap-3">
-            <Building2 className="w-5 h-5 text-cyan-400" />
-            <span className="font-semibold text-slate-200">Kopargaon Municipal Corporation - AI Digital Twin</span>
-          </div>
-          <div>
-            © 2026 Kopargaon Smart City Decision Support System. All Rights Reserved.
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="hover:text-slate-200 cursor-pointer">Privacy Policy</span>
-            <span className="hover:text-slate-200 cursor-pointer">Terms of Service</span>
-            <span className="hover:text-slate-200 cursor-pointer">Helpline: 1800-233-1042</span>
-          </div>
         </div>
       </footer>
+
     </div>
   );
 };

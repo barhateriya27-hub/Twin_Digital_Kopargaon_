@@ -25,10 +25,10 @@ export const MunicipalityWowScreen = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center relative overflow-hidden px-4 selection:bg-cyan-500 selection:text-slate-950">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center relative overflow-hidden px-4 selection:bg-orange-500 selection:text-white">
       {/* Background Cyber Glow */}
       <div className="absolute inset-0 bg-grid-cyber opacity-35 pointer-events-none"></div>
-      <div className="absolute w-[700px] h-[700px] bg-cyan-500/15 rounded-full blur-3xl pointer-events-none animate-pulse"></div>
+      <div className="absolute w-[700px] h-[700px] bg-orange-500/15 rounded-full blur-3xl pointer-events-none animate-pulse"></div>
       <div className="absolute w-[500px] h-[500px] bg-purple-500/15 rounded-full blur-3xl pointer-events-none"></div>
 
       <motion.div
@@ -46,10 +46,10 @@ export const MunicipalityWowScreen = () => {
           <CheckCircle2 className="w-4 h-4 text-emerald-400" /> SYSTEM DIAGNOSTICS CLEARED
         </motion.div>
 
-        <h1 className="text-3xl sm:text-5xl font-black tracking-tight mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-purple-400">
+        <h1 className="text-3xl sm:text-5xl font-black tracking-tight mb-2 text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-sky-300 to-purple-400">
           AI DIGITAL TWIN OF KOPARGAON
         </h1>
-        <p className="text-sm sm:text-base font-mono text-cyan-400 tracking-widest uppercase mb-10">
+        <p className="text-sm sm:text-base font-mono text-orange-400 tracking-widest uppercase mb-10">
           SMART CITY CONTROL CENTER
         </p>
 
@@ -78,9 +78,9 @@ export const MunicipalityWowScreen = () => {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.6 }}
-          className="p-6 rounded-2xl bg-gradient-to-r from-cyan-950/90 via-slate-900 to-purple-950/90 border border-cyan-400/50 shadow-2xl shadow-cyan-500/20"
+          className="p-6 rounded-2xl bg-gradient-to-r from-orange-950/90 via-slate-900 to-purple-950/90 border border-orange-400/50 shadow-2xl shadow-orange-500/20"
         >
-          <span className="text-xl sm:text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-purple-300 tracking-wide uppercase">
+          <span className="text-xl sm:text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-300 to-purple-300 tracking-wide uppercase">
             Welcome, Municipal Officer
           </span>
           <p className="text-xs font-mono text-slate-400 mt-1">Initializing Officer Authentication Protocol...</p>

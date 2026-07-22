@@ -1,49 +1,55 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ShieldAlert, Home, ArrowLeft } from 'lucide-react';
+import { ShieldAlert, Home } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const NotFoundPage = () => {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center relative overflow-hidden px-4">
-      {/* Background Cyber Grid */}
-      <div className="absolute inset-0 bg-grid-cyber opacity-30 pointer-events-none"></div>
-      <div className="absolute w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col justify-between selection:bg-orange-500 selection:text-white">
+      
+      {/* Tricolor Ribbon */}
+      <div className="h-[4px] w-full flex shrink-0">
+        <div className="h-full w-1/3 bg-[#FF9933]"></div>
+        <div className="h-full w-1/3 bg-white"></div>
+        <div className="h-full w-1/3 bg-[#138808]"></div>
+      </div>
 
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="max-w-lg w-full text-center relative z-10 glass-panel p-10 rounded-3xl border border-cyan-500/30 shadow-2xl"
-      >
-        <div className="w-20 h-20 mx-auto mb-6 bg-cyan-500/10 border border-cyan-400/40 rounded-2xl flex items-center justify-center text-cyan-400">
-          <ShieldAlert className="w-10 h-10 animate-pulse" />
-        </div>
+      <main className="flex-1 flex items-center justify-center p-4">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-lg w-full text-center bg-white rounded-3xl p-10 border border-slate-200 shadow-xl shadow-slate-200/50"
+        >
+          <div className="w-16 h-16 mx-auto mb-6 bg-orange-50 border border-orange-200 rounded-2xl flex items-center justify-center text-orange-600">
+            <ShieldAlert className="w-9 h-9" />
+          </div>
 
-        <h1 className="text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 mb-2 tracking-tight">
-          404
-        </h1>
-        <h2 className="text-2xl font-bold text-slate-100 mb-4">
-          Digital Coordinates Not Found
-        </h2>
-        <p className="text-slate-400 text-sm mb-8 leading-relaxed">
-          The requested Smart City GIS vector node or route does not exist in the Kopargaon Digital Twin neural network.
-        </p>
+          <h1 className="text-5xl font-black text-gov-navy mb-2 tracking-tight">
+            404
+          </h1>
+          <h2 className="text-xl font-bold text-slate-800 mb-3">
+            पृष्ठ आढळले नाही / Page Not Found
+          </h2>
+          <p className="text-slate-500 text-xs sm:text-sm mb-8 leading-relaxed">
+            The requested page or municipal service does not exist on the Kopargaon Municipal Council e-Portal.<br />
+            आपण शोधत असलेले पृष्ठ किंवा सेवा कोपरगाव नगरपरिषद ई-पोर्टलवर उपलब्ध नाही.
+          </p>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link
-            to="/"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold shadow-lg shadow-cyan-500/25 transition-all duration-300"
-          >
-            <Home className="w-5 h-5" />
-            Return to Home
-          </Link>
-        </div>
+          <div className="flex justify-center">
+            <Link
+              to="/"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold shadow-md shadow-orange-600/20 transition-all text-sm uppercase tracking-wide"
+            >
+              <Home className="w-4 h-4" />
+              मुख्यपृष्ठ / Return to Home
+            </Link>
+          </div>
+        </motion.div>
+      </main>
 
-        <div className="mt-8 pt-6 border-t border-slate-800 text-xs text-slate-500 flex items-center justify-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-          Kopargaon Smart City GIS Node Diagnostic
-        </div>
-      </motion.div>
+      <footer className="py-4 text-center text-xs text-slate-500 border-t border-slate-200 bg-white shrink-0">
+        कोपरगाव नगरपरिषद • हेल्पलाईन: 1800-233-1042 | support@kopargaon.gov.in
+      </footer>
     </div>
   );
 };
