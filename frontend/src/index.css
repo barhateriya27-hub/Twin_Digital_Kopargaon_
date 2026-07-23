@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  overflow-x: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Enterprise Design Tokens & Utilities */
+.bg-enterprise-bg {
+  background-color: #F8FAFC;
+}
+
+.dark .bg-enterprise-bg {
+  background-color: #0B0F17;
+}
+
+.bg-enterprise-card {
+  background-color: #FFFFFF;
+}
+
+.dark .bg-enterprise-card {
+  background-color: #111827;
+}
+
+.border-enterprise {
+  border-color: #E2E8F0;
+}
+
+.dark .border-enterprise {
+  border-color: #1E293B;
+}
+
+/* Subtle Active Nav Pill */
+.nav-active-indicator {
+  position: relative;
+}
+
+.nav-active-indicator::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  background-color: #0A2540;
+  border-radius: 0 2px 2px 0;
+}
+
+.dark .nav-active-indicator::before {
+  background-color: #38BDF8;
+}
+
+/* Enterprise Card Hover */
+.card-hover-subtle {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover-subtle:hover {
+  border-color: #CBD5E1;
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.05);
+}
+
+.dark .card-hover-subtle:hover {
+  border-color: #334155;
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.3);
+}
+
+/* Enterprise Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #0F172A;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 3px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Tricolor Banner Accent */
+.bg-gov-saffron { background-color: #FF9933; }
+.bg-gov-green { background-color: #138808; }
+.bg-gov-navy { background-color: #0A2540; }
+
+/* Smooth transitions for theme switching */
+.min-h-screen, header, footer, aside, section, div, button, table, th, td, tr, input, select, textarea, h1, h2, h3, h4, h5, p, span {
+  transition-property: background-color, border-color, text-color, box-shadow;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
