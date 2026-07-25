@@ -258,7 +258,7 @@ export const KopargaonMap = ({ onSelectComplaint }) => {
       />
 
       {/* Main Canvas Area */}
-      <div className="relative w-full h-[460px] bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden flex">
+      <div className="relative w-full h-[320px] sm:h-[450px] lg:h-[550px] bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden flex">
         
         {/* Layer Controls Panel Drawer */}
         <AnimatePresence>

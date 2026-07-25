@@ -1,31 +1,34 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { UserCheck, Mail, Lock, ArrowRight, Home, Sparkles, LogIn, ShieldAlert } from 'lucide-react';
+import { UserCheck, Mail, Lock, ArrowRight, Home, Sparkles, LogIn, ShieldAlert, KeyRound, CreditCard } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { ForgotPasswordModal } from '../../components/ForgotPasswordModal';
 
 export const CitizenLogin = () => {
   const navigate = useNavigate();
   const { loginCitizen, showToast } = useApp();
-  const [email, setEmail] = useState('');
+
+  const [identifier, setIdentifier] = useState(''); // Email or Aadhaar
   const [password, setPassword] = useState('');
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!email || !password) {
-      showToast('Please enter both email and password / कृपया ईमेल आणि संकेतशब्द दोन्ही प्रविष्ट करा', 'warning');
+    if (!identifier || !password) {
+      showToast('Please enter both Email/Aadhaar and password / कृपया ईमेल/आधार आणि संकेतशब्द प्रविष्ट करा', 'warning');
       return;
     }
-    const success = loginCitizen(email, password);
+    const success = loginCitizen(identifier, password);
     if (success) {
       navigate('/citizen/dashboard');
     }
   };
 
   const handleDemoFill = () => {
-    setEmail('citizen@kopargaon.gov.in');
+    setIdentifier('citizen@kopargaon.gov.in');
     setPassword('citizen123');
-    showToast('Demo Credentials Loaded / डेमो क्रेडेंशियल्स लोड केले', 'info');
+    showToast('Demo Citizen Credentials Loaded (Aadhaar: 1234-5678-9012)', 'info');
   };
 
   return (
@@ -74,7 +77,6 @@ export const CitizenLogin = () => {
         >
           <div className="text-center mb-8">
             <div className="w-14 h-14 mx-auto mb-4 bg-orange-50 dark:bg-orange-950/20 rounded-2xl flex items-center justify-center text-orange-600 border border-orange-100 dark:border-orange-900/30">
-              {/* State Emblem/Seal Stylized Silhouette */}
               <svg viewBox="0 0 100 100" className="w-8 h-8 text-orange-600">
                 <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" strokeWidth="4" />
                 <path d="M 35 70 Q 50 25, 65 70 Z" fill="none" stroke="currentColor" strokeWidth="5" />
@@ -88,16 +90,16 @@ export const CitizenLogin = () => {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                ईमेल पत्ता / Email Address
+                ईमेल पत्ता / आधार क्रमांक (Email or Aadhaar) *
               </label>
               <div className="relative">
                 <Mail className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white dark:focus:bg-slate-800 dark:bg-slate-800 transition-all text-sm font-semibold"
+                  type="text"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder="citizen@example.com OR 1234 5678 9012"
+                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
                   required
                 />
               </div>
@@ -105,7 +107,7 @@ export const CitizenLogin = () => {
 
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                संकेतशब्द / Password
+                संकेतशब्द / Password *
               </label>
               <div className="relative">
                 <Lock className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
@@ -114,7 +116,7 @@ export const CitizenLogin = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white dark:focus:bg-slate-800 dark:bg-slate-800 transition-all text-sm font-semibold"
+                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
                   required
                 />
               </div>
@@ -126,11 +128,15 @@ export const CitizenLogin = () => {
                 onClick={handleDemoFill}
                 className="text-orange-600 hover:text-orange-700 flex items-center gap-1"
               >
-                <Sparkles className="w-3.5 h-3.5" /> डेमो लॉगिन / Auto-fill Demo
+                <Sparkles className="w-3.5 h-3.5" /> डेमो क्रेडेंशियल्स / Demo Account
               </button>
-              <a href="#forgot" onClick={(e) => { e.preventDefault(); showToast('Password reset link sent to demo email', 'info'); }} className="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-300">
-                पासवर्ड विसरलात? / Forgot?
-              </a>
+              <button
+                type="button"
+                onClick={() => setIsForgotModalOpen(true)}
+                className="text-slate-500 hover:text-orange-600 dark:text-slate-400 dark:hover:text-orange-400 flex items-center gap-1 transition-colors"
+              >
+                <KeyRound className="w-3.5 h-3.5" /> पास्‍वार्ड विसरलात? / Forgot?
+              </button>
             </div>
 
             <div className="space-y-3 pt-2">
@@ -160,6 +166,12 @@ export const CitizenLogin = () => {
           </div>
         </motion.div>
       </main>
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={isForgotModalOpen}
+        onClose={() => setIsForgotModalOpen(false)}
+      />
 
       <footer className="py-4 text-center text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0">
         कोपरगाव नगरपरिषद • नागरी सेवा हेल्पलाईन: 1800-233-1042 | support@kopargaon.gov.in

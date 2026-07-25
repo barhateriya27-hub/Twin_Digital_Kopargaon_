@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { UserCheck, Mail, Lock, Phone, MapPin, Hash, User, Home, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { UserCheck, Mail, Lock, Phone, MapPin, Hash, User, Home, CheckCircle2, ShieldAlert, CreditCard, Building, Map } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 
@@ -12,6 +12,9 @@ export const CitizenRegister = () => {
     fullName: '',
     mobile: '',
     email: '',
+    aadhaar: '',
+    district: 'Ahilyanagar (Ahmednagar)',
+    city: 'Kopargaon',
     address: '',
     wardNumber: '4',
     password: '',
@@ -19,11 +22,47 @@ export const CitizenRegister = () => {
   });
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    let value = e.target.value;
+
+    // Formatting mask for Aadhaar: insert space every 4 digits
+    if (e.target.name === 'aadhaar') {
+      const clean = value.replace(/\D/g, '').slice(0, 12);
+      if (clean.length > 8) {
+        value = `${clean.slice(0, 4)} ${clean.slice(4, 8)} ${clean.slice(8, 12)}`;
+      } else if (clean.length > 4) {
+        value = `${clean.slice(0, 4)} ${clean.slice(4, 8)}`;
+      } else {
+        value = clean;
+      }
+    }
+
+    setFormData({ ...formData, [e.target.name]: value });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Mandatory Validation: District
+    const distClean = (formData.district || '').trim().toLowerCase();
+    if (!distClean.includes('ahilyanagar') && !distClean.includes('ahmednagar')) {
+      showToast('Mandatory Field Error: Only Ahilyanagar (Ahmednagar) district residents can create an account!', 'error');
+      return;
+    }
+
+    // Mandatory Validation: City
+    const cityClean = (formData.city || '').trim().toLowerCase();
+    if (!cityClean.includes('kopargaon')) {
+      showToast('Mandatory Field Error: Only Kopargaon city residents can create an account!', 'error');
+      return;
+    }
+
+    // Mandatory Validation: 12-Digit Aadhaar
+    const cleanAadhaar = (formData.aadhaar || '').replace(/\D/g, '');
+    if (cleanAadhaar.length !== 12) {
+      showToast('Please enter a valid 12-digit Aadhaar Number (उदा. 1234 5678 9012)!', 'warning');
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       showToast('Passwords do not match / संकेतशब्द जुळत नाहीत!', 'error');
       return;
@@ -74,31 +113,41 @@ export const CitizenRegister = () => {
         </div>
       </header>
 
-      {/* Main Form */}
+      {/* Main Registration Form */}
       <main className="flex-1 flex items-center justify-center p-4 py-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-2xl w-full bg-white dark:bg-slate-800 rounded-3xl p-8 border-t-4 border-t-orange-500 border-x border-b border-slate-200 dark:border-slate-700 shadow-xl shadow-slate-200/50"
+          className="max-w-2xl w-full bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 border-t-4 border-t-orange-500 border-x border-b border-slate-200 dark:border-slate-700 shadow-xl shadow-slate-200/50"
         >
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             <div className="w-14 h-14 mx-auto mb-3 bg-orange-50 dark:bg-orange-950/20 rounded-2xl flex items-center justify-center text-orange-600 border border-orange-100 dark:border-orange-900/30">
-              {/* State Emblem/Seal Stylized Silhouette */}
               <svg viewBox="0 0 100 100" className="w-8 h-8 text-orange-600">
                 <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" strokeWidth="4" />
                 <path d="M 35 70 Q 50 25, 65 70 Z" fill="none" stroke="currentColor" strokeWidth="5" />
                 <circle cx="50" cy="45" r="8" fill="currentColor" />
               </svg>
             </div>
-            <h1 className="text-xl font-black text-slate-900 dark:text-slate-100 mb-1">नवीन खाते नोंदणी / Citizen Registration</h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Smart City Portal Registration desk</p>
+            <h1 className="text-xl font-black text-slate-900 dark:text-slate-100 mb-1">नवीन नागरिक खाते नोंदणी / Citizen Account Registration</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Smart City Portal Identity Verification Desk</p>
+          </div>
+
+          {/* Mandatory Governance Advisory */}
+          <div className="mb-6 p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl text-xs text-amber-900 dark:text-amber-300 flex items-start gap-2.5 font-sans">
+            <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold">Mandatory Qualification Criteria</p>
+              <p className="text-[11px] opacity-95">
+                Registration is strictly permitted for residents of <strong>District: Ahilyanagar (Ahmednagar)</strong> and <strong>City: Kopargaon</strong> with a valid 12-digit Aadhaar number.
+              </p>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Full Name */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                पूर्ण नाव / Full Name
+                पूर्ण नाव / Full Name *
               </label>
               <div className="relative">
                 <User className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
@@ -108,35 +157,36 @@ export const CitizenRegister = () => {
                   value={formData.fullName}
                   onChange={handleChange}
                   placeholder="उदा. रमेश देशमुख / Ramesh Deshmukh"
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white dark:focus:bg-slate-800 dark:bg-slate-800 transition-all text-sm font-semibold"
+                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
                   required
                 />
               </div>
             </div>
 
-            {/* Mobile Number */}
+            {/* Aadhaar Number */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                मोबाईल क्रमांक / Mobile Number
+                आधार क्रमांक / 12-Digit Aadhaar *
               </label>
               <div className="relative">
-                <Phone className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
+                <CreditCard className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
                 <input
-                  type="tel"
-                  name="mobile"
-                  value={formData.mobile}
+                  type="text"
+                  name="aadhaar"
+                  value={formData.aadhaar}
                   onChange={handleChange}
-                  placeholder="+91 98765 43210"
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white dark:focus:bg-slate-800 dark:bg-slate-800 transition-all text-sm font-semibold"
+                  placeholder="1234 5678 9012"
+                  maxLength={14}
+                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-mono font-semibold"
                   required
                 />
               </div>
             </div>
 
-            {/* Email */}
+            {/* Email Address */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                ईमेल पत्ता / Email Address
+                ईमेल पत्ता / Email Address *
               </label>
               <div className="relative">
                 <Mail className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
@@ -146,16 +196,73 @@ export const CitizenRegister = () => {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="citizen@example.com"
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white dark:focus:bg-slate-800 dark:bg-slate-800 transition-all text-sm font-semibold"
+                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
                   required
                 />
+              </div>
+            </div>
+
+            {/* Mobile Number */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+                मोबाईल क्रमांक / Mobile Number *
+              </label>
+              <div className="relative">
+                <Phone className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
+                <input
+                  type="tel"
+                  name="mobile"
+                  value={formData.mobile}
+                  onChange={handleChange}
+                  placeholder="+91 98765 43210"
+                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* District (Mandatory Locked Field) */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+                जिल्हा / District (Mandatory) *
+              </label>
+              <div className="relative">
+                <Map className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
+                <select
+                  name="district"
+                  value={formData.district}
+                  onChange={handleChange}
+                  className="w-full pl-11 pr-4 py-3 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 focus:outline-none text-sm font-bold cursor-pointer"
+                  required
+                >
+                  <option value="Ahilyanagar (Ahmednagar)">Ahilyanagar (Ahmednagar) [Required]</option>
+                </select>
+              </div>
+            </div>
+
+            {/* City (Mandatory Locked Field) */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
+                शहर / City (Mandatory) *
+              </label>
+              <div className="relative">
+                <Building className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
+                <select
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  className="w-full pl-11 pr-4 py-3 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 focus:outline-none text-sm font-bold cursor-pointer"
+                  required
+                >
+                  <option value="Kopargaon">Kopargaon Municipal Corporation [Required]</option>
+                </select>
               </div>
             </div>
 
             {/* Ward Number */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                प्रभाग क्रमांक / Ward Number
+                प्रभाग क्रमांक / Ward Number *
               </label>
               <div className="relative">
                 <Hash className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
@@ -163,7 +270,7 @@ export const CitizenRegister = () => {
                   name="wardNumber"
                   value={formData.wardNumber}
                   onChange={handleChange}
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white dark:focus:bg-slate-800 dark:bg-slate-800 transition-all text-sm font-semibold appearance-none cursor-pointer"
+                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold cursor-pointer"
                   required
                 >
                   {wards.map(w => (
@@ -173,10 +280,10 @@ export const CitizenRegister = () => {
               </div>
             </div>
 
-            {/* Address */}
-            <div className="md:col-span-2">
+            {/* Residential Address */}
+            <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                रहिवासी पत्ता / Residential Address
+                रहिवासी पत्ता / Address *
               </label>
               <div className="relative">
                 <MapPin className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
@@ -186,7 +293,7 @@ export const CitizenRegister = () => {
                   value={formData.address}
                   onChange={handleChange}
                   placeholder="गल्ली, रस्ता, लँडमार्क, कोपरगाव - ४२३६०१"
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white dark:focus:bg-slate-800 dark:bg-slate-800 transition-all text-sm font-semibold"
+                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
                   required
                 />
               </div>
@@ -195,7 +302,7 @@ export const CitizenRegister = () => {
             {/* Password */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                संकेतशब्द / Password
+                संकेतशब्द / Password *
               </label>
               <div className="relative">
                 <Lock className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
@@ -205,7 +312,7 @@ export const CitizenRegister = () => {
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="••••••••"
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white dark:focus:bg-slate-800 dark:bg-slate-800 transition-all text-sm font-semibold"
+                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
                   required
                 />
               </div>
@@ -214,7 +321,7 @@ export const CitizenRegister = () => {
             {/* Confirm Password */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                संकेतशब्द पुष्टीकरण / Confirm Password
+                संकेतशब्द पुष्टीकरण / Confirm Password *
               </label>
               <div className="relative">
                 <Lock className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
@@ -224,7 +331,7 @@ export const CitizenRegister = () => {
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   placeholder="••••••••"
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white dark:focus:bg-slate-800 dark:bg-slate-800 transition-all text-sm font-semibold"
+                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
                   required
                 />
               </div>
@@ -236,7 +343,7 @@ export const CitizenRegister = () => {
                 className="w-full py-4 px-6 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow-lg shadow-orange-600/20 transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wide"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                नोंदणी पूर्ण करा / Register Account
+                खाते नोंदणी पूर्ण करा / Complete Citizen Registration
               </button>
             </div>
           </form>

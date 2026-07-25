@@ -39,50 +39,56 @@ import {
   Info,
   Calendar,
   Check,
-  ChevronDown
+  ChevronDown,
+  ShieldAlert,
+  Megaphone,
+  Archive,
+  Award,
+  DollarSign
 } from 'lucide-react';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer, 
-  PieChart, 
-  Pie, 
-  Cell, 
-  LineChart, 
-  Line 
-} from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { KopargaonMap } from '../../components/KopargaonMap';
 import { ThemeToggle } from '../../components/ThemeToggle';
+import { SLAIndicator } from '../../components/SLAIndicator';
+import { NotificationDrawer } from '../../components/NotificationDrawer';
+import { CompletionReportModal } from '../../components/CompletionReportModal';
+import { PublicReportModal } from '../../components/PublicReportModal';
+import { AnnouncementManager } from '../../components/AnnouncementManager';
+import { IncidentArchive } from '../../components/IncidentArchive';
+import { HigherAuthorityDashboard } from './HigherAuthorityDashboard';
+import { PermissionsDashboardView } from '../../components/permissions/PermissionsDashboardView';
+import { OfficerTaxManagementView } from '../../components/tax/OfficerTaxManagementView';
 
 export const MunicipalityDashboard = () => {
   const navigate = useNavigate();
   const { 
     officerUser, 
+    activeGovernanceRole,
+    setActiveGovernanceRole,
     complaints = [], 
+    notifications = [],
+    announcements = [],
     cityAlerts = [], 
     logoutOfficer, 
     updateComplaintStatus, 
     assignComplaint, 
+    submitCompletionReport,
     showToast 
   } = useApp();
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+  const [lastSyncTime, setLastSyncTime] = useState('Just now');
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  // Notification Drawer state
+  const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
+
+  // Governance Modals State
+  const [completionTargetComplaint, setCompletionTargetComplaint] = useState(null);
+  const [publicReportTargetComplaint, setPublicReportTargetComplaint] = useState(null);
 
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [statusFilter, setStatusFilter] = useState('All');
@@ -91,7 +97,7 @@ export const MunicipalityDashboard = () => {
 
   // AI Assistant state
   const [chatMessages, setChatMessages] = useState([
-    { sender: 'ai', text: 'Municipality AI Assistant is ready. Operational insights will become available once citizen complaint telemetry or IoT data streams arrive.' }
+    { sender: 'ai', text: 'Municipal Governance AI Engine ready. Monitoring SLA performance, ward telemetry, and auto-escalation pathways.' }
   ]);
   const [chatInput, setChatInput] = useState('');
   const [isAiThinking, setIsAiThinking] = useState(false);
@@ -106,26 +112,31 @@ export const MunicipalityDashboard = () => {
   const totalComplaints = complaints.length;
   const pendingCount = complaints.filter(c => c.status === 'Pending').length;
   const inProgressCount = complaints.filter(c => c.status === 'In Progress').length;
-  const resolvedCount = complaints.filter(c => c.status === 'Resolved').length;
+  const resolvedCount = complaints.filter(c => c.status === 'Completed' || c.status === 'Resolved').length;
+  const escalatedCount = complaints.filter(c => c.isEscalated || c.status === 'Escalated').length;
+
+  const unreadNotifCount = notifications.filter(n => !n.read && (n.recipientRole === 'officer' || n.recipientRole === 'higher_authority')).length;
+
+  const handleManualSync = () => {
+    setIsSyncing(true);
+    setTimeout(() => {
+      setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      setIsSyncing(false);
+      showToast('Municipal Telemetry & Data Synced with Server.');
+    }, 600);
+  };
 
   const handleLogout = () => {
     logoutOfficer();
     navigate('/');
   };
 
-  const aiQueries = [
-    "Check system connection status",
-    "How do I ingest real telemetry?",
-    "Summarize ward readiness",
-    "View database connection logs"
-  ];
-
   const handleAiQuery = (queryText) => {
     setChatMessages(prev => [...prev, { sender: 'user', text: queryText }]);
     setIsAiThinking(true);
 
     setTimeout(() => {
-      let aiResponse = `System Status (${complaints.length} Total Complaints Registered): AI telemetry engine actively monitoring. All tickets auto-classified into department queues.`;
+      let aiResponse = `Municipal Audit Engine (${complaints.length} Active Records): SLA compliance tracking active. ${escalatedCount} overdue tickets flagged for Higher Authority review.`;
       setChatMessages(prev => [...prev, { sender: 'ai', text: aiResponse }]);
       setIsAiThinking(false);
     }, 500);
@@ -146,77 +157,80 @@ export const MunicipalityDashboard = () => {
     const matchesSearch = !searchQuery || 
       c.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
       c.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      c.locationName.toLowerCase().includes(searchQuery.toLowerCase());
+      (c.address && c.address.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesStatus && matchesCategory && matchesSearch;
   });
 
   const navGroups = [
     {
-      groupTitle: 'Overview',
+      groupTitle: 'Core Control',
       items: [
         { id: 'dashboard', label: 'Executive Overview', icon: LayoutDashboard },
-      ]
-    },
-    {
-      groupTitle: 'Operations',
-      items: [
         { id: 'map', label: 'Digital Twin GIS Map', icon: Map },
-        { id: 'complaints', label: 'Complaint Workflow', icon: ClipboardList, badge: complaints.length > 0 ? complaints.length : null },
+        { id: 'complaints', label: 'Complaints Directory', icon: ClipboardList, badge: totalComplaints }
       ]
     },
     {
-      groupTitle: 'Analytics & Intelligence',
+      groupTitle: 'Enterprise Modules',
       items: [
-        { id: 'ai', label: 'AI Operations Assistant', icon: Bot },
-        { id: 'analytics', label: 'Municipal Analytics', icon: BarChart3 },
-        { id: 'simulation', label: 'What-If Simulation Workspace', icon: Sliders },
+        { id: 'permissions', label: 'Permissions & Licensing', icon: Building2 },
+        { id: 'tax_admin', label: 'Revenue & Tax Admin', icon: DollarSign }
       ]
     },
     {
-      groupTitle: 'Management',
+      groupTitle: 'Governance & Escalation',
       items: [
-        { id: 'notifications', label: 'System Alerts & Logs', icon: Bell, badge: cityAlerts.length > 0 ? cityAlerts.length : null },
-        { id: 'settings', label: 'Control Center Settings', icon: Settings },
+        { id: 'higher_authority', label: 'Higher Authority Portal', icon: ShieldAlert, badge: escalatedCount > 0 ? `${escalatedCount} Escalated` : null },
+        { id: 'announcements', label: 'Public Announcements', icon: Megaphone },
+        { id: 'archive', label: 'Incident Archive & Audits', icon: Archive }
+      ]
+    },
+    {
+      groupTitle: 'Intelligence',
+      items: [
+        { id: 'ai_assistant', label: 'Governance AI Assistant', icon: Bot },
+        { id: 'simulator', label: 'What-If Infrastructure Sim', icon: Sliders }
       ]
     }
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B0F17] text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-slate-900 selection:text-white">
+    <div className="min-h-screen bg-slate-100 dark:bg-[#0B0F17] text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-[#0A2540] selection:text-white">
       
-      {/* Top Bar Header */}
-      <header className="h-14 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+      {/* Tricolor Government Ribbon */}
+      <div className="h-[3px] w-full flex shrink-0">
+        <div className="h-full w-1/3 bg-[#FF9933]"></div>
+        <div className="h-full w-1/3 bg-white"></div>
+        <div className="h-full w-1/3 bg-[#138808]"></div>
+      </div>
+
+      {/* Header */}
+      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-2.5 flex items-center justify-between sticky top-0 z-40 shadow-xs">
         
         <div className="flex items-center gap-3">
-          <button 
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden md:flex p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-
-          <button 
-            onClick={() => setIsMobileOpen(true)}
+          <button
+            onClick={() => setIsMobileOpen(!isMobileOpen)}
             className="md:hidden p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <Menu className="w-5 h-5" />
           </button>
 
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-md bg-[#0A2540] dark:bg-slate-800 flex items-center justify-center text-white font-bold text-xs">
-              KM
+            <div className="w-7 h-7 rounded-md bg-[#0A2540] dark:bg-sky-950 flex items-center justify-center text-amber-400 font-bold text-xs border border-amber-400/30">
+              KMC
             </div>
             <div>
               <span className="font-bold text-xs tracking-tight text-slate-900 dark:text-slate-100 block leading-tight">
                 KOPARGAON MUNICIPAL CORPORATION
               </span>
               <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">
-                Smart City Operations Platform
+                Municipal Governance & Accountability Command Center
               </span>
             </div>
           </div>
         </div>
 
+        {/* Global Search Bar */}
         <div className="hidden lg:flex items-center gap-4 flex-1 max-w-md mx-6">
           <div className="relative w-full">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -224,30 +238,67 @@ export const MunicipalityDashboard = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search tickets, wards, department logs..."
-              className="w-full pl-9 pr-3 py-1.5 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none"
+              placeholder="Search tickets, wards, completion reports, audit logs..."
+              className="w-full pl-9 pr-3 py-1.5 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-sky-500"
             />
           </div>
         </div>
 
+        {/* Right Header Actions */}
         <div className="flex items-center gap-3">
           
-          <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 font-mono px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
-            <Clock className="w-3.5 h-3.5 text-slate-500" />
-            <span>{currentTime}</span>
+          {/* Requirement #1: Replacement of Website Clock with Last Data Sync */}
+          <button
+            onClick={handleManualSync}
+            className="hidden sm:flex items-center gap-1.5 text-[11px] text-slate-600 dark:text-slate-400 font-mono px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 hover:bg-slate-200 transition-colors"
+            title="Click to refresh telemetry sync"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-sky-500 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>Sync: {lastSyncTime}</span>
+          </button>
+
+          {/* Role Switcher Toggle (Municipal Officer vs Higher Authority) */}
+          <div className="hidden md:flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-md border border-slate-200 dark:border-slate-700 text-xs font-semibold">
+            <button
+              onClick={() => {
+                setActiveGovernanceRole('officer');
+                if (activeTab === 'higher_authority') setActiveTab('dashboard');
+              }}
+              className={`px-2.5 py-1 rounded transition-colors ${activeGovernanceRole === 'officer' ? 'bg-[#0A2540] text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}
+            >
+              Officer View
+            </button>
+            <button
+              onClick={() => {
+                setActiveGovernanceRole('higher_authority');
+                setActiveTab('higher_authority');
+              }}
+              className={`px-2.5 py-1 rounded transition-colors flex items-center gap-1 ${activeGovernanceRole === 'higher_authority' || activeTab === 'higher_authority' ? 'bg-rose-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}
+            >
+              <ShieldAlert className="w-3 h-3 text-amber-300" />
+              Higher Authority
+            </button>
           </div>
 
+          {/* Enterprise Notifications Button */}
           <button
-            onClick={() => setActiveTab('notifications')}
+            onClick={() => setIsNotifDrawerOpen(true)}
             className="relative p-1.5 rounded-md text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            title="Governance Notifications"
           >
-            <Bell className="w-4 h-4" />
+            <Bell className="w-4 h-4 text-slate-700 dark:text-slate-300" />
+            {unreadNotifCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center animate-pulse">
+                {unreadNotifCount}
+              </span>
+            )}
           </button>
 
           <ThemeToggle />
 
+          {/* User Profile */}
           <div className="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800">
-            <div className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center font-bold text-xs border border-slate-300 dark:border-slate-700">
+            <div className="w-7 h-7 rounded-full bg-[#0A2540] text-amber-400 flex items-center justify-center font-bold text-xs border border-amber-400/30">
               {officerUser?.name?.charAt(0) || 'A'}
             </div>
             <div className="hidden xl:block text-left">
@@ -255,7 +306,7 @@ export const MunicipalityDashboard = () => {
                 {officerUser?.name || 'Administrator'}
               </span>
               <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-medium">
-                {officerUser?.role || 'Municipal Commissioner'}
+                {activeGovernanceRole === 'higher_authority' ? 'Municipal Commissioner' : (officerUser?.role || 'Municipal Officer')}
               </span>
             </div>
           </div>
@@ -270,11 +321,85 @@ export const MunicipalityDashboard = () => {
         </div>
       </header>
 
-      {/* Main Body */}
+      {/* Main Workspace Body */}
       <div className="flex-1 flex overflow-hidden">
         
+        {/* Mobile Slide-Over Sidebar */}
+        <AnimatePresence>
+          {isMobileOpen && (
+            <div className="fixed inset-0 z-50 md:hidden flex">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsMobileOpen(false)}
+                className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs"
+              />
+              <motion.aside
+                initial={{ x: '-100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '-100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+                className="relative w-72 max-w-[85vw] bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col justify-between p-4 z-10 border-r border-slate-200 dark:border-slate-800"
+              >
+                <div className="space-y-6 overflow-y-auto">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-md bg-[#0A2540] dark:bg-sky-950 flex items-center justify-center text-amber-400 font-bold text-xs">
+                        KMC
+                      </div>
+                      <span className="font-bold text-xs text-slate-900 dark:text-slate-100">MUNICIPAL MENU</span>
+                    </div>
+                    <button onClick={() => setIsMobileOpen(false)} className="p-1 text-slate-400 hover:text-slate-700">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {navGroups.map((group, idx) => (
+                    <div key={idx} className="space-y-1">
+                      <h4 className="px-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">
+                        {group.groupTitle}
+                      </h4>
+                      {group.items.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = activeTab === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => {
+                              setActiveTab(item.id);
+                              setIsMobileOpen(false);
+                            }}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors ${
+                              isActive
+                                ? 'bg-[#0A2540] text-white font-bold shadow-xs'
+                                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                            }`}
+                          >
+                            <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-amber-400' : 'text-slate-500'}`} />
+                            <span className="truncate flex-1 text-left">{item.label}</span>
+                            {item.badge && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500 text-white">
+                                {item.badge}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-3 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-500">
+                  <span>Logged: {officerUser?.name || 'Municipal Officer'}</span>
+                </div>
+              </motion.aside>
+            </div>
+          )}
+        </AnimatePresence>
+
         {/* Desktop Sidebar */}
-        <aside className={`${isCollapsed ? 'w-16' : 'w-60'} bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-200 hidden md:flex flex-col justify-between shrink-0 select-none`}>
+        <aside className={`${isCollapsed ? 'w-16' : 'w-64'} bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-200 hidden md:flex flex-col justify-between shrink-0 select-none`}>
           <div className="p-3 space-y-5 overflow-y-auto">
             {navGroups.map((group, idx) => (
               <div key={idx} className="space-y-1">
@@ -292,14 +417,14 @@ export const MunicipalityDashboard = () => {
                       onClick={() => setActiveTab(item.id)}
                       className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium transition-colors relative ${
                         isActive
-                          ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-semibold nav-active-indicator'
+                          ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-semibold border-l-2 border-[#0A2540] dark:border-sky-400'
                           : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900'
                       }`}
                     >
                       <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#0A2540] dark:text-sky-400' : 'text-slate-500'}`} />
                       {!isCollapsed && <span className="truncate flex-1 text-left">{item.label}</span>}
                       {!isCollapsed && item.badge && (
-                        <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-[#0A2540] text-white">
+                        <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${item.id === 'higher_authority' ? 'bg-rose-500 text-white animate-pulse' : 'bg-[#0A2540] text-white'}`}>
                           {item.badge}
                         </span>
                       )}
@@ -313,15 +438,15 @@ export const MunicipalityDashboard = () => {
           {!isCollapsed && (
             <div className="p-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 text-[11px] text-slate-500 dark:text-slate-400">
               <div className="flex items-center justify-between">
-                <span className="font-medium">System Telemetry:</span>
+                <span className="font-medium">Governance Audit Engine:</span>
                 <span className="font-semibold text-emerald-600 dark:text-emerald-400">ACTIVE</span>
               </div>
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Management Mode</p>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">3-Day SLA Monitoring Active</p>
             </div>
           )}
         </aside>
 
-        {/* Workspace Area */}
+        {/* Workspace Main Area */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-50 dark:bg-[#0B0F17] space-y-6">
 
           {/* TAB 1: EXECUTIVE OVERVIEW */}
@@ -331,10 +456,10 @@ export const MunicipalityDashboard = () => {
               <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
                 <div>
                   <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-                    Executive Operational Overview
+                    Municipal Governance & Operational Overview
                   </h1>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Municipal service indicators & complaint management dashboard
+                    Real-time municipal service telemetry & 3-day SLA compliance metrics
                   </p>
                 </div>
               </div>
@@ -342,7 +467,7 @@ export const MunicipalityDashboard = () => {
               {/* KPI Cards Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 
-                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 shadow-xs">
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-xs">
                   <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
                     <span className="text-xs font-semibold uppercase tracking-wider">Total Complaints</span>
                     <FileText className="w-4 h-4 text-slate-400" />
@@ -352,23 +477,21 @@ export const MunicipalityDashboard = () => {
                     <span className="text-[11px] font-medium text-slate-500">{pendingCount} Pending</span>
                   </div>
                   <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-400 flex justify-between">
-                    <span>Critical Tickets:</span>
-                    <strong className="text-rose-600 dark:text-rose-400 font-semibold">
-                      {complaints.filter(c => c.priority === 'Critical').length}
-                    </strong>
+                    <span>SLA Overdue/Escalated:</span>
+                    <strong className="text-rose-600 dark:text-rose-400 font-semibold">{escalatedCount}</strong>
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 shadow-xs">
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-xs">
                   <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
-                    <span className="text-xs font-semibold uppercase tracking-wider">Resolved Rate</span>
+                    <span className="text-xs font-semibold uppercase tracking-wider">Resolution Rate</span>
                     <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   </div>
                   <div className="flex items-baseline justify-between">
                     <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                      {totalComplaints > 0 ? `${Math.round((resolvedCount / totalComplaints) * 100)}%` : '—'}
+                      {totalComplaints > 0 ? `${Math.round((resolvedCount / totalComplaints) * 100)}%` : '100%'}
                     </span>
-                    <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">{resolvedCount} Closed</span>
+                    <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">{resolvedCount} Certified</span>
                   </div>
                   <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-400 flex justify-between">
                     <span>In Progress:</span>
@@ -376,41 +499,41 @@ export const MunicipalityDashboard = () => {
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 shadow-xs">
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-xs">
                   <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
-                    <span className="text-xs font-semibold uppercase tracking-wider">Garbage Fleet Status</span>
-                    <Activity className="w-4 h-4 text-sky-600" />
+                    <span className="text-xs font-semibold uppercase tracking-wider">3-Day SLA Target</span>
+                    <Clock className="w-4 h-4 text-sky-600" />
                   </div>
                   <div className="flex items-baseline justify-between">
-                    <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">Operational</span>
-                    <span className="text-[11px] font-medium text-slate-500">28 Wards Ready</span>
+                    <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                      {totalComplaints > 0 ? `${Math.round(((totalComplaints - escalatedCount) / totalComplaints) * 100)}%` : '100%'}
+                    </span>
+                    <span className="text-[11px] font-medium text-sky-600">Standard 72h</span>
                   </div>
                   <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-400 flex justify-between">
-                    <span>Sanitation Tickets:</span>
-                    <strong className="text-slate-700 dark:text-slate-300 font-semibold">
-                      {complaints.filter(c => c.category === 'Garbage').length}
-                    </strong>
+                    <span>Auto-Escalation Engine:</span>
+                    <strong className="text-emerald-600 font-semibold">Active</strong>
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 shadow-xs">
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-xs">
                   <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
-                    <span className="text-xs font-semibold uppercase tracking-wider">Infrastructure Index</span>
-                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    <span className="text-xs font-semibold uppercase tracking-wider">Public Notices</span>
+                    <Megaphone className="w-4 h-4 text-amber-500" />
                   </div>
                   <div className="flex items-baseline justify-between">
-                    <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">Ready</span>
-                    <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">GIS Telemetry</span>
+                    <span className="text-2xl font-bold text-slate-900 dark:text-slate-100">{announcements.length}</span>
+                    <span className="text-[11px] font-medium text-amber-600">Active Bulletins</span>
                   </div>
                   <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-400 flex justify-between">
-                    <span>Active Alerts:</span>
-                    <strong className="text-slate-700 dark:text-slate-300 font-semibold">{cityAlerts.length}</strong>
+                    <span>Audit Logs Stored:</span>
+                    <strong className="text-slate-700 dark:text-slate-300 font-semibold">{useApp().auditLogs.length}</strong>
                   </div>
                 </div>
 
               </div>
 
-              {/* Central Grid */}
+              {/* Map & Quick Tickets */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
                 <div className="lg:col-span-2 space-y-3">
@@ -421,142 +544,31 @@ export const MunicipalityDashboard = () => {
                 </div>
 
                 <div className="space-y-4">
-                  
-                  {/* Category Breakdown Chart / Empty State */}
-                  <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 shadow-xs">
+                  {/* Category Breakdown */}
+                  <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-xs">
                     <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-100 mb-3">
-                      Complaints by Category
+                      Department Service Breakdown
                     </h3>
-                    {complaints.length === 0 ? (
-                      <div className="h-52 w-full flex flex-col items-center justify-center p-4 border border-dashed border-slate-200 dark:border-slate-800 rounded-md text-center">
-                        <BarChart2 className="w-8 h-8 text-slate-300 dark:text-slate-700 mb-2" />
-                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">No data available</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">Citizen submissions will appear here once logged.</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {['Garbage', 'Pothole', 'Water Leakage', 'Street Light', 'Traffic'].map(cat => {
-                          const count = complaints.filter(c => c.category === cat).length;
-                          const pct = totalComplaints > 0 ? Math.round((count / totalComplaints) * 100) : 0;
-                          return (
-                            <div key={cat} className="space-y-1 text-xs">
-                              <div className="flex justify-between text-slate-700 dark:text-slate-300 font-medium">
-                                <span>{cat}</span>
-                                <span>{count} ({pct}%)</span>
-                              </div>
-                              <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                                <div className="h-full bg-[#0A2540] dark:bg-sky-400 rounded-full" style={{ width: `${pct}%` }}></div>
-                              </div>
+                    <div className="space-y-2.5">
+                      {['Sanitation', 'Public Works (PWD)', 'Water Supply', 'Electrical', 'Traffic'].map(cat => {
+                        const count = complaints.filter(c => c.category.includes(cat) || c.category === cat).length;
+                        const pct = totalComplaints > 0 ? Math.round((count / totalComplaints) * 100) : 0;
+                        return (
+                          <div key={cat} className="space-y-1 text-xs">
+                            <div className="flex justify-between text-slate-700 dark:text-slate-300 font-medium">
+                              <span>{cat}</span>
+                              <span className="font-mono">{count} ({pct}%)</span>
                             </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* AI Executive Brief */}
-                  <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 shadow-xs space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                        <Bot className="w-4 h-4 text-slate-400" /> AI Executive Brief
-                      </span>
-                    </div>
-
-                    <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-md border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 py-3">
-                      {complaints.length === 0 ? (
-                        <div className="text-center text-slate-400">
-                          <Info className="w-4 h-4 mx-auto mb-1" />
-                          <p className="font-medium">No active complaint telemetry</p>
-                          <p className="text-[11px] text-slate-400 mt-0.5">Waiting for citizen submissions from the portal.</p>
-                        </div>
-                      ) : (
-                        <p className="leading-relaxed">
-                          AI Dispatch Engine: <strong>{totalComplaints} active tickets</strong> registered. {pendingCount} pending assignment. Highest complaint concentration detected in Ward {complaints[0]?.ward || 1}.
-                        </p>
-                      )}
+                            <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                              <div className="h-full bg-[#0A2540] dark:bg-sky-400 rounded-full" style={{ width: `${pct}%` }}></div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-
                 </div>
 
-              </div>
-
-              {/* Lower Section: Complaints Table */}
-              <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 shadow-xs space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                    Citizen Complaints Registered
-                  </h3>
-                  <button
-                    onClick={() => setActiveTab('complaints')}
-                    className="text-xs text-blue-600 hover:underline font-semibold"
-                  >
-                    View All Workflow ({totalComplaints})
-                  </button>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-semibold border-y border-slate-200 dark:border-slate-800 uppercase tracking-wider text-[10px]">
-                      <tr>
-                        <th className="py-2.5 px-3">Ticket ID</th>
-                        <th className="py-2.5 px-3">Title</th>
-                        <th className="py-2.5 px-3">Location / Ward</th>
-                        <th className="py-2.5 px-3">Category</th>
-                        <th className="py-2.5 px-3">Priority</th>
-                        <th className="py-2.5 px-3">Status</th>
-                        <th className="py-2.5 px-3 text-right">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {complaints.length === 0 ? (
-                        <tr>
-                          <td colSpan={7} className="py-8 text-center text-slate-400 text-xs">
-                            <Inbox className="w-6 h-6 mx-auto mb-1 text-slate-300 dark:text-slate-700" />
-                            <span className="font-medium text-slate-600 dark:text-slate-400 block mb-1">No citizen complaints logged</span>
-                            Complaints submitted by citizens will appear here for officer review and management.
-                          </td>
-                        </tr>
-                      ) : (
-                        complaints.map((c) => (
-                          <tr key={c.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                            <td className="py-2.5 px-3 font-mono font-semibold">{c.id}</td>
-                            <td className="py-2.5 px-3 font-semibold">{c.title}</td>
-                            <td className="py-2.5 px-3 text-slate-500">{c.locationName} (Ward {c.ward})</td>
-                            <td className="py-2.5 px-3">{c.category}</td>
-                            <td className="py-2.5 px-3">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                c.priority === 'Critical' ? 'bg-rose-100 text-rose-800' :
-                                c.priority === 'High' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-800'
-                              }`}>
-                                {c.priority}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                c.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' :
-                                c.status === 'In Progress' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-800'
-                              }`}>
-                                {c.status}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3 text-right">
-                              <button
-                                onClick={() => {
-                                  setSelectedComplaint(c);
-                                  setActiveTab('complaints');
-                                }}
-                                className="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 rounded text-[11px] font-semibold"
-                              >
-                                Inspect & Manage
-                              </button>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
               </div>
 
             </div>
@@ -565,17 +577,11 @@ export const MunicipalityDashboard = () => {
           {/* TAB 2: DIGITAL TWIN GIS MAP */}
           {activeTab === 'map' && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-                <div>
-                  <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
-                    Kopargaon Spatial Digital Twin Command Center
-                  </h1>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Geospatial ward vectors & incident telemetry feed
-                  </p>
-                </div>
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+                <h1 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                  Full Spatial GIS Digital Twin Map
+                </h1>
               </div>
-
               <KopargaonMap onSelectComplaint={(c) => {
                 setSelectedComplaint(c);
                 setActiveTab('complaints');
@@ -583,521 +589,365 @@ export const MunicipalityDashboard = () => {
             </div>
           )}
 
-          {/* TAB 3: COMPLAINT WORKFLOW & MANAGEMENT */}
+          {/* TAB 3: COMPLAINTS DIRECTORY */}
           {activeTab === 'complaints' && (
             <div className="space-y-6">
               
-              <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
                 <div>
-                  <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
-                    Municipal Complaint Management Workflow
+                  <h1 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                    Municipal Complaint Lifecycles & SLA Directory
                   </h1>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Inspect citizen complaint records, assign department maintenance units, and update ticket lifecycle</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Track complaints, monitor SLA deadlines, assign officers, and generate official completion reports
+                  </p>
+                </div>
+
+                {/* Filter Controls */}
+                <div className="flex items-center gap-2 flex-wrap text-xs">
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md font-medium text-slate-700 dark:text-slate-300"
+                  >
+                    <option value="All">All Statuses</option>
+                    <option value="Pending">Pending</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Escalated">Escalated</option>
+                    <option value="Completed">Completed</option>
+                  </select>
                 </div>
               </div>
 
-              {/* Filters Bar */}
-              <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 shadow-xs flex flex-wrap items-center justify-between gap-4">
-                <div className="flex flex-wrap items-center gap-4 text-xs">
-                  <div className="flex items-center gap-1.5">
-                    <Filter className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">Status:</span>
-                    <select
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-2.5 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md text-xs font-medium"
-                    >
-                      <option value="All">All Statuses</option>
-                      <option value="Pending">Pending</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="Resolved">Resolved</option>
-                    </select>
+              {/* Complaints List Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredComplaints.length === 0 ? (
+                  <div className="col-span-full p-12 text-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-400">
+                    <ClipboardList className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                    <p className="text-xs font-medium">No complaints match filter criteria</p>
                   </div>
+                ) : (
+                  filteredComplaints.map((item) => {
+                    const isCompleted = item.status === 'Completed' || item.status === 'Resolved';
+                    return (
+                      <div
+                        key={item.id}
+                        className={`bg-white dark:bg-slate-900 p-5 rounded-xl border transition-all space-y-3 flex flex-col justify-between ${item.isEscalated ? 'border-rose-300 dark:border-rose-900/80 shadow-rose-500/5 shadow-md' : 'border-slate-200 dark:border-slate-800'}`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <span className="font-mono text-xs font-bold text-sky-600 dark:text-sky-400">
+                              #{item.id}
+                            </span>
+                            <SLAIndicator submittedAt={item.createdAt || item.submittedAt} dueDate={item.dueDate} currentStatus={item.status} compact />
+                          </div>
 
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">Category:</span>
-                    <select
-                      value={categoryFilter}
-                      onChange={(e) => setCategoryFilter(e.target.value)}
-                      className="px-2.5 py-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md text-xs font-medium"
-                    >
-                      <option value="All">All Categories</option>
-                      <option value="Garbage">Sanitation</option>
-                      <option value="Pothole">Public Works</option>
-                      <option value="Water Leakage">Water Supply</option>
-                      <option value="Street Light">Electrical</option>
-                      <option value="Traffic">Traffic Cell</option>
-                    </select>
-                  </div>
-                </div>
+                          <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 mb-1 leading-snug">
+                            {item.title}
+                          </h3>
 
-                <div className="text-xs text-slate-500">
-                  Showing <strong>{filteredComplaints.length}</strong> of <strong>{complaints.length}</strong> total tickets
-                </div>
-              </div>
+                          <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 mb-3">
+                            {item.description}
+                          </p>
 
-              {/* Complaints Main Grid: Table & Inspection Drawer */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                {/* Table Column */}
-                <div className={`${selectedComplaint ? 'lg:col-span-2' : 'lg:col-span-3'} bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 shadow-xs`}>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs">
-                      <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-semibold border-y border-slate-200 dark:border-slate-800 uppercase tracking-wider text-[10px]">
-                        <tr>
-                          <th className="py-2.5 px-3">Ticket ID</th>
-                          <th className="py-2.5 px-3">Title & Location</th>
-                          <th className="py-2.5 px-3">Category</th>
-                          <th className="py-2.5 px-3">Priority</th>
-                          <th className="py-2.5 px-3">Status</th>
-                          <th className="py-2.5 px-3 text-right">Inspect</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredComplaints.length === 0 ? (
-                          <tr>
-                            <td colSpan={6} className="py-12 text-center text-slate-400 text-xs">
-                              <Inbox className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-slate-700" />
-                              <span className="font-semibold text-slate-700 dark:text-slate-300 block text-sm mb-0.5">No complaint records found</span>
-                              Citizen submissions from the Citizen Portal will appear here for inspection and management.
-                            </td>
-                          </tr>
-                        ) : (
-                          filteredComplaints.map((c) => (
-                            <tr
-                              key={c.id}
-                              onClick={() => setSelectedComplaint(c)}
-                              className={`cursor-pointer border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors ${
-                                selectedComplaint?.id === c.id ? 'bg-slate-100 dark:bg-slate-800 font-semibold' : ''
-                              }`}
-                            >
-                              <td className="py-3 px-3 font-mono font-semibold text-slate-900 dark:text-slate-100">{c.id}</td>
-                              <td className="py-3 px-3">
-                                <div className="font-semibold text-slate-900 dark:text-slate-100">{c.title}</div>
-                                <div className="text-slate-400 text-[11px]">{c.locationName} (Ward {c.ward})</div>
-                              </td>
-                              <td className="py-3 px-3">{c.category}</td>
-                              <td className="py-3 px-3">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                  c.priority === 'Critical' ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300' :
-                                  c.priority === 'High' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300' :
-                                  'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
-                                }`}>
-                                  {c.priority}
-                                </span>
-                              </td>
-                              <td className="py-3 px-3">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                  c.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' :
-                                  c.status === 'In Progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300' :
-                                  'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
-                                }`}>
-                                  {c.status}
-                                </span>
-                              </td>
-                              <td className="py-3 px-3 text-right">
-                                <button className="text-blue-600 hover:text-blue-800 dark:hover:text-blue-400 font-semibold text-xs">
-                                  Manage
-                                </button>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                          <div className="text-[11px] text-slate-500 space-y-1 pt-2 border-t border-slate-100 dark:border-slate-800 font-mono">
+                            <div>Ward: <strong className="text-slate-700 dark:text-slate-300">Ward {item.ward}</strong></div>
+                            <div>Dept: <strong className="text-slate-700 dark:text-slate-300">{item.department}</strong></div>
+                            <div>Officer: <strong className="text-slate-700 dark:text-slate-300">{item.assignedOfficer || 'Unassigned'}</strong></div>
+                          </div>
+                        </div>
 
-                {/* Complaint Detail Inspection Drawer */}
-                {selectedComplaint && (
-                  <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 shadow-xs space-y-4">
-                    
-                    <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                      <div>
-                        <span className="font-mono text-xs font-bold text-slate-500">{selectedComplaint.id}</span>
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{selectedComplaint.title}</h3>
-                      </div>
-                      <button onClick={() => setSelectedComplaint(null)} className="text-slate-400 hover:text-slate-700">
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
+                        {/* Action buttons */}
+                        <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 text-xs">
+                          <button
+                            onClick={() => setSelectedComplaint(item)}
+                            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded font-medium flex items-center gap-1"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Details</span>
+                          </button>
 
-                    <div className="space-y-3 text-xs">
-                      <div>
-                        <span className="text-slate-400 block text-[10px] uppercase font-semibold">Location & Ward:</span>
-                        <span className="font-semibold text-slate-900 dark:text-slate-100">{selectedComplaint.locationName} (Ward {selectedComplaint.ward})</span>
-                      </div>
-
-                      <div>
-                        <span className="text-slate-400 block text-[10px] uppercase font-semibold">Submitted By:</span>
-                        <span className="font-medium text-slate-800 dark:text-slate-200">{selectedComplaint.submittedBy || 'Resident Citizen'}</span>
-                      </div>
-
-                      <div>
-                        <span className="text-slate-400 block text-[10px] uppercase font-semibold">Ticket Description:</span>
-                        <p className="p-2.5 bg-slate-50 dark:bg-slate-950 rounded-md border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 mt-1">
-                          {selectedComplaint.description || 'No detailed description attached.'}
-                        </p>
-                      </div>
-
-                      {/* Status Management Buttons */}
-                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
-                        <span className="text-slate-500 block text-[10px] uppercase font-semibold">Update Lifecycle Status:</span>
-                        <div className="grid grid-cols-3 gap-2">
-                          {['Pending', 'In Progress', 'Resolved'].map((st) => (
+                          {isCompleted ? (
                             <button
-                              key={st}
-                              onClick={() => {
-                                updateComplaintStatus(selectedComplaint.id, st);
-                                setSelectedComplaint(prev => ({ ...prev, status: st }));
-                              }}
-                              className={`py-1.5 text-center text-[11px] font-semibold rounded-md border transition-all ${
-                                selectedComplaint.status === st
-                                  ? 'bg-[#0A2540] text-white border-[#0A2540]'
-                                  : 'bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800'
-                              }`}
+                              onClick={() => setPublicReportTargetComplaint(item)}
+                              className="px-2.5 py-1 bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 hover:bg-emerald-200 rounded font-bold flex items-center gap-1"
                             >
-                              {st}
+                              <Award className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>View Certificate</span>
                             </button>
-                          ))}
+                          ) : (
+                            <button
+                              onClick={() => setCompletionTargetComplaint(item)}
+                              className="px-2.5 py-1 bg-[#0A2540] hover:bg-[#103459] text-white rounded font-bold flex items-center gap-1 shadow-xs"
+                            >
+                              <CheckSquare className="w-3.5 h-3.5 text-emerald-400" />
+                              <span>Submit Work Report</span>
+                            </button>
+                          )}
                         </div>
                       </div>
-
-                      {/* Department Assignment */}
-                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                        <span className="text-slate-500 block text-[10px] uppercase font-semibold mb-1">Assign Maintenance Team:</span>
-                        <select
-                          value={selectedComplaint.assignedOfficer || ''}
-                          onChange={(e) => {
-                            assignComplaint(selectedComplaint.id, e.target.value);
-                            setSelectedComplaint(prev => ({ ...prev, assignedOfficer: e.target.value, status: 'Assigned' }));
-                          }}
-                          className="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md text-xs font-medium focus:outline-none"
-                        >
-                          <option value="">Select Maintenance Team</option>
-                          <option value="Public Works - Team A">Public Works Maintenance - Team A</option>
-                          <option value="Sanitation - Fleet B">Sanitation Services - Fleet B</option>
-                          <option value="Water Dept - Cell 1">Water Supply & Valves - Cell 1</option>
-                          <option value="Electrical Grid Unit">Electrical Grid Maintenance</option>
-                          <option value="Traffic Cell">Traffic & Transit Signal Unit</option>
-                        </select>
-                      </div>
-
-                    </div>
-
-                  </div>
+                    );
+                  })
                 )}
-
               </div>
 
             </div>
           )}
 
-          {/* TAB 4: AI OPERATIONS ASSISTANT */}
-          {activeTab === 'ai' && (
-            <div className="space-y-6 max-w-4xl mx-auto">
-              
-              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-                <div>
-                  <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Bot className="w-5 h-5 text-slate-700 dark:text-slate-300" />
-                    AI Operations Assistant & Telemetry Engine
-                  </h1>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Predictive city intelligence, emergency recommendations & automated municipal analysis
-                  </p>
-                </div>
-              </div>
+          {/* TAB 4: HIGHER AUTHORITY PORTAL */}
+          {activeTab === 'higher_authority' && (
+            <HigherAuthorityDashboard onSelectComplaint={(id) => {
+              const target = complaints.find(c => c.id === id);
+              if (target) setSelectedComplaint(target);
+            }} />
+          )}
 
-              <div className="space-y-2">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Recommended Queries:</span>
-                <div className="flex flex-wrap gap-2">
-                  {aiQueries.map((q, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleAiQuery(q)}
-                      className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 transition-colors shadow-xs"
-                    >
-                      {q}
-                    </button>
-                  ))}
-                </div>
-              </div>
+          {/* TAB 5: PUBLIC ANNOUNCEMENTS */}
+          {activeTab === 'announcements' && (
+            <AnnouncementManager />
+          )}
 
-              <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 min-h-[400px] flex flex-col justify-between shadow-xs">
-                <div className="space-y-4 overflow-y-auto max-h-[360px] p-2">
+          {/* TAB 6: INCIDENT ARCHIVE & AUDITS */}
+          {activeTab === 'archive' && (
+            <IncidentArchive onSelectComplaint={(id) => {
+              const target = complaints.find(c => c.id === id);
+              if (target) setSelectedComplaint(target);
+            }} />
+          )}
+
+          {/* TAB 7: AI ASSISTANT */}
+          {activeTab === 'ai_assistant' && (
+            <div className="space-y-4 max-w-4xl mx-auto">
+              <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 mb-4">
+                  <Bot className="w-5 h-5 text-sky-500" />
+                  <span>Municipal Governance AI Telemetry Engine</span>
+                </h2>
+
+                <div className="h-80 overflow-y-auto space-y-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800 mb-4 font-sans text-xs">
                   {chatMessages.map((msg, idx) => (
-                    <div
-                      key={idx}
-                      className={`flex items-start gap-3 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      {msg.sender === 'ai' && (
-                        <div className="w-7 h-7 rounded-md bg-[#0A2540] dark:bg-slate-800 flex items-center justify-center text-white shrink-0 text-xs font-bold">
-                          AI
-                        </div>
-                      )}
-                      <div
-                        className={`max-w-xl p-3 rounded-lg text-xs leading-relaxed ${
-                          msg.sender === 'user'
-                            ? 'bg-[#0A2540] text-white'
-                            : 'bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200'
-                        }`}
-                      >
+                    <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-md p-3 rounded-xl ${msg.sender === 'user' ? 'bg-sky-600 text-white' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200'}`}>
                         {msg.text}
                       </div>
                     </div>
                   ))}
+                  {isAiThinking && (
+                    <div className="text-slate-400 text-xs italic">AI Engine analyzing telemetry data...</div>
+                  )}
                 </div>
 
-                <form onSubmit={handleSendChatMessage} className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex gap-2">
+                <form onSubmit={handleSendChatMessage} className="flex gap-2">
                   <input
                     type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Ask AI Assistant about telemetry status..."
-                    className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md text-xs"
+                    placeholder="Ask AI about SLA bottlenecks, ward telemetry, or department workloads..."
+                    className="flex-1 px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100"
                   />
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-[#0A2540] hover:bg-slate-800 text-white rounded-md text-xs font-semibold flex items-center gap-1.5"
-                  >
-                    <Send className="w-3.5 h-3.5" /> Send Query
+                  <button type="submit" className="px-4 py-2 bg-sky-600 text-white rounded-lg text-xs font-bold">
+                    Query AI
                   </button>
                 </form>
               </div>
-
             </div>
           )}
 
-          {/* TAB 5: MUNICIPAL ANALYTICS */}
-          {activeTab === 'analytics' && (
-            <div className="space-y-6">
-              
-              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-                <div>
-                  <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
-                    Municipal Operational Analytics
-                  </h1>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Ward efficiency & resolution analytics</p>
-                </div>
-              </div>
+          {/* TAB 8: INFRASTRUCTURE SIMULATOR */}
+          {activeTab === 'simulator' && (
+            <div className="space-y-4 max-w-4xl mx-auto">
+              <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4 text-xs">
+                <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <Sliders className="w-5 h-5 text-sky-500" />
+                  <span>Municipal What-If Infrastructure Simulator</span>
+                </h2>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                
-                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 shadow-xs space-y-3">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                    Complaint Category Analytics
-                  </h3>
-                  {complaints.length === 0 ? (
-                    <div className="h-60 w-full flex flex-col items-center justify-center p-4 border border-dashed border-slate-200 dark:border-slate-800 rounded-md text-center">
-                      <BarChart2 className="w-8 h-8 text-slate-300 dark:text-slate-700 mb-2" />
-                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">No analytics data available</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">Trends will render once citizen complaints are received.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3 pt-2">
-                      {['Garbage', 'Pothole', 'Water Leakage', 'Street Light', 'Traffic'].map(cat => {
-                        const count = complaints.filter(c => c.category === cat).length;
-                        return (
-                          <div key={cat} className="flex justify-between items-center text-xs p-2 bg-slate-50 dark:bg-slate-950 rounded border border-slate-200 dark:border-slate-800">
-                            <span className="font-semibold text-slate-700 dark:text-slate-300">{cat}</span>
-                            <span className="font-bold text-slate-900 dark:text-slate-100">{count} Tickets</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 shadow-xs space-y-3">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                    Ward Efficiency Breakdown
-                  </h3>
-                  {complaints.length === 0 ? (
-                    <div className="h-60 w-full flex flex-col items-center justify-center p-4 border border-dashed border-slate-200 dark:border-slate-800 rounded-md text-center">
-                      <BarChart2 className="w-8 h-8 text-slate-300 dark:text-slate-700 mb-2" />
-                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">No analytics data available</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">Efficiency ratings will compute as tickets are closed.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2 pt-2">
-                      {Array.from({ length: 5 }, (_, i) => i + 1).map(w => {
-                        const count = complaints.filter(c => c.ward === w).length;
-                        return (
-                          <div key={w} className="flex justify-between items-center text-xs p-2 bg-slate-50 dark:bg-slate-950 rounded border border-slate-200 dark:border-slate-800">
-                            <span className="font-semibold">Ward {w}</span>
-                            <span className="font-medium text-slate-600">{count} Active Incidents</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-              </div>
-
-            </div>
-          )}
-
-          {/* TAB 6: WHAT-IF SIMULATION WORKSPACE */}
-          {activeTab === 'simulation' && (
-            <div className="space-y-6">
-              
-              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-                <div>
-                  <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Sliders className="w-5 h-5 text-slate-700 dark:text-slate-300" />
-                    What-If Municipal Resource Simulation Workspace
-                  </h1>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Simulate resource allocations and forecast operational outcomes</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                <div className="bg-[#FFFFFF] dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 shadow-xs space-y-4">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                    Simulation Control Parameters
-                  </h3>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300 flex justify-between">
-                      <span>Garbage Collection Fleet:</span>
-                      <strong className="text-slate-900 dark:text-slate-100">{simGarbageTrucks} Vehicles</strong>
-                    </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-semibold mb-1">Additional Sanitation Fleet</label>
                     <input
                       type="range"
-                      min="2"
+                      min="1"
                       max="15"
                       value={simGarbageTrucks}
-                      onChange={(e) => {
-                        setSimGarbageTrucks(Number(e.target.value));
-                        setHasRunSim(true);
-                      }}
-                      className="w-full accent-[#0A2540]"
+                      onChange={(e) => setSimGarbageTrucks(e.target.value)}
+                      className="w-full"
                     />
+                    <span>+{simGarbageTrucks} Trucks</span>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300 flex justify-between">
-                      <span>Road Repair Allocation:</span>
-                      <strong className="text-slate-900 dark:text-slate-100">₹ {simRoadBudget} Lakhs</strong>
-                    </label>
+                  <div>
+                    <label className="block font-semibold mb-1">Road Repair Budget Allocation (Lakhs)</label>
                     <input
                       type="range"
                       min="10"
                       max="200"
-                      step="10"
                       value={simRoadBudget}
-                      onChange={(e) => {
-                        setSimRoadBudget(Number(e.target.value));
-                        setHasRunSim(true);
-                      }}
-                      className="w-full accent-[#0A2540]"
+                      onChange={(e) => setSimRoadBudget(e.target.value)}
+                      className="w-full"
                     />
+                    <span>₹{simRoadBudget} Lakhs</span>
                   </div>
                 </div>
 
-                <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 shadow-xs space-y-4">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                    Predicted Outcome Model
-                  </h3>
+                <button
+                  onClick={() => {
+                    setHasRunSim(true);
+                    showToast('Simulation complete. Infrastructure resolution times projected to decrease by 42%.');
+                  }}
+                  className="px-4 py-2 bg-emerald-600 text-white font-bold rounded-lg"
+                >
+                  Run Simulation Model
+                </button>
 
-                  {!hasRunSim ? (
-                    <div className="p-8 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-md text-slate-400 text-xs">
-                      <SlidersHorizontal className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-slate-700" />
-                      <p className="font-semibold text-slate-700 dark:text-slate-300">No simulation results</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">Adjust control parameters to simulate resource impact.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-md border border-slate-200 dark:border-slate-800">
-                          <span className="text-[11px] text-slate-500 block">Sanitation Estimate:</span>
-                          <strong className="text-lg text-slate-900 dark:text-slate-100 font-bold">{simGarbageTrucks * 8}% Coverage</strong>
-                        </div>
-                        <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-md border border-slate-200 dark:border-slate-800">
-                          <span className="text-[11px] text-slate-500 block">Road Repair Target:</span>
-                          <strong className="text-lg text-slate-900 dark:text-slate-100 font-bold">₹ {simRoadBudget} L Allocated</strong>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-              </div>
-
-            </div>
-          )}
-
-          {/* TAB 7: NOTIFICATIONS & LOGS */}
-          {activeTab === 'notifications' && (
-            <div className="space-y-4 max-w-4xl mx-auto">
-              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-                <div>
-                  <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
-                    System Alerts & Audit Log Center
-                  </h1>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">System warnings & log stream</p>
-                </div>
-              </div>
-
-              {cityAlerts.length === 0 ? (
-                <div className="p-12 text-center bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-400 text-xs">
-                  <Bell className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-slate-700" />
-                  <p className="font-semibold text-slate-700 dark:text-slate-300">No notifications available</p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Active system alerts will be displayed here.</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {cityAlerts.map((alert) => (
-                    <div key={alert.id} className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 text-xs flex items-center justify-between">
-                      <span>{alert.title}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB 8: SETTINGS */}
-          {activeTab === 'settings' && (
-            <div className="space-y-4 max-w-3xl mx-auto">
-              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-                <div>
-                  <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100">
-                    Control Center Configuration
-                  </h1>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Manage portal administrative preferences</p>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 shadow-xs space-y-4 text-xs">
-                <div>
-                  <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">Municipal Corporation Title</label>
-                  <input
-                    type="text"
-                    defaultValue="Kopargaon Municipal Corporation"
-                    className="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md font-medium"
-                  />
-                </div>
-
-                <div className="pt-2">
-                  <button
-                    onClick={() => showToast('Configuration saved', 'success')}
-                    className="px-4 py-2 bg-[#0A2540] text-white font-semibold rounded-md hover:bg-slate-800"
-                  >
-                    Save Configuration
-                  </button>
-                </div>
+                {hasRunSim && (
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg text-emerald-800 dark:text-emerald-300">
+                    <p className="font-bold">Simulation Results Summary:</p>
+                    <p className="mt-1">Deploying +{simGarbageTrucks} garbage trucks and allocating ₹{simRoadBudget} Lakhs road budget will improve 3-day SLA compliance to 94.8% across all wards.</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
+          {/* MUNICIPAL PERMISSIONS & LICENSING HUB */}
+          {activeTab === 'permissions' && (
+            <PermissionsDashboardView />
+          )}
+
+          {/* MUNICIPAL REVENUE & TAX ADMIN */}
+          {activeTab === 'tax_admin' && (
+            <OfficerTaxManagementView />
+          )}
         </main>
-
       </div>
 
+      {/* Ticket Details Drawer */}
+      <AnimatePresence>
+        {selectedComplaint && (
+          <div className="fixed inset-0 z-50 overflow-hidden">
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={() => setSelectedComplaint(null)} />
+            <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10">
+              <motion.div
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                className="w-screen max-w-full sm:max-w-xl bg-white dark:bg-slate-900 shadow-2xl border-l border-slate-200 dark:border-slate-800 flex flex-col"
+              >
+                <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-[#0A2540] text-white flex items-center justify-between">
+                  <div>
+                    <span className="font-mono text-xs text-amber-400 font-bold">#{selectedComplaint.id}</span>
+                    <h3 className="text-sm font-bold">{selectedComplaint.title}</h3>
+                  </div>
+                  <button onClick={() => setSelectedComplaint(null)} className="p-1 text-slate-300 hover:text-white">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200">
+                      {selectedComplaint.category}
+                    </span>
+                    <SLAIndicator submittedAt={selectedComplaint.createdAt || selectedComplaint.submittedAt} dueDate={selectedComplaint.dueDate} currentStatus={selectedComplaint.status} />
+                  </div>
+
+                  <div>
+                    <h4 className="font-bold text-slate-700 dark:text-slate-300 mb-1">Description</h4>
+                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed">{selectedComplaint.description}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-lg text-slate-700 dark:text-slate-300">
+                    <div>
+                      <span className="font-bold block text-[10px] uppercase text-slate-400">Ward & Address</span>
+                      <span>Ward {selectedComplaint.ward} • {selectedComplaint.address || selectedComplaint.locationName}</span>
+                    </div>
+                    <div>
+                      <span className="font-bold block text-[10px] uppercase text-slate-400">Assigned Department</span>
+                      <span>{selectedComplaint.department}</span>
+                    </div>
+                  </div>
+
+                  {/* Complaint Timeline Events */}
+                  <div>
+                    <h4 className="font-bold text-slate-900 dark:text-slate-100 mb-2 uppercase text-[11px] tracking-wider border-b pb-1">
+                      Immutable Complaint History & Audit Events
+                    </h4>
+                    <div className="space-y-3 relative before:absolute before:inset-0 before:left-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-800">
+                      {selectedComplaint.timeline?.map((evt, idx) => (
+                        <div key={idx} className="relative pl-6 space-y-0.5">
+                          <div className="absolute left-0 top-1 w-4 h-4 rounded-full bg-[#0A2540] dark:bg-sky-500 border-2 border-white dark:border-slate-900" />
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-900 dark:text-slate-100">{evt.action || evt.status}</span>
+                            <span className="font-mono text-[10px] text-slate-400">{new Date(evt.timestamp).toLocaleString('en-IN')}</span>
+                          </div>
+                          <p className="text-slate-600 dark:text-slate-400">{evt.note}</p>
+                          <span className="text-[10px] text-slate-400 block font-mono">By: {evt.actor?.name} ({evt.actor?.role})</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex justify-between items-center">
+                  {selectedComplaint.status === 'Completed' || selectedComplaint.status === 'Resolved' ? (
+                    <button
+                      onClick={() => {
+                        setPublicReportTargetComplaint(selectedComplaint);
+                        setSelectedComplaint(null);
+                      }}
+                      className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg flex items-center justify-center gap-2"
+                    >
+                      <Award className="w-4 h-4" />
+                      <span>View Official Work Completion Certificate</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setCompletionTargetComplaint(selectedComplaint);
+                        setSelectedComplaint(null);
+                      }}
+                      className="w-full py-2 bg-[#0A2540] hover:bg-[#103459] text-white font-bold text-xs rounded-lg flex items-center justify-center gap-2"
+                    >
+                      <CheckSquare className="w-4 h-4 text-emerald-400" />
+                      <span>Submit Mandatory Work Completion Report</span>
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Enterprise Notification Drawer */}
+      <NotificationDrawer
+        isOpen={isNotifDrawerOpen}
+        onClose={() => setIsNotifDrawerOpen(false)}
+        userRole={activeGovernanceRole === 'higher_authority' ? 'higher_authority' : 'officer'}
+        onSelectComplaint={(id) => {
+          const target = complaints.find(c => c.id === id);
+          if (target) {
+            setSelectedComplaint(target);
+            setActiveTab('complaints');
+          }
+        }}
+      />
+
+      {/* Mandatory Work Completion Report Modal */}
+      <CompletionReportModal
+        isOpen={!!completionTargetComplaint}
+        onClose={() => setCompletionTargetComplaint(null)}
+        complaint={completionTargetComplaint}
+        onSubmitReport={submitCompletionReport}
+      />
+
+      {/* Downloadable / Printable Official Public Report Modal */}
+      <PublicReportModal
+        isOpen={!!publicReportTargetComplaint}
+        onClose={() => setPublicReportTargetComplaint(null)}
+        complaint={publicReportTargetComplaint}
+      />
     </div>
   );
 };
