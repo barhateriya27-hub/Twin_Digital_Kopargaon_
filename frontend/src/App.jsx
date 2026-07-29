@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
 import { Toast } from './components/Toast';
+import { GlobalAIAssistant } from './components/ai/GlobalAIAssistant';
 import { LandingPage } from './pages/LandingPage';
 import { CitizenLogin } from './pages/citizen/CitizenLogin';
 import { CitizenRegister } from './pages/citizen/CitizenRegister';
@@ -51,6 +52,9 @@ export function AppContent() {
   return (
     <>
       <Toast />
+      {/* Global AI Assistant across all routes */}
+      <GlobalAIAssistant />
+
       <Routes>
         {/* Landing Page */}
         <Route path="/" element={<LandingPage />} />

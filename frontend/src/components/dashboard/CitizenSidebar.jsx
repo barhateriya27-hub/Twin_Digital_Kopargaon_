@@ -1,161 +1,168 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
-import { 
-  Home, 
-  Map, 
-  CloudSun, 
-  Car, 
-  Building2, 
-  Megaphone, 
-  Bot, 
-  User, 
-  Settings, 
-  LogOut, 
-  PlusCircle, 
-  ClipboardList, 
-  PhoneCall 
+import {
+  LayoutDashboard,
+  FileText,
+  AlertTriangle,
+  Receipt,
+  HelpCircle,
+  PhoneCall,
+  LogOut,
+  Map,
+  Bell,
+  CheckCircle,
+  Siren,
+  Building2,
+  ShieldAlert,
+  X
 } from 'lucide-react';
-import { LanguageSelector } from '../LanguageSelector';
-import { ThemeToggle } from '../ThemeToggle';
+import { useTranslation } from 'react-i18next';
 
-export const CitizenSidebar = ({ 
-  activeTab, 
-  setActiveTab, 
-  citizenUser, 
-  onLogout, 
-  userComplaintsCount = 0 
+/**
+ * Official NIC / Smart Cities Mission India Style Sidebar Component
+ */
+export const CitizenSidebar = ({
+  activeTab = 'dashboard',
+  onSelectTab,
+  onOpenEmergencyModal,
+  onLogout,
+  mobileOpen = false,
+  onCloseMobile
 }) => {
   const { t } = useTranslation();
 
   const navItems = [
-    { id: 'overview', label: t('sidebar.dashboard', 'Dashboard'), icon: Home, color: 'text-sky-500' },
-    { id: 'map', label: t('sidebar.smartMap', 'Smart City Map'), icon: Map, color: 'text-emerald-500' },
-    { id: 'weather', label: t('sidebar.weather', 'Weather'), icon: CloudSun, color: 'text-amber-500' },
-    { id: 'traffic', label: t('sidebar.traffic', 'Live Traffic'), icon: Car, color: 'text-rose-500' },
-    { id: 'services', label: t('sidebar.services', 'Public Services'), icon: Building2, color: 'text-indigo-500' },
-    { id: 'updates', label: t('sidebar.updates', 'City Updates'), icon: Megaphone, color: 'text-amber-600' },
-    { id: 'ai_assistant', label: t('sidebar.aiAssistant', 'AI Assistant'), icon: Bot, color: 'text-purple-500', badge: 'AI' },
-    { id: 'report', label: t('sidebar.report', 'Report Complaint'), icon: PlusCircle, color: 'text-orange-500' },
-    { id: 'track', label: t('sidebar.track', 'Track Tickets'), icon: ClipboardList, color: 'text-cyan-500', count: userComplaintsCount },
-    { id: 'profile', label: t('sidebar.profile', 'Profile'), icon: User, color: 'text-slate-500' },
-    { id: 'settings', label: t('sidebar.settings', 'Settings'), icon: Settings, color: 'text-slate-400' }
+    { id: 'dashboard', label: 'Dashboard & GIS Map', icon: LayoutDashboard },
+    { id: 'complaints', label: 'Grievances & Complaints', icon: AlertTriangle },
+    { id: 'tax', label: 'Property & Water Tax', icon: Receipt },
+    { id: 'permissions', label: 'Building & Permits', icon: FileText },
+    { id: 'emergency_page', label: 'Emergency Directory', icon: Siren },
+    { id: 'announcements', label: 'Public Notices & SLA', icon: Bell },
+    { id: 'faq', label: 'Help Desk & FAQ', icon: HelpCircle }
   ];
 
   return (
-    <aside className="w-[260px] h-screen sticky top-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between shrink-0 select-none z-20 overflow-y-auto">
-      
-      {/* Top Section: Logo & Branding */}
-      <div>
-        {/* Tricolor Ribbon */}
-        <div className="h-1 w-full flex shrink-0">
-          <div className="h-full w-1/3 bg-[#FF9933]"></div>
-          <div className="h-full w-1/3 bg-white dark:bg-slate-800"></div>
-          <div className="h-full w-1/3 bg-[#138808]"></div>
-        </div>
+    <>
+      {/* Mobile Backdrop */}
+      {mobileOpen && (
+        <div
+          onClick={onCloseMobile}
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-[990] lg:hidden"
+        />
+      )}
 
-        <div className="p-5 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#0A2540] flex items-center justify-center text-emerald-400 font-extrabold border border-sky-900 shadow-md shrink-0">
-              <Building2 className="w-5 h-5 text-emerald-400" />
-            </div>
-            <div>
-              <h1 className="font-extrabold text-xs text-slate-900 dark:text-slate-100 tracking-tight leading-tight uppercase">
-                {t('sidebar.title', 'AI Digital Twin of Kopargaon')}
-              </h1>
-              <span className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 block mt-0.5">
-                {t('sidebar.subtitle', 'Citizen Portal')}
-              </span>
-            </div>
-          </div>
-
-          {/* Controls: Language Selector & Theme Toggle */}
-          <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/60">
-            <LanguageSelector variant="topbar" />
-            <ThemeToggle />
-          </div>
-        </div>
-
-        {/* Navigation Links List */}
-        <nav className="p-3 space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all relative group ${
-                  isActive
-                    ? 'bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 border-r-4 border-sky-600 shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-sky-600 dark:text-sky-400' : item.color}`} />
-                  <span>{item.label}</span>
-                </div>
-
-                {item.badge && (
-                  <span className="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300">
-                    {item.badge}
-                  </span>
-                )}
-
-                {item.count !== undefined && item.count > 0 && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300">
-                    {item.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-
-          {/* Quick Action: Emergency Services Page Button */}
-          <div className="pt-2">
-            <Link
-              to="/citizen/emergency"
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-extrabold bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition-all"
-            >
-              <div className="flex items-center gap-2.5">
-                <PhoneCall className="w-4 h-4 text-white" />
-                <span>{t('sidebar.emergency', 'Emergency Services')}</span>
+      <aside
+        className={`fixed lg:static top-0 left-0 h-full w-[260px] bg-white border-r border-[#0B1F3A]/15 shadow-sm z-[995] flex flex-col transition-transform duration-300 ease-in-out ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+      >
+        {/* Top Official Government Header */}
+        <div className="p-5 border-b border-[#0B1F3A]/10 bg-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {/* National Emblem SVG */}
+              <div className="w-10 h-10 rounded-lg bg-[#0B1F3A]/5 border border-[#0B1F3A]/15 flex items-center justify-center p-1 shrink-0">
+                <svg viewBox="0 0 24 24" className="w-7 h-7 fill-[#0B1F3A]">
+                  <path d="M12 2L4 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-8-3zm0 4a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm-5 11c0-2.5 3.33-4 5-4s5 1.5 5 4H7z"/>
+                </svg>
               </div>
-              <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded font-mono">24/7</span>
-            </Link>
+
+              <div>
+                <h1 className="text-xs font-black uppercase tracking-wider text-[#0B1F3A] leading-tight">
+                  कोपरगाव नगर परिषद
+                </h1>
+                <p className="text-[11px] font-semibold text-slate-600 leading-tight">
+                  Kopargaon Municipal Council
+                </p>
+                <span className="text-[9px] font-mono text-[#FF9933] font-bold block mt-0.5">
+                  Govt. of Maharashtra • Smart City
+                </span>
+              </div>
+            </div>
+
+            {/* Mobile Close Button */}
+            <button
+              onClick={onCloseMobile}
+              className="p-1 rounded-lg hover:bg-slate-100 lg:hidden text-slate-400"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Navigation Items List with 20px spacing */}
+        <nav className="flex-1 py-5 px-3 space-y-5 overflow-y-auto custom-scrollbar">
+          <div className="px-3">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+              CITIZEN SERVICES
+            </span>
+          </div>
+
+          <div className="space-y-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    onSelectTab(item.id);
+                    if (onCloseMobile) onCloseMobile();
+                  }}
+                  className={`w-full flex items-center gap-3.5 px-3.5 py-3 rounded-r-xl transition-all text-xs font-semibold text-left border-l-4 ${
+                    isActive
+                      ? 'border-[#0B1F3A] bg-[#0B1F3A]/5 text-[#0B1F3A]'
+                      : 'border-transparent text-slate-600 hover:bg-slate-50 hover:text-[#0B1F3A]'
+                  }`}
+                >
+                  <Icon
+                    className={`w-4 h-4 shrink-0 transition-colors ${
+                      isActive ? 'text-[#0B1F3A]' : 'text-slate-500'
+                    }`}
+                  />
+                  <span className="truncate">{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Emergency SOS Call Button (RED ONLY) */}
+          <div className="pt-2 px-1">
+            <button
+              onClick={onOpenEmergencyModal}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#C62828] hover:bg-[#B71C1C] text-white rounded-xl shadow-md transition-all text-xs font-bold uppercase tracking-wider"
+            >
+              <ShieldAlert className="w-4 h-4 text-white animate-pulse" />
+              <span>EMERGENCY SOS 24x7</span>
+            </button>
           </div>
         </nav>
-      </div>
 
-      {/* Bottom Section: Logged-In User Profile Card */}
-      <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
-        <div className="p-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-2 shadow-xs">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-[#0A2540] text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0 shadow-inner">
-              {(citizenUser?.fullName || citizenUser?.name) ? (citizenUser.fullName || citizenUser.name).charAt(0).toUpperCase() : 'C'}
+        {/* Bottom NIC Officer / Logout Bar */}
+        <div className="p-4 border-t border-[#0B1F3A]/10 bg-slate-50/50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 rounded-full bg-[#0B1F3A] text-white font-bold flex items-center justify-center text-xs shrink-0">
+                KP
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-[#0B1F3A] truncate">Citizen Portal</p>
+                <p className="text-[10px] font-medium text-slate-500 truncate">KMC Ward Resident</p>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <h4 className="font-extrabold text-xs text-slate-900 dark:text-slate-100 truncate leading-tight">
-                {citizenUser?.fullName || citizenUser?.name || 'Citizen'}
-              </h4>
-              <p className="text-[10px] text-slate-400 font-mono truncate">
-                {citizenUser?.email || citizenUser?.aadhaar || t('sidebar.residentTag', 'Ward Resident')}
-              </p>
-            </div>
+
+            <button
+              onClick={onLogout}
+              title="Logout"
+              className="p-2 rounded-lg text-slate-400 hover:text-[#C62828] hover:bg-rose-50 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
-
-          <button
-            onClick={onLogout}
-            className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors shrink-0"
-            title={t('sidebar.logout', 'Logout')}
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
         </div>
-      </div>
-
-    </aside>
+      </aside>
+    </>
   );
 };
+
+export default CitizenSidebar;

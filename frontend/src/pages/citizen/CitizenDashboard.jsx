@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { 
-  Home, 
+  LayoutDashboard, 
   PlusCircle, 
   ClipboardList, 
   Bell, 
@@ -16,17 +16,12 @@ import {
   AlertTriangle, 
   ChevronRight, 
   FileText, 
-  Sparkles, 
   Shield, 
   Layers,
   ArrowUpRight,
-  Award,
-  Megaphone,
   Download,
-  Share2,
   ShieldAlert,
   PhoneCall,
-  DollarSign,
   Receipt,
   Search,
   X,
@@ -34,14 +29,13 @@ import {
   Menu,
   Bot,
   Settings,
-  Map,
   CloudSun,
-  Car,
-  Send
+  Send,
+  Calendar,
+  Globe
 } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
-import { ThemeToggle } from '../../components/ThemeToggle';
 import { LanguageSelector } from '../../components/LanguageSelector';
 import { SLAIndicator } from '../../components/SLAIndicator';
 import { NotificationDrawer } from '../../components/NotificationDrawer';
@@ -74,22 +68,24 @@ export const CitizenDashboard = () => {
     showToast 
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'map' | 'weather' | 'traffic' | 'services' | 'updates' | 'ai_assistant' | 'report' | 'track' | 'permissions' | 'taxes' | 'profile' | 'settings'
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [publicReportTarget, setPublicReportTarget] = useState(null);
   const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Live Date & Time for Top Bar
+  const [currentDateTime, setCurrentDateTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentDateTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   // Smart City Spatial & Search State
   const [userLocation, setUserLocation] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
-
-  // AI Assistant Chat State
-  const [aiQuery, setAiQuery] = useState('');
-  const [aiMessages, setAiMessages] = useState([
-    { sender: 'ai', text: 'Namaste! I am the Kopargaon Smart City AI Assistant. How can I assist you with municipal services, local routes, or emergency contacts today?' }
-  ]);
 
   // Complaint Form state
   const [reportTitle, setReportTitle] = useState('');
@@ -97,27 +93,24 @@ export const CitizenDashboard = () => {
   const [reportWard, setReportWard] = useState(citizenUser?.ward || 4);
   const [reportLocation, setReportLocation] = useState('');
   const [reportDescription, setReportDescription] = useState('');
-  const [reportImage, setReportImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const userComplaints = complaints;
   const unreadCount = notifications.filter(n => !n.read && (n.recipientRole === 'citizen' || n.recipientRole === 'all')).length;
 
-  // Emergency Announcement for Top Banner
   const emergencyNotice = announcements.find(a => a.priority === 'Urgent/Emergency' && a.status === 'Published');
 
   useEffect(() => {
     getUserLocation().then(loc => setUserLocation(loc));
-  }, []);
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setReportImage(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
-  };
+    // Listen for custom AI Assistant navigation events
+    const handleSwitchTab = (e) => {
+      if (e.detail) setActiveTab(e.detail);
+    };
+    window.addEventListener('SWITCH_CITIZEN_TAB', handleSwitchTab);
+    return () => window.removeEventListener('SWITCH_CITIZEN_TAB', handleSwitchTab);
+  }, []);
 
   const handleReportSubmit = (e) => {
     e.preventDefault();
@@ -153,25 +146,6 @@ export const CitizenDashboard = () => {
     navigate('/');
   };
 
-  const handleAiSend = (e) => {
-    e.preventDefault();
-    if (!aiQuery.trim()) return;
-
-    const userText = aiQuery;
-    setAiQuery('');
-    setAiMessages(prev => [...prev, { sender: 'user', text: userText }]);
-
-    setTimeout(() => {
-      let reply = `Kopargaon Smart City Intelligence Engine: Query parsed for "${userText}". All municipal emergency nodes, property tax gateways, and GIS spatial layers are fully active.`;
-      if (userText.toLowerCase().includes('hospital')) reply = 'Nearby emergency hospital: Kopargaon Sub-District Civil Hospital on Station Road (02423-222340).';
-      if (userText.toLowerCase().includes('police')) reply = 'Kopargaon City Police Station Control Room: 02423-222233 / National Emergency 112.';
-      if (userText.toLowerCase().includes('tax')) reply = 'Property Tax prompt discount of 5% is active until July 31st. Proceed to Tax Dues tab to pay via UPI.';
-
-      setAiMessages(prev => [...prev, { sender: 'ai', text: reply }]);
-    }, 600);
-  };
-
-  // Get active POIs based on search query and category
   const activePois = getKopargaonPOIs(
     selectedCategory,
     searchQuery,
@@ -180,121 +154,129 @@ export const CitizenDashboard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B0F17] flex text-slate-800 dark:text-slate-200 font-sans selection:bg-sky-600 selection:text-white">
+    <div className="min-h-screen bg-[#F8FAFC] flex text-slate-800 font-sans selection:bg-[#0B1F3A] selection:text-white">
       
-      {/* 1. PERMANENT LEFT SIDEBAR (DESKTOP) */}
-      <div className="hidden lg:block">
-        <CitizenSidebar
-          activeTab={activeTab}
-          setActiveTab={(tab) => {
-            setActiveTab(tab);
-            setIsMobileMenuOpen(false);
-          }}
-          citizenUser={citizenUser}
-          onLogout={handleLogout}
-          userComplaintsCount={userComplaints.length}
-        />
-      </div>
+      {/* SINGLE REUSABLE SIDEBAR COMPONENT */}
+      <CitizenSidebar
+        activeTab={activeTab}
+        onSelectTab={(tab) => {
+          setActiveTab(tab);
+          setIsMobileMenuOpen(false);
+        }}
+        onOpenEmergencyModal={() => setActiveTab('emergency_page')}
+        onLogout={handleLogout}
+        mobileOpen={isMobileMenuOpen}
+        onCloseMobile={() => setIsMobileMenuOpen(false)}
+      />
 
-      {/* 2. MOBILE / TABLET HEADER & DRAWER */}
-      <div className="lg:hidden flex flex-col w-full">
-        {/* Mobile Header Bar */}
-        <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-3.5 flex items-center justify-between sticky top-0 z-30 shadow-xs">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
+      {/* RIGHT MAIN CONTENT AREA & OFFICIAL STICKY HEADER */}
+      <div className="flex-1 min-w-0 overflow-y-auto flex flex-col justify-between">
+        
+        {/* OFFICIAL STICKY TOP HEADER */}
+        <header className="sticky top-0 z-40 bg-[#0B1F3A] text-white shadow-md border-b-2 border-[#FF9933]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
+            
+            {/* Left: Mobile Menu & Emblem */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="p-1.5 rounded-lg hover:bg-white/10 text-white lg:hidden"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
 
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-[#0A2540] flex items-center justify-center text-emerald-400 font-bold border border-sky-900">
-                <Building2 className="w-4 h-4" />
+              <div className="flex items-center gap-2.5">
+                {/* National Emblem Icon */}
+                <div className="w-8 h-8 rounded bg-white/10 border border-white/20 flex items-center justify-center p-1 shrink-0">
+                  <svg viewBox="0 0 24 24" className="w-6 h-6 fill-[#FF9933]">
+                    <path d="M12 2L4 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-8-3zm0 4a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm-5 11c0-2.5 3.33-4 5-4s5 1.5 5 4H7z"/>
+                  </svg>
+                </div>
+
+                <div>
+                  <h1 className="text-xs font-black uppercase tracking-widest text-white leading-tight">
+                    कोपरगाव नगर परिषद
+                  </h1>
+                  <p className="text-[10px] text-slate-300 font-medium leading-tight hidden sm:block">
+                    Kopargaon Municipal Council • Govt. of Maharashtra
+                  </p>
+                </div>
               </div>
-              <span className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
-                Kopargaon Citizen Portal
-              </span>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <button
-              onClick={() => setIsNotifDrawerOpen(true)}
-              className="relative p-2 rounded-xl text-slate-600 dark:text-slate-300"
-            >
-              <Bell className="w-5 h-5" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 w-4 h-4 bg-orange-600 text-white font-extrabold text-[9px] rounded-full flex items-center justify-center animate-pulse">
-                  {unreadCount}
+            {/* Right: Live Clock, Weather, Language, Notifications, Profile */}
+            <div className="flex items-center gap-3 text-xs">
+              
+              {/* Date & Time */}
+              <div className="hidden md:flex items-center gap-1.5 text-slate-300 font-mono bg-white/10 px-2.5 py-1 rounded-lg border border-white/10">
+                <Calendar className="w-3.5 h-3.5 text-[#FF9933]" />
+                <span>
+                  {currentDateTime.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                 </span>
-              )}
-            </button>
+                <span className="text-[#FF9933] font-bold">
+                  {currentDateTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+
+              {/* Language Selector */}
+              <div className="hidden sm:block">
+                <LanguageSelector variant="topbar" />
+              </div>
+
+              {/* Notification Trigger */}
+              <button
+                onClick={() => setIsNotifDrawerOpen(true)}
+                className="relative p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+                title="Notifications"
+              >
+                <Bell className="w-4 h-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#C62828] text-white font-black text-[9px] rounded-full flex items-center justify-center border-2 border-[#0B1F3A]">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* User Profile Pill */}
+              <div
+                onClick={() => setActiveTab('profile')}
+                className="flex items-center gap-2 px-2.5 py-1 bg-white/10 hover:bg-white/20 rounded-lg cursor-pointer transition-colors border border-white/10"
+              >
+                <div className="w-6 h-6 rounded-full bg-[#FF9933] text-[#0B1F3A] font-black flex items-center justify-center text-[10px]">
+                  {(citizenUser?.fullName || citizenUser?.name) ? (citizenUser.fullName || citizenUser.name).charAt(0).toUpperCase() : 'C'}
+                </div>
+                <div className="hidden xl:block text-left">
+                  <p className="text-[11px] font-bold text-white leading-tight truncate">
+                    {citizenUser?.fullName || citizenUser?.name || 'Citizen'}
+                  </p>
+                  <p className="text-[9px] text-[#FF9933] font-mono leading-tight">
+                    Ward {citizenUser?.ward || 4} Resident
+                  </p>
+                </div>
+              </div>
+
+            </div>
           </div>
         </header>
 
-        {/* Mobile Slide-Out Drawer */}
-        <AnimatePresence>
-          {isMobileMenuOpen && (
-            <div className="fixed inset-0 z-50 overflow-hidden lg:hidden">
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs"
-              />
-
-              <motion.div
-                initial={{ x: '-100%' }}
-                animate={{ x: 0 }}
-                exit={{ x: '-100%' }}
-                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="relative w-[280px] h-full bg-white dark:bg-slate-900 shadow-2xl"
-              >
-                <button
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-
-                <CitizenSidebar
-                  activeTab={activeTab}
-                  setActiveTab={(tab) => {
-                    setActiveTab(tab);
-                    setIsMobileMenuOpen(false);
-                  }}
-                  citizenUser={citizenUser}
-                  onLogout={handleLogout}
-                  userComplaintsCount={userComplaints.length}
-                />
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* 3. RIGHT MAIN CONTENT AREA */}
-      <div className="flex-1 min-w-0 overflow-y-auto flex flex-col justify-between">
-        
-        {/* Banner Notification */}
+        {/* Emergency Notice Top Banner */}
         {emergencyNotice && (
-          <div className="bg-rose-600 text-white px-4 py-2 text-xs font-semibold flex items-center justify-between shadow-md">
-            <div className="flex items-center gap-2 max-w-5xl mx-auto">
-              <ShieldAlert className="w-4 h-4 text-amber-300 shrink-0 animate-pulse" />
-              <span className="font-bold">EMERGENCY ADVISORY:</span>
+          <div className="bg-[#C62828] text-white px-4 py-2 text-xs font-semibold flex items-center justify-between shadow-md">
+            <div className="flex items-center gap-2 max-w-7xl mx-auto">
+              <ShieldAlert className="w-4 h-4 text-[#FF9933] shrink-0 animate-pulse" />
+              <span className="font-extrabold uppercase tracking-wider text-[#FF9933]">EMERGENCY ADVISORY:</span>
               <span>{emergencyNotice.title} - {emergencyNotice.description}</span>
             </div>
           </div>
         )}
 
+        {/* MAIN BODY AREA */}
         <main className="p-4 sm:p-6 lg:p-8 space-y-6 flex-1 max-w-7xl w-full mx-auto">
 
-          {/* TAB 1: SMART CITY HOMEPAGE DASHBOARD */}
-          {(activeTab === 'overview' || activeTab === 'map') && (
+          {/* TAB 1: DASHBOARD & GIS MAP */}
+          {activeTab === 'dashboard' && (
             <div className="space-y-6">
+              
               <WelcomeWidget
                 citizenName={citizenUser?.fullName || citizenUser?.name || ''}
                 wardNumber={citizenUser?.ward || 4}
@@ -305,18 +287,18 @@ export const CitizenDashboard = () => {
               {/* Search & Categories */}
               <div className="space-y-3">
                 <div className="relative flex items-center w-full">
-                  <Search className="w-5 h-5 text-emerald-600 absolute left-4 pointer-events-none" />
+                  <Search className="w-5 h-5 text-[#0B1F3A] absolute left-4 pointer-events-none" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search any place in Kopargaon (e.g. Civil Hospital, Somaiya College, Yeola Naka, ATM, Restaurant)..."
-                    className="w-full pl-12 pr-10 py-3.5 bg-white dark:bg-slate-900 border-2 border-emerald-100 dark:border-slate-800 rounded-2xl text-sm font-semibold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 shadow-sm transition-all"
+                    placeholder="Search Kopargaon spatial locations (e.g. Civil Hospital, Somaiya College, Yeola Naka, SBI ATM)..."
+                    className="w-full pl-12 pr-10 py-3 bg-white border-2 border-[#0B1F3A]/20 rounded-2xl text-xs font-semibold text-[#0B1F3A] placeholder:text-slate-400 focus:outline-none focus:border-[#0B1F3A] shadow-sm transition-all"
                   />
                   {searchQuery && (
                     <button
                       onClick={() => setSearchQuery('')}
-                      className="absolute right-3.5 p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      className="absolute right-3.5 p-1 rounded-full text-slate-400 hover:text-slate-600"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -329,16 +311,16 @@ export const CitizenDashboard = () => {
                 />
               </div>
 
-              {/* Smart City Map & Side Widgets */}
+              {/* Smart City Digital Twin Map & Side Widgets */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 <div className="lg:col-span-8 space-y-2">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                      <Navigation className="w-4 h-4 text-emerald-600" />
-                      Kopargaon Spatial Digital Twin Map
+                    <h3 className="text-sm font-extrabold text-[#0B1F3A] flex items-center gap-2">
+                      <Navigation className="w-4 h-4 text-[#FF9933]" />
+                      PM Gati Shakti GIS Digital Twin Map
                     </h3>
                     <span className="text-[11px] font-semibold text-slate-500">
-                      Showing {activePois.length} Real Spatial Places
+                      Active Spatial Assets: {activePois.length} Locations
                     </span>
                   </div>
 
@@ -356,13 +338,13 @@ export const CitizenDashboard = () => {
                 </div>
               </div>
 
-              {/* City Announcements */}
-              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              {/* Public Notices */}
+              <div className="bg-white rounded-2xl p-6 border border-[#0B1F3A]/15 shadow-sm space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <div className="flex items-center gap-2">
-                    <Megaphone className="w-5 h-5 text-amber-500" />
-                    <h2 className="text-base font-extrabold text-slate-900 dark:text-slate-100">
-                      Kopargaon Municipal Announcements & Notices
+                    <Building2 className="w-5 h-5 text-[#FF9933]" />
+                    <h2 className="text-sm font-black uppercase tracking-wider text-[#0B1F3A]">
+                      Official Municipal Notices & SLA Bulletins
                     </h2>
                   </div>
                 </div>
@@ -371,261 +353,148 @@ export const CitizenDashboard = () => {
                   {announcements.slice(0, 3).map((item) => (
                     <div
                       key={item.id}
-                      className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2"
+                      className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2"
                     >
-                      <span className="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-[#0B1F3A]/10 text-[#0B1F3A] border border-[#0B1F3A]/20">
                         {item.category || 'Public Advisory'}
                       </span>
-                      <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100 leading-tight">
+                      <h3 className="font-extrabold text-xs text-[#0B1F3A] leading-tight">
                         {item.title}
                       </h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
                         {item.description}
                       </p>
                     </div>
                   ))}
                 </div>
               </div>
+
             </div>
           )}
 
-          {/* TAB 2: WEATHER TELEMETRY VIEW */}
-          {activeTab === 'weather' && (
+          {/* TAB 2: COMPLAINTS & GRIEVANCES */}
+          {activeTab === 'complaints' && (
             <div className="space-y-6">
-              <WeatherWidget />
-            </div>
-          )}
-
-          {/* TAB 3: LIVE TRAFFIC TELEMETRY VIEW */}
-          {activeTab === 'traffic' && (
-            <div className="space-y-6">
-              <TrafficWidget />
-            </div>
-          )}
-
-          {/* TAB 4: PUBLIC SERVICES POI DIRECTORY */}
-          {activeTab === 'services' && (
-            <div className="space-y-6">
-              <QuickServiceCategories
-                selectedCategory={selectedCategory}
-                setSelectedCategory={setSelectedCategory}
-              />
-              <SmartCityMap pois={activePois} userLocation={userLocation} />
-            </div>
-          )}
-
-          {/* TAB 5: CITY ADVISORIES & ANNOUNCEMENTS */}
-          {activeTab === 'updates' && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                Official Municipal Bulletins & Advisories
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {announcements.map((item) => (
-                  <div key={item.id} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
-                    <span className="text-xs font-bold text-sky-600">{item.category}</span>
-                    <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">{item.title}</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{item.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 6: AI ASSISTANT CHAT */}
-          {activeTab === 'ai_assistant' && (
-            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm max-w-3xl mx-auto space-y-4">
-              <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
-                <div className="w-10 h-10 rounded-2xl bg-purple-600 text-white flex items-center justify-center font-bold">
-                  <Bot className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="text-base font-extrabold text-slate-900 dark:text-slate-100">
-                    Kopargaon AI Assistant & City Query Desk
+              <div className="max-w-3xl mx-auto bg-white rounded-2xl p-6 sm:p-8 border border-[#0B1F3A]/15 shadow-md space-y-6">
+                <div className="border-b border-slate-100 pb-4">
+                  <span className="px-3 py-1 bg-[#FF9933]/15 text-[#C2410C] rounded-full text-xs font-bold uppercase tracking-wider inline-block mb-2 border border-[#FF9933]/30">
+                    National Grievance Portal (SLA Enforced)
+                  </span>
+                  <h2 className="text-lg font-black text-[#0B1F3A]">
+                    Register Citizen Grievance Ticket (३-दिवसीय SLA प्रणाली)
                   </h2>
-                  <p className="text-xs text-slate-400 font-mono">
-                    Powered by Digital Twin Spatial Intelligence
+                  <p className="text-xs text-slate-500 mt-1">
+                    Direct electronic dispatch to Municipal Sanitation & Field Engineers.
                   </p>
                 </div>
-              </div>
 
-              <div className="h-80 overflow-y-auto space-y-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800">
-                {aiMessages.map((msg, i) => (
-                  <div
-                    key={i}
-                    className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-md p-3 rounded-2xl text-xs leading-relaxed font-semibold ${
-                        msg.sender === 'user'
-                          ? 'bg-sky-600 text-white rounded-br-none'
-                          : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-bl-none shadow-xs'
-                      }`}
-                    >
-                      {msg.text}
+                <form onSubmit={handleReportSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-[#0B1F3A] uppercase tracking-wider mb-1.5">
+                      Grievance Title *
+                    </label>
+                    <input
+                      type="text"
+                      value={reportTitle}
+                      onChange={(e) => setReportTitle(e.target.value)}
+                      placeholder="e.g. Broken Water Main Line on Station Road"
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#0B1F3A]"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-[#0B1F3A] uppercase tracking-wider mb-1.5">
+                        Category *
+                      </label>
+                      <select
+                        value={reportCategory}
+                        onChange={(e) => setReportCategory(e.target.value)}
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#0B1F3A] cursor-pointer"
+                      >
+                        <option value="Garbage">Garbage / Sanitation (स्वच्छता)</option>
+                        <option value="Road Pothole">Road Maintenance (रस्ते दुरुस्ती)</option>
+                        <option value="Water Leakage">Water Pipeline Leak (पाणी पुरवठा)</option>
+                        <option value="Streetlight">Streetlight Maintenance (पथदिवे)</option>
+                        <option value="Drainage Rupture">Drainage Rupture (गटार तुंबणे)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-[#0B1F3A] uppercase tracking-wider mb-1.5">
+                        Municipal Ward Number *
+                      </label>
+                      <select
+                        value={reportWard}
+                        onChange={(e) => setReportWard(Number(e.target.value))}
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#0B1F3A] cursor-pointer"
+                      >
+                        {Array.from({ length: 28 }, (_, i) => i + 1).map((w) => (
+                          <option key={w} value={w}>Ward {w}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
-                ))}
-              </div>
 
-              <form onSubmit={handleAiSend} className="flex gap-2">
-                <input
-                  type="text"
-                  value={aiQuery}
-                  onChange={(e) => setAiQuery(e.target.value)}
-                  placeholder="Ask about hospital phone numbers, tax discounts, or police stations..."
-                  className="flex-1 p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-purple-500"
-                />
-                <button
-                  type="submit"
-                  className="px-5 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs flex items-center gap-1 shadow-sm"
-                >
-                  <Send className="w-4 h-4" /> Ask
-                </button>
-              </form>
-            </div>
-          )}
-
-          {/* TAB 7: REPORT COMPLAINT */}
-          {activeTab === 'report' && (
-            <div className="max-w-2xl mx-auto bg-white dark:bg-slate-800 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-700 shadow-xl space-y-6">
-              <div className="border-b border-slate-100 dark:border-slate-700 pb-4">
-                <span className="px-3 py-1 bg-orange-100 dark:bg-orange-950/40 text-orange-600 rounded-full text-xs font-bold uppercase tracking-wider inline-block mb-2">
-                  Grievance Redressal
-                </span>
-                <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
-                  Register Citizen Complaint (३-दिवसीय SLA कार्यप्रणाली)
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Report potholes, sanitation, water pipe rupture, or streetlight failures with direct field officer assignment.
-                </p>
-              </div>
-
-              <form onSubmit={handleReportSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                    Complaint Title *
-                  </label>
-                  <input
-                    type="text"
-                    value={reportTitle}
-                    onChange={(e) => setReportTitle(e.target.value)}
-                    placeholder="e.g. Major Water Pipeline Leak near Station Chowk"
-                    className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                      Category *
+                    <label className="block text-xs font-bold text-[#0B1F3A] uppercase tracking-wider mb-1.5">
+                      Landmark & Location *
                     </label>
-                    <select
-                      value={reportCategory}
-                      onChange={(e) => setReportCategory(e.target.value)}
-                      className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
-                    >
-                      <option value="Garbage">Garbage / Sanitation (कचरा व स्वच्छता)</option>
-                      <option value="Road Pothole">Road Pothole (खड्डे व रस्ते)</option>
-                      <option value="Water Leakage">Water Rupture (पाणी पुरवठा लीकेज)</option>
-                      <option value="Streetlight">Streetlight Issue (पथदिवे बंद)</option>
-                      <option value="Drainage Rupture">Drainage Overflow (सांडपाणी)</option>
-                    </select>
+                    <input
+                      type="text"
+                      value={reportLocation}
+                      onChange={(e) => setReportLocation(e.target.value)}
+                      placeholder="e.g. Near Government Sub-District Civil Hospital Gate"
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#0B1F3A]"
+                      required
+                    />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                      Ward Number *
+                    <label className="block text-xs font-bold text-[#0B1F3A] uppercase tracking-wider mb-1.5">
+                      Grievance Description *
                     </label>
-                    <select
-                      value={reportWard}
-                      onChange={(e) => setReportWard(Number(e.target.value))}
-                      className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
-                    >
-                      {Array.from({ length: 28 }, (_, i) => i + 1).map((w) => (
-                        <option key={w} value={w}>Ward {w}</option>
-                      ))}
-                    </select>
+                    <textarea
+                      rows={4}
+                      value={reportDescription}
+                      onChange={(e) => setReportDescription(e.target.value)}
+                      placeholder="Provide precise details to enable rapid field response..."
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#0B1F3A]"
+                      required
+                    />
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                    Location Landmark *
-                  </label>
-                  <input
-                    type="text"
-                    value={reportLocation}
-                    onChange={(e) => setReportLocation(e.target.value)}
-                    placeholder="e.g. Near S.G. Vidyalaya Gate, Station Road, Kopargaon"
-                    className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    required
-                  />
-                </div>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full py-3.5 bg-[#0B1F3A] hover:bg-[#071426] text-white font-bold rounded-xl shadow-md text-xs uppercase tracking-wider transition-all border border-[#0B1F3A]"
+                  >
+                    {isSubmitting ? 'Registering Ticket...' : 'Register Grievance & Dispatch 72-Hour SLA'}
+                  </button>
+                </form>
+              </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                    Detailed Description *
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={reportDescription}
-                    onChange={(e) => setReportDescription(e.target.value)}
-                    placeholder="Describe the issue in detail so municipal engineers can dispatch exact repair gear..."
-                    className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    required
-                  />
-                </div>
+              {/* User Complaints List */}
+              <div className="bg-white rounded-2xl p-6 border border-[#0B1F3A]/15 shadow-sm space-y-4">
+                <h3 className="text-sm font-extrabold uppercase tracking-wider text-[#0B1F3A]">
+                  Your Registered Tickets ({userComplaints.length})
+                </h3>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
-                    Upload Incident Image
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-orange-50 file:text-orange-600 dark:file:bg-orange-950/40 cursor-pointer"
-                  />
-                  {imagePreview && (
-                    <img src={imagePreview} alt="Preview" className="mt-2 h-32 object-cover rounded-xl border border-slate-200" />
-                  )}
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow-lg shadow-orange-600/20 text-xs uppercase tracking-wide transition-all"
-                >
-                  {isSubmitting ? 'Submitting Grievance...' : 'Submit Ticket & Activate 3-Day SLA'}
-                </button>
-              </form>
-            </div>
-          )}
-
-          {/* TAB 8: TRACK TICKETS */}
-          {activeTab === 'track' && (
-            <div className="space-y-4">
-              <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
-                <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4">
-                  Your Registered Grievance Tickets ({userComplaints.length})
-                </h2>
-
-                <div className="grid grid-cols-1 gap-3">
+                <div className="space-y-3">
                   {userComplaints.map((item) => (
                     <div
                       key={item.id}
-                      className="p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                      className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                     >
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-mono text-xs font-bold text-sky-600">{item.id}</span>
-                          <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200">{item.category}</span>
-                          <span className="text-xs text-slate-400">• Ward {item.ward}</span>
+                          <span className="font-mono text-xs font-bold text-[#0B1F3A]">{item.id}</span>
+                          <span className="text-xs font-extrabold text-[#0B1F3A]">{item.category}</span>
+                          <span className="text-xs text-slate-500">• Ward {item.ward}</span>
                         </div>
-                        <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">{item.title}</h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{item.locationName}</p>
+                        <h4 className="font-bold text-xs text-slate-800">{item.title}</h4>
+                        <p className="text-xs text-slate-500 mt-0.5">{item.locationName}</p>
                       </div>
 
                       <div className="flex items-center gap-3 shrink-0">
@@ -638,7 +507,7 @@ export const CitizenDashboard = () => {
                         {(item.status === 'Completed' || item.status === 'Resolved') && (
                           <button
                             onClick={() => setPublicReportTarget(item)}
-                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-sm"
+                            className="px-3 py-1.5 bg-[#138808] hover:bg-emerald-800 text-white font-bold text-xs rounded-lg flex items-center gap-1 shadow-sm"
                           >
                             <Download className="w-3.5 h-3.5" /> Certificate
                           </button>
@@ -651,94 +520,53 @@ export const CitizenDashboard = () => {
             </div>
           )}
 
-          {/* TAB 9: PROFILE VIEW */}
-          {activeTab === 'profile' && (
-            <div className="max-w-xl mx-auto bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-              <div className="text-center pb-4 border-b border-slate-100 dark:border-slate-800">
-                <div className="w-16 h-16 rounded-full bg-[#0A2540] text-emerald-400 flex items-center justify-center font-bold text-2xl mx-auto mb-2 shadow-inner">
-                  {(citizenUser?.fullName || citizenUser?.name) ? (citizenUser.fullName || citizenUser.name).charAt(0).toUpperCase() : 'C'}
-                </div>
-                <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
-                  {citizenUser?.fullName || citizenUser?.name || 'Citizen'}
-                </h2>
-                <p className="text-xs text-slate-500 font-mono">Verified Citizen Identity</p>
-              </div>
+          {/* PERMISSIONS & TAXES INTEGRATION */}
+          {activeTab === 'tax' && <CitizenTaxPortalView />}
+          {activeTab === 'permissions' && <PermissionsDashboardView />}
 
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                const updatedName = formData.get('fullName');
-                if (updatedName && updatedName.trim()) {
-                  updateCitizenProfile({ fullName: updatedName.trim(), name: updatedName.trim() });
-                }
-              }} className="space-y-3 text-xs">
-                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl space-y-1">
-                  <label className="text-slate-500 font-bold block">Full Name:</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      name="fullName"
-                      defaultValue={citizenUser?.fullName || citizenUser?.name || ''}
-                      key={citizenUser?.fullName || citizenUser?.name}
-                      className="flex-1 p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      required
-                    />
-                    <button
-                      type="submit"
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition-colors shrink-0"
-                    >
-                      Update Profile
-                    </button>
-                  </div>
-                </div>
-                <div className="flex justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                  <span className="text-slate-500 font-bold">Email Address:</span>
-                  <span className="font-semibold text-slate-900 dark:text-slate-100">{citizenUser?.email || ''}</span>
-                </div>
-                <div className="flex justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                  <span className="text-slate-500 font-bold">Mobile Number:</span>
-                  <span className="font-semibold text-slate-900 dark:text-slate-100">{citizenUser?.mobile || citizenUser?.phone || ''}</span>
-                </div>
-                <div className="flex justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                  <span className="text-slate-500 font-bold">Aadhaar Number:</span>
-                  <span className="font-mono font-bold text-sky-600">{citizenUser?.aadhaar || ''}</span>
-                </div>
-                <div className="flex justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                  <span className="text-slate-500 font-bold">Assigned Ward:</span>
-                  <span className="font-bold text-emerald-600">Ward {citizenUser?.ward || 4}</span>
-                </div>
-              </form>
+          {/* EMERGENCY DIRECTORY */}
+          {activeTab === 'emergency_page' && (
+            <div className="space-y-6">
+              <EmergencyQuickContacts />
             </div>
           )}
 
-          {/* TAB 10: SETTINGS VIEW */}
-          {activeTab === 'settings' && (
-            <div className="max-w-xl mx-auto bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-              <h2 className="text-base font-extrabold text-slate-900 dark:text-slate-100">
-                Citizen Portal Preferences & Settings
+          {/* ANNOUNCEMENTS */}
+          {activeTab === 'announcements' && (
+            <div className="bg-white rounded-2xl p-6 border border-[#0B1F3A]/15 shadow-sm space-y-4">
+              <h2 className="text-base font-extrabold text-[#0B1F3A] uppercase tracking-wider">
+                Official Municipal Bulletins & Advisories
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {announcements.map((item) => (
+                  <div key={item.id} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                    <span className="text-xs font-bold text-[#FF9933] uppercase">{item.category}</span>
+                    <h3 className="font-bold text-xs text-[#0B1F3A]">{item.title}</h3>
+                    <p className="text-xs text-slate-600 leading-relaxed">{item.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* HELP DESK & FAQ */}
+          {activeTab === 'faq' && (
+            <div className="bg-white rounded-2xl p-6 border border-[#0B1F3A]/15 shadow-sm space-y-4 max-w-3xl mx-auto">
+              <h2 className="text-base font-extrabold text-[#0B1F3A] uppercase tracking-wider">
+                NIC Government Citizen Help Desk
               </h2>
               <div className="space-y-3 text-xs">
-                <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                  <div>
-                    <span className="font-bold text-slate-900 dark:text-slate-100 block">Multilingual Interface</span>
-                    <span className="text-slate-400">Select language from sidebar selector</span>
-                  </div>
-                  <LanguageSelector variant="topbar" />
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                  <h3 className="font-bold text-[#0B1F3A]">How is the 72-Hour Grievance SLA enforced?</h3>
+                  <p className="text-slate-600 leading-relaxed">Tickets registered on the portal are automatically routed to the Ward Sanitation Officer. Escalations trigger to Municipal Chief Officer upon expiration.</p>
                 </div>
-                <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                  <div>
-                    <span className="font-bold text-slate-900 dark:text-slate-100 block">Dark / Light Visual Mode</span>
-                    <span className="text-slate-400">Toggle dark mode interface styling</span>
-                  </div>
-                  <ThemeToggle />
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                  <h3 className="font-bold text-[#0B1F3A]">Where can I download Property Tax Receipts?</h3>
+                  <p className="text-slate-600 leading-relaxed">Navigate to Property & Water Tax menu, locate your Property Assessment ID, and click Download Official Receipt.</p>
                 </div>
               </div>
             </div>
           )}
-
-          {/* PERMISSIONS & TAXES VIEWS */}
-          {activeTab === 'permissions' && <PermissionsDashboardView />}
-          {activeTab === 'taxes' && <CitizenTaxPortalView />}
 
         </main>
 
@@ -757,8 +585,17 @@ export const CitizenDashboard = () => {
           />
         )}
 
-        <footer className="py-4 text-center text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
-          कोपरगाव नगरपरिषद • 24/7 Citizen Information Portal • Toll-Free: 1800-233-1042
+        {/* OFFICIAL GOVERNMENT FOOTER */}
+        <footer className="py-4 px-6 text-center text-xs text-slate-600 border-t border-[#0B1F3A]/15 bg-white shrink-0">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-[#0B1F3A]">कोपरगाव नगर परिषद</span>
+              <span>• Kopargaon Municipal Council</span>
+            </div>
+            <div className="text-slate-500 font-mono text-[11px]">
+              NIC Smart City Command Center Portal • Toll-Free: 1800-233-1042
+            </div>
+          </div>
         </footer>
 
       </div>
@@ -766,3 +603,5 @@ export const CitizenDashboard = () => {
     </div>
   );
 };
+
+export default CitizenDashboard;
