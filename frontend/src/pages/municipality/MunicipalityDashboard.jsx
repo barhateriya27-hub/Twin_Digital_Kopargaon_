@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { 
   LayoutDashboard, 
   Map, 
@@ -50,6 +51,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { KopargaonMap } from '../../components/KopargaonMap';
 import { ThemeToggle } from '../../components/ThemeToggle';
+import { LanguageSelector } from '../../components/LanguageSelector';
 import { SLAIndicator } from '../../components/SLAIndicator';
 import { NotificationDrawer } from '../../components/NotificationDrawer';
 import { CompletionReportModal } from '../../components/CompletionReportModal';
@@ -62,6 +64,7 @@ import { OfficerTaxManagementView } from '../../components/tax/OfficerTaxManagem
 
 export const MunicipalityDashboard = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { 
     officerUser, 
     activeGovernanceRole,
@@ -246,6 +249,7 @@ export const MunicipalityDashboard = () => {
 
         {/* Right Header Actions */}
         <div className="flex items-center gap-3">
+          <LanguageSelector variant="topbar" />
           
           {/* Requirement #1: Replacement of Website Clock with Last Data Sync */}
           <button

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { 
   DollarSign, Receipt, CreditCard, CheckCircle2, Download, Eye, QrCode, 
   Building2, ShieldCheck, ArrowRight, AlertTriangle, Sparkles, Smartphone, Landmark, Wallet
@@ -8,6 +9,7 @@ import { useApp } from '../../context/AppContext';
 import { TaxBillReceiptModal } from './TaxBillReceiptModal';
 
 export const CitizenTaxPortalView = () => {
+  const { t } = useTranslation();
   const { taxRecords = [], processTaxPayment, showToast, citizenUser } = useApp();
 
   const [selectedRecordForPayment, setSelectedRecordForPayment] = useState(null);

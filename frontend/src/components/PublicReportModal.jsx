@@ -1,10 +1,12 @@
 import React, { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { X, Printer, Download, Share2, ShieldCheck, QrCode, Building2, CheckCircle2 } from 'lucide-react';
 import { maskCitizenName } from '../utils/governanceUtils';
 import { useApp } from '../context/AppContext';
 
 export const PublicReportModal = ({ isOpen, onClose, complaint }) => {
+  const { t } = useTranslation();
   const { showToast } = useApp();
   const reportRef = useRef(null);
 

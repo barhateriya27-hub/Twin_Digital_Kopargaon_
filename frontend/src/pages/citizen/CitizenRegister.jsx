@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { UserCheck, Mail, Lock, Phone, MapPin, Hash, User, Home, CheckCircle2, ShieldAlert, CreditCard, Building, Map } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { LanguageSelector } from '../../components/LanguageSelector';
 
 export const CitizenRegister = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { registerCitizen, showToast } = useApp();
 
   const [formData, setFormData] = useState({
@@ -45,26 +48,26 @@ export const CitizenRegister = () => {
     // Mandatory Validation: District
     const distClean = (formData.district || '').trim().toLowerCase();
     if (!distClean.includes('ahilyanagar') && !distClean.includes('ahmednagar')) {
-      showToast('Mandatory Field Error: Only Ahilyanagar (Ahmednagar) district residents can create an account!', 'error');
+      showToast(t('citizenAuth.districtConstraint', 'Only Ahilyanagar (Ahmednagar) district residents can create an account!'), 'error');
       return;
     }
 
     // Mandatory Validation: City
     const cityClean = (formData.city || '').trim().toLowerCase();
     if (!cityClean.includes('kopargaon')) {
-      showToast('Mandatory Field Error: Only Kopargaon city residents can create an account!', 'error');
+      showToast(t('citizenAuth.cityConstraint', 'Only Kopargaon city residents can create an account!'), 'error');
       return;
     }
 
     // Mandatory Validation: 12-Digit Aadhaar
     const cleanAadhaar = (formData.aadhaar || '').replace(/\D/g, '');
     if (cleanAadhaar.length !== 12) {
-      showToast('Please enter a valid 12-digit Aadhaar Number (उदा. 1234 5678 9012)!', 'warning');
+      showToast(t('citizenAuth.aadhaarPlaceholder', 'Please enter a valid 12-digit Aadhaar Number!'), 'warning');
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      showToast('Passwords do not match / संकेतशब्द जुळत नाहीत!', 'error');
+      showToast(t('citizenAuth.passwordLabel', 'Passwords do not match!'), 'error');
       return;
     }
 
@@ -95,21 +98,24 @@ export const CitizenRegister = () => {
             </div>
             <div>
               <span className="font-extrabold text-base text-slate-900 dark:text-slate-100 block leading-tight">
-                कोपरगाव <span className="text-orange-600">नागरिक नोंदणी</span>
+                {t('citizenAuth.registerTitle', 'Citizen Account Registration')}
               </span>
               <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 block font-semibold">
-                Kopargaon Citizen Portal • Govt. of Maharashtra
+                {t('citizenAuth.headerSubtitle', 'Kopargaon Citizen Portal • Govt. of Maharashtra')}
               </span>
             </div>
           </Link>
 
-          <Link
-            to="/"
-            className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-orange-600 transition-colors"
-          >
-            <Home className="w-4 h-4" />
-            मुख्यपृष्ठ / Back to Home
-          </Link>
+          <div className="flex items-center gap-3">
+            <LanguageSelector variant="topbar" />
+            <Link
+              to="/"
+              className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-orange-600 transition-colors"
+            >
+              <Home className="w-4 h-4" />
+              {t('citizenAuth.backToHome', 'Back to Home')}
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -128,8 +134,12 @@ export const CitizenRegister = () => {
                 <circle cx="50" cy="45" r="8" fill="currentColor" />
               </svg>
             </div>
-            <h1 className="text-xl font-black text-slate-900 dark:text-slate-100 mb-1">नवीन नागरिक खाते नोंदणी / Citizen Account Registration</h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Smart City Portal Identity Verification Desk</p>
+            <h1 className="text-xl font-black text-slate-900 dark:text-slate-100 mb-1">
+              {t('citizenAuth.registerTitle', 'Citizen Account Registration')}
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              {t('citizenAuth.loginSubtitle', 'Smart City Portal Identity Verification Desk')}
+            </p>
           </div>
 
           {/* Mandatory Governance Advisory */}
@@ -138,7 +148,7 @@ export const CitizenRegister = () => {
             <div>
               <p className="font-bold">Mandatory Qualification Criteria</p>
               <p className="text-[11px] opacity-95">
-                Registration is strictly permitted for residents of <strong>District: Ahilyanagar (Ahmednagar)</strong> and <strong>City: Kopargaon</strong> with a valid 12-digit Aadhaar number.
+                Registration is strictly permitted for residents of <strong>{t('citizenAuth.districtConstraint', 'District: Ahilyanagar (Ahmednagar)')}</strong> and <strong>{t('citizenAuth.cityConstraint', 'City: Kopargaon')}</strong> with a valid 12-digit Aadhaar number.
               </p>
             </div>
           </div>
@@ -147,7 +157,7 @@ export const CitizenRegister = () => {
             {/* Full Name */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                पूर्ण नाव / Full Name *
+                {t('citizenAuth.fullNameLabel', 'Full Name *')}
               </label>
               <div className="relative">
                 <User className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
@@ -156,7 +166,7 @@ export const CitizenRegister = () => {
                   name="fullName"
                   value={formData.fullName}
                   onChange={handleChange}
-                  placeholder="उदा. रमेश देशमुख / Ramesh Deshmukh"
+                  placeholder={t('citizenAuth.fullNamePlaceholder', 'e.g. Ramesh Deshmukh')}
                   className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
                   required
                 />
@@ -166,7 +176,7 @@ export const CitizenRegister = () => {
             {/* Aadhaar Number */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                आधार क्रमांक / 12-Digit Aadhaar *
+                {t('citizenAuth.aadhaarLabel', '12-Digit Aadhaar *')}
               </label>
               <div className="relative">
                 <CreditCard className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
@@ -175,7 +185,7 @@ export const CitizenRegister = () => {
                   name="aadhaar"
                   value={formData.aadhaar}
                   onChange={handleChange}
-                  placeholder="1234 5678 9012"
+                  placeholder={t('citizenAuth.aadhaarPlaceholder', '1234 5678 9012')}
                   maxLength={14}
                   className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-mono font-semibold"
                   required
@@ -186,7 +196,7 @@ export const CitizenRegister = () => {
             {/* Email Address */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                ईमेल पत्ता / Email Address *
+                {t('citizenAuth.identifierLabel', 'Email Address *')}
               </label>
               <div className="relative">
                 <Mail className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
@@ -205,7 +215,7 @@ export const CitizenRegister = () => {
             {/* Mobile Number */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                मोबाईल क्रमांक / Mobile Number *
+                {t('citizenAuth.mobileLabel', 'Mobile Number *')}
               </label>
               <div className="relative">
                 <Phone className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
@@ -214,7 +224,7 @@ export const CitizenRegister = () => {
                   name="mobile"
                   value={formData.mobile}
                   onChange={handleChange}
-                  placeholder="+91 98765 43210"
+                  placeholder={t('citizenAuth.mobilePlaceholder', '+91 98765 43210')}
                   className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
                   required
                 />
@@ -224,7 +234,7 @@ export const CitizenRegister = () => {
             {/* District (Mandatory Locked Field) */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                जिल्हा / District (Mandatory) *
+                {t('citizenAuth.districtLabel', 'District (Mandatory) *')}
               </label>
               <div className="relative">
                 <Map className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
@@ -243,7 +253,7 @@ export const CitizenRegister = () => {
             {/* City (Mandatory Locked Field) */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                शहर / City (Mandatory) *
+                {t('citizenAuth.cityLabel', 'City (Mandatory) *')}
               </label>
               <div className="relative">
                 <Building className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
@@ -262,7 +272,7 @@ export const CitizenRegister = () => {
             {/* Ward Number */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                प्रभाग क्रमांक / Ward Number *
+                {t('citizenAuth.wardLabel', 'Ward Number *')}
               </label>
               <div className="relative">
                 <Hash className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
@@ -274,7 +284,7 @@ export const CitizenRegister = () => {
                   required
                 >
                   {wards.map(w => (
-                    <option key={w} value={w}>प्रभाग {w} (Ward {w})</option>
+                    <option key={w} value={w}>Ward {w}</option>
                   ))}
                 </select>
               </div>
@@ -283,7 +293,7 @@ export const CitizenRegister = () => {
             {/* Residential Address */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                रहिवासी पत्ता / Address *
+                {t('citizenAuth.addressLabel', 'Address *')}
               </label>
               <div className="relative">
                 <MapPin className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
@@ -292,7 +302,7 @@ export const CitizenRegister = () => {
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
-                  placeholder="गल्ली, रस्ता, लँडमार्क, कोपरगाव - ४२३६०१"
+                  placeholder={t('citizenAuth.addressPlaceholder', 'House No, Street Name, Kopargaon - 423601')}
                   className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
                   required
                 />
@@ -302,7 +312,7 @@ export const CitizenRegister = () => {
             {/* Password */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                संकेतशब्द / Password *
+                {t('citizenAuth.passwordLabel', 'Password *')}
               </label>
               <div className="relative">
                 <Lock className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
@@ -321,7 +331,7 @@ export const CitizenRegister = () => {
             {/* Confirm Password */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                संकेतशब्द पुष्टीकरण / Confirm Password *
+                {t('citizenAuth.passwordLabel', 'Confirm Password *')}
               </label>
               <div className="relative">
                 <Lock className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
@@ -343,16 +353,15 @@ export const CitizenRegister = () => {
                 className="w-full py-4 px-6 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow-lg shadow-orange-600/20 transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wide"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                खाते नोंदणी पूर्ण करा / Complete Citizen Registration
+                {t('citizenAuth.createAccBtn', 'Complete Citizen Registration')}
               </button>
             </div>
           </form>
 
           <div className="mt-6 text-center pt-6 border-t border-slate-100 dark:border-slate-800 font-semibold text-xs">
             <p className="text-slate-600 dark:text-slate-300">
-              आधीच नोंदणी केली आहे?{' '}
               <Link to="/citizen/login" className="font-bold text-orange-600 hover:underline">
-                येथे लॉगिन करा / Sign In Here
+                {t('citizenAuth.alreadyAcc', 'Already have an account? Sign In')}
               </Link>
             </p>
           </div>
@@ -360,7 +369,7 @@ export const CitizenRegister = () => {
       </main>
 
       <footer className="py-4 text-center text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0">
-        कोपरगाव नगरपरिषद • नागरी सेवा हेल्पलाईन: 1800-233-1042 | support@kopargaon.gov.in
+        {t('footer.disclaimer', 'Kopargaon Municipal Council • Citizen Helpline: 1800-233-1042 | support@kopargaon.gov.in')}
       </footer>
     </div>
   );

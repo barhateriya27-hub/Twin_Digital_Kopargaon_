@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Lock, Mail, CreditCard, ShieldCheck, CheckCircle2, AlertCircle, KeyRound, ArrowRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { X, Lock, Mail, ShieldCheck, CheckCircle2, KeyRound, ArrowRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export const ForgotPasswordModal = ({ isOpen, onClose }) => {
+  const { t } = useTranslation();
   const { registeredCitizens = [], resetCitizenPassword, showToast } = useApp();
 
-  const [step, setStep] = useState(1); // 1: Identify, 2: Reset, 3: Success
-  const [identifier, setIdentifier] = useState(''); // Email or Aadhaar
+  const [step, setStep] = useState(1);
+  const [identifier, setIdentifier] = useState('');
   const [foundUser, setFoundUser] = useState(null);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -88,10 +90,10 @@ export const ForgotPasswordModal = ({ isOpen, onClose }) => {
               </div>
               <div>
                 <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100">
-                  पासवर्ड पुनर्प्राप्ती / Password Reset
+                  {t('citizenAuth.forgotPassword', 'Password Reset')}
                 </h3>
                 <p className="text-[11px] text-slate-500 font-semibold">
-                  Kopargaon Citizen Portal Identity Verification
+                  {t('sidebar.title', 'Kopargaon Citizen Portal Identity Verification')}
                 </p>
               </div>
             </div>
@@ -116,7 +118,7 @@ export const ForgotPasswordModal = ({ isOpen, onClose }) => {
 
               <div>
                 <label className="block text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 text-[11px]">
-                  ईमेल / आधार क्रमांक (Registered Email or Aadhaar) *
+                  {t('citizenAuth.identifierLabel', 'Email or Aadhaar Number *')}
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
@@ -125,7 +127,7 @@ export const ForgotPasswordModal = ({ isOpen, onClose }) => {
                     required
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="citizen@example.com OR 1234 5678 9012"
+                    placeholder={t('citizenAuth.identifierPlaceholder', 'citizen@example.com OR 1234 5678 9012')}
                     className="w-full pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono text-xs"
                   />
                 </div>
@@ -154,7 +156,7 @@ export const ForgotPasswordModal = ({ isOpen, onClose }) => {
 
               <div>
                 <label className="block text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 text-[11px]">
-                  नवीन संकेतशब्द / New Password *
+                  {t('citizenAuth.passwordLabel', 'New Password *')}
                 </label>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
@@ -171,7 +173,7 @@ export const ForgotPasswordModal = ({ isOpen, onClose }) => {
 
               <div>
                 <label className="block text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5 text-[11px]">
-                  संकेतशब्द पुष्टीकरण / Confirm New Password *
+                  Confirm New Password *
                 </label>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
@@ -213,10 +215,10 @@ export const ForgotPasswordModal = ({ isOpen, onClose }) => {
                 <CheckCircle2 className="w-8 h-8" />
               </div>
               <h4 className="text-base font-extrabold text-slate-900 dark:text-slate-100">
-                संकेतशब्द यशस्वीरित्या बदलला!
+                Password Updated Successfully!
               </h4>
               <p className="text-xs text-slate-600 dark:text-slate-300">
-                Password updated successfully. You can now log in using your new credentials.
+                You can now log in using your new credentials.
               </p>
 
               <button

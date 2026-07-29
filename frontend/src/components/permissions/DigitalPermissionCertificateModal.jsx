@@ -1,16 +1,18 @@
 import React, { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { X, Printer, Download, Share2, ShieldCheck, QrCode, Building2, CheckCircle2, Award } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const DigitalPermissionCertificateModal = ({ isOpen, onClose, application }) => {
+  const { t } = useTranslation();
   const { showToast } = useApp();
   const certRef = useRef(null);
 
   if (!isOpen || !application) return null;
 
-  const certNumber = application.certificateNumber || `KMC-PERM-2026-${application.id.replace(/\D/g, '') || '9041'}`;
-  const approvalDateStr = new Date(application.approvedAt || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const certNumber = application.certificateNumber || `KMC-PERM-2026-${application.id.replace(/\D/g, '') || '9482'}`;
+  const approvalDateStr = new Date(application.approvedAt || application.createdAt || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   const validityDateStr = new Date(Date.now() + 365 * 24 * 3600 * 1000).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 
   const handlePrint = () => {
@@ -18,35 +20,29 @@ export const DigitalPermissionCertificateModal = ({ isOpen, onClose, application
   };
 
   const handleDownload = () => {
-    showToast(`Downloading Official Permission Certificate ${certNumber}...`);
+    showToast('Downloading Official Municipal Digital Certificate...');
     const element = document.createElement("a");
     const file = new Blob([
       `KOPARGAON MUNICIPAL CORPORATION - OFFICIAL PERMISSION CERTIFICATE\n` +
-      `Certificate No: ${certNumber}\n` +
+      `Certificate Number: ${certNumber}\n` +
       `Application ID: ${application.id}\n` +
-      `Applicant: ${application.applicantName || application.submittedBy}\n` +
-      `Category: ${application.category}\n` +
       `Permission Type: ${application.permissionType}\n` +
-      `Site Address: ${application.propertyAddress || application.address}\n` +
+      `Category: ${application.category}\n` +
+      `Applicant: ${application.applicantName || application.submittedBy}\n` +
+      `Property Address: ${application.propertyAddress || application.address}\n` +
       `Approval Date: ${approvalDateStr}\n` +
-      `Validity Until: ${validityDateStr}\n` +
-      `Approving Authority: Er. S. Deshmukh (Town Planning Department)\n`
+      `Valid Until: ${validityDateStr}\n` +
+      `Status: VERIFIED & APPROVED\n`
     ], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
-    element.download = `KMC_Permission_Certificate_${certNumber}.txt`;
+    element.download = `KMC_Certificate_${certNumber}.txt`;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
   };
 
   const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: `Kopargaon Municipal Certificate #${certNumber}`,
-        text: `Official Permission Certificate for ${application.permissionType} (${application.category}).`,
-        url: window.location.href
-      }).catch(() => {});
-    } else {
+    if (navigator.clipboard) {
       navigator.clipboard.writeText(window.location.href);
       showToast('Certificate verification link copied to clipboard!');
     }
@@ -65,7 +61,7 @@ export const DigitalPermissionCertificateModal = ({ isOpen, onClose, application
           <div className="p-3 sm:p-4 bg-[#0A2540] text-white flex flex-wrap items-center justify-between gap-2 shrink-0 z-10 border-b border-slate-800 print:hidden">
             <div className="flex items-center gap-2">
               <Award className="w-5 h-5 text-amber-400 shrink-0" />
-              <span className="text-xs sm:text-sm font-bold tracking-tight">Official Municipal Permission Certificate</span>
+              <span className="text-xs sm:text-sm font-bold tracking-tight">{t('permissionPortal.certModalTitle', 'Official Municipal Permission Certificate')}</span>
             </div>
 
             <div className="flex items-center gap-1.5 sm:gap-2">
@@ -73,19 +69,19 @@ export const DigitalPermissionCertificateModal = ({ isOpen, onClose, application
                 onClick={handlePrint}
                 className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-md flex items-center gap-1 transition-colors"
               >
-                <Printer className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Print</span>
+                <Printer className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t('taxPortal.btnPrint', 'Print')}</span>
               </button>
               <button
                 onClick={handleDownload}
                 className="px-2.5 py-1 bg-sky-600 hover:bg-sky-500 text-xs font-semibold rounded-md flex items-center gap-1 transition-colors"
               >
-                <Download className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Download</span>
+                <Download className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t('taxPortal.btnDownload', 'Download')}</span>
               </button>
               <button
                 onClick={handleShare}
                 className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-md flex items-center gap-1 transition-colors"
               >
-                <Share2 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Share</span>
+                <Share2 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t('permissionPortal.btnShare', 'Share')}</span>
               </button>
               <button
                 onClick={onClose}

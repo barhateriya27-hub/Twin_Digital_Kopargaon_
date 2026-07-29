@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { X, FileText, Upload, CheckCircle2, Save, FileCheck, Building2, MapPin, Hash, User, ShieldAlert, ArrowRight, ArrowLeft } from 'lucide-react';
 import { PERMISSION_CATEGORIES, REQUIRED_DOCUMENTS } from '../../utils/governanceUtils';
 import { useApp } from '../../context/AppContext';
 
 export const PermissionApplicationModal = ({ isOpen, onClose }) => {
+  const { t } = useTranslation();
   const { citizenUser, submitPermissionApplication, showToast } = useApp();
 
   const [step, setStep] = useState(1); // 1: Category, 2: Details, 3: Documents, 4: Review
@@ -12,7 +14,7 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
   const [permissionType, setPermissionType] = useState('New House Construction');
   
   const [formData, setFormData] = useState({
-    applicantName: citizenUser?.name || 'Ramesh Deshmukh',
+    applicantName: citizenUser?.fullName || citizenUser?.name || '',
     applicantEmail: citizenUser?.email || 'citizen@kopargaon.gov.in',
     applicantPhone: citizenUser?.phone || '+91 98765 43210',
     aadhaarNumber: citizenUser?.aadhaar || '1234-5678-9012',
@@ -37,7 +39,6 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
   };
 
   const handleDocUpload = (docName) => {
-    // Simulated upload
     setFormData(prev => ({
       ...prev,
       uploadedDocs: {
@@ -87,10 +88,10 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
               </div>
               <div>
                 <span className="text-[10px] uppercase font-bold text-amber-400 tracking-wider block">
-                  KOPARGAON MUNICIPAL CORPORATION
+                  {t('permissionPortal.headerGovt', 'KOPARGAON MUNICIPAL CORPORATION')}
                 </span>
                 <h3 className="text-sm sm:text-base font-extrabold tracking-tight">
-                  Online Municipal Permission & Licensing Application
+                  {t('permissionPortal.headerTitle', 'Online Municipal Permission & Licensing Application')}
                 </h3>
               </div>
             </div>
@@ -107,10 +108,10 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
           <div className="bg-slate-100 dark:bg-slate-800/80 px-6 py-3 border-b border-slate-200 dark:border-slate-700/60 shrink-0">
             <div className="flex items-center justify-between max-w-xl mx-auto text-xs font-bold">
               {[
-                { num: 1, label: 'Category' },
-                { num: 2, label: 'Details' },
-                { num: 3, label: 'Documents' },
-                { num: 4, label: 'Review & Submit' }
+                { num: 1, label: t('permissionPortal.stepCategory', 'Category') },
+                { num: 2, label: t('permissionPortal.stepDetails', 'Details') },
+                { num: 3, label: t('permissionPortal.stepDocuments', 'Documents') },
+                { num: 4, label: t('permissionPortal.stepReview', 'Review & Submit') }
               ].map((s) => (
                 <div key={s.num} className="flex items-center gap-1.5">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${
@@ -134,10 +135,10 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
               <div className="space-y-6">
                 <div>
                   <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">
-                    Select Permission Category / परवानगी वर्ग निवडा
+                    {t('permissionPortal.selectCategoryTitle', 'Select Permission Category')}
                   </h4>
                   <p className="text-slate-500 text-[11px]">
-                    Choose the type of municipal clearance required for your property or business in Kopargaon.
+                    {t('permissionPortal.selectCategoryDesc', 'Choose the type of municipal clearance required for your property or business in Kopargaon.')}
                   </p>
                 </div>
 
@@ -161,7 +162,7 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                    Specific Permission Type *
+                    {t('permissionPortal.labelPermissionType', 'Specific Permission Type *')}
                   </label>
                   <select
                     value={permissionType}
@@ -177,10 +178,10 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
                 <div className="p-4 bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 rounded-2xl text-sky-900 dark:text-sky-300">
                   <h5 className="font-bold mb-1 flex items-center gap-1.5">
                     <FileCheck className="w-4 h-4 text-sky-600" />
-                    Overview: {permissionType}
+                    {t('permissionPortal.overviewPrefix', 'Overview:')} {permissionType}
                   </h5>
                   <p className="text-[11px] opacity-90 leading-relaxed">
-                    This permission requires verification by the Kopargaon Town Planning & Works Department. Estimated SLA processing time is <strong>3 working days</strong> upon complete document submission.
+                    {t('permissionPortal.overviewSlaNote', 'This permission requires verification by the Kopargaon Town Planning & Works Department. Estimated SLA processing time is 3 working days upon complete document submission.')}
                   </p>
                 </div>
               </div>
@@ -190,12 +191,12 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
             {step === 2 && (
               <div className="space-y-4">
                 <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">
-                  Applicant & Site Property Details
+                  {t('permissionPortal.step2Title', 'Applicant & Site Property Details')}
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-slate-600 dark:text-slate-400 font-semibold mb-1">Applicant Name *</label>
+                    <label className="block text-slate-600 dark:text-slate-400 font-semibold mb-1">{t('permissionPortal.labelApplicantName', 'Applicant Name *')}</label>
                     <input
                       type="text"
                       name="applicantName"
@@ -207,7 +208,7 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
                   </div>
 
                   <div>
-                    <label className="block text-slate-600 dark:text-slate-400 font-semibold mb-1">Aadhaar Number *</label>
+                    <label className="block text-slate-600 dark:text-slate-400 font-semibold mb-1">{t('permissionPortal.labelAadhaar', 'Aadhaar Number *')}</label>
                     <input
                       type="text"
                       name="aadhaarNumber"
@@ -219,7 +220,7 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
                   </div>
 
                   <div>
-                    <label className="block text-slate-600 dark:text-slate-400 font-semibold mb-1">Property Assessment # / 7-12 Extract *</label>
+                    <label className="block text-slate-600 dark:text-slate-400 font-semibold mb-1">{t('permissionPortal.labelPropertyExtract', 'Property Assessment # / 7-12 Extract *')}</label>
                     <input
                       type="text"
                       name="propertyNumber"
@@ -231,7 +232,7 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
                   </div>
 
                   <div>
-                    <label className="block text-slate-600 dark:text-slate-400 font-semibold mb-1">Ward Jurisdiction *</label>
+                    <label className="block text-slate-600 dark:text-slate-400 font-semibold mb-1">{t('permissionPortal.labelWardJurisdiction', 'Ward Jurisdiction *')}</label>
                     <select
                       name="wardNumber"
                       value={formData.wardNumber}
@@ -239,13 +240,13 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
                       className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-slate-100 font-semibold"
                     >
                       {Array.from({ length: 28 }, (_, i) => i + 1).map(w => (
-                        <option key={w} value={w}>Ward {w}</option>
+                        <option key={w} value={w}>{t('taxPortal.wardPrefix', 'Ward')} {w}</option>
                       ))}
                     </select>
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="block text-slate-600 dark:text-slate-400 font-semibold mb-1">Site Address & Location Landmark *</label>
+                    <label className="block text-slate-600 dark:text-slate-400 font-semibold mb-1">{t('permissionPortal.labelSiteAddress', 'Site Address & Location Landmark *')}</label>
                     <input
                       type="text"
                       name="propertyAddress"
@@ -257,7 +258,7 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
                   </div>
 
                   <div>
-                    <label className="block text-slate-600 dark:text-slate-400 font-semibold mb-1">Estimated Project Value (₹)</label>
+                    <label className="block text-slate-600 dark:text-slate-400 font-semibold mb-1">{t('permissionPortal.labelEstValue', 'Estimated Project Value (₹)')}</label>
                     <input
                       type="text"
                       name="estimatedCost"
@@ -268,7 +269,7 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
                   </div>
 
                   <div>
-                    <label className="block text-slate-600 dark:text-slate-400 font-semibold mb-1">Proposed Execution Duration</label>
+                    <label className="block text-slate-600 dark:text-slate-400 font-semibold mb-1">{t('permissionPortal.labelDuration', 'Proposed Execution Duration')}</label>
                     <input
                       type="text"
                       name="proposedDuration"
@@ -279,7 +280,7 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="block text-slate-600 dark:text-slate-400 font-semibold mb-1">Project Work Description</label>
+                    <label className="block text-slate-600 dark:text-slate-400 font-semibold mb-1">{t('permissionPortal.labelDescription', 'Project Work Description')}</label>
                     <textarea
                       name="projectDescription"
                       rows={3}
@@ -297,10 +298,10 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
               <div className="space-y-4">
                 <div>
                   <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">
-                    Mandatory Verification Documents / आवश्यक कागदपत्रे
+                    {t('permissionPortal.step3Title', 'Mandatory Verification Documents')}
                   </h4>
                   <p className="text-slate-500 text-[11px]">
-                    Upload certified digital copies for {permissionType} ({category}). Supported formats: PDF, JPG, PNG.
+                    {t('permissionPortal.step3Subtitle', 'Upload certified digital copies for your application. Supported formats: PDF, JPG, PNG.')}
                   </p>
                 </div>
 
@@ -317,7 +318,7 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
                         <div>
                           <span className="font-bold block text-xs">{doc}</span>
                           <span className="text-[10px] text-slate-400 font-mono">
-                            {isUploaded ? formData.uploadedDocs[doc] : 'Not Uploaded Yet'}
+                            {isUploaded ? formData.uploadedDocs[doc] : t('permissionPortal.notUploaded', 'Not Uploaded Yet')}
                           </span>
                         </div>
 
@@ -330,11 +331,11 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
                         >
                           {isUploaded ? (
                             <>
-                              <CheckCircle2 className="w-3.5 h-3.5" /> Uploaded
+                              <CheckCircle2 className="w-3.5 h-3.5" /> {t('permissionPortal.statusUploaded', 'Uploaded')}
                             </>
                           ) : (
                             <>
-                              <Upload className="w-3.5 h-3.5" /> Attach
+                              <Upload className="w-3.5 h-3.5" /> {t('permissionPortal.btnAttach', 'Attach')}
                             </>
                           )}
                         </button>
@@ -350,34 +351,34 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
               <div className="space-y-4">
                 <div className="p-4 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/40 rounded-2xl">
                   <h4 className="text-sm font-bold text-orange-900 dark:text-orange-300 mb-1">
-                    Application Summary & Legal Declaration
+                    {t('permissionPortal.summaryTitle', 'Application Summary & Legal Declaration')}
                   </h4>
                   <p className="text-[11px] text-orange-800 dark:text-orange-400 leading-relaxed">
-                    Please review your application details. Upon submission, an official tracking ID will be generated and assigned to the Town Planning & Municipal Engineering department.
+                    {t('permissionPortal.summaryDesc', 'Please review your application details. Upon submission, an official tracking ID will be generated and assigned to the Town Planning & Municipal Engineering department.')}
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 font-sans">
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Category</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">{t('permissionPortal.thCategory', 'Category')}</span>
                     <span className="font-bold text-slate-800 dark:text-slate-200">{category}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Permission Type</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">{t('permissionPortal.thPermissionType', 'Permission Type')}</span>
                     <span className="font-bold text-orange-600 dark:text-orange-400">{permissionType}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Applicant</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">{t('permissionPortal.thApplicant', 'Applicant')}</span>
                     <span className="font-semibold text-slate-800 dark:text-slate-200">{formData.applicantName}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Ward</span>
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">Ward {formData.wardNumber}</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">{t('permissionPortal.thWard', 'Ward')}</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{t('taxPortal.wardPrefix', 'Ward')} {formData.wardNumber}</span>
                   </div>
                 </div>
 
                 <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Uploaded Evidence Documents</span>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">{t('permissionPortal.uploadedDocsTitle', 'Uploaded Evidence Documents')}</span>
                   <div className="flex flex-wrap gap-2">
                     {Object.keys(formData.uploadedDocs).length > 0 ? (
                       Object.entries(formData.uploadedDocs).map(([k, v]) => (
@@ -386,7 +387,7 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
                         </span>
                       ))
                     ) : (
-                      <span className="text-xs text-amber-600 italic">Self-declaration attached (No optional PDFs uploaded)</span>
+                      <span className="text-xs text-amber-600 italic">{t('permissionPortal.selfDecAttached', 'Self-declaration attached (No optional PDFs uploaded)')}</span>
                     )}
                   </div>
                 </div>
@@ -401,7 +402,7 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
               onClick={handleSaveDraft}
               className="px-3.5 py-2 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-800 dark:text-slate-200 font-bold rounded-xl flex items-center gap-1.5 transition-colors text-xs"
             >
-              <Save className="w-4 h-4" /> Save Draft
+              <Save className="w-4 h-4" /> {t('permissionPortal.btnSaveDraft', 'Save Draft')}
             </button>
 
             <div className="flex items-center gap-2">
@@ -411,7 +412,7 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
                   onClick={() => setStep(step - 1)}
                   className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold rounded-xl flex items-center gap-1 text-xs"
                 >
-                  <ArrowLeft className="w-4 h-4" /> Back
+                  <ArrowLeft className="w-4 h-4" /> {t('permissionPortal.btnBack', 'Back')}
                 </button>
               )}
 
@@ -421,7 +422,7 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
                   onClick={() => setStep(step + 1)}
                   className="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl flex items-center gap-1 text-xs shadow-md"
                 >
-                  Next Step <ArrowRight className="w-4 h-4" />
+                  {t('permissionPortal.btnNext', 'Next Step')} <ArrowRight className="w-4 h-4" />
                 </button>
               ) : (
                 <button
@@ -429,7 +430,7 @@ export const PermissionApplicationModal = ({ isOpen, onClose }) => {
                   onClick={handleSubmit}
                   className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center gap-1.5 text-xs shadow-lg"
                 >
-                  <CheckCircle2 className="w-4 h-4" /> Submit Application
+                  <CheckCircle2 className="w-4 h-4" /> {t('permissionPortal.btnSubmitApp', 'Submit Application')}
                 </button>
               )}
             </div>

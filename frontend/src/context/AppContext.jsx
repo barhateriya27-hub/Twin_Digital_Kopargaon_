@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { calculateSLADueDate, createAuditLog, createNotification } from '../utils/governanceUtils';
+import { isTokenValid, generateClientJwtToken } from '../utils/jwtUtils';
 
 const AppContext = createContext();
 
@@ -24,6 +25,22 @@ export const AppProvider = ({ children }) => {
     setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
   };
 
+  // Default Citizen Entity
+  const defaultCitizen = {
+    id: 'CIT-8821',
+    name: 'Swanandi Kathale',
+    fullName: 'Swanandi Kathale',
+    email: 'citizen@kopargaon.gov.in',
+    phone: '+91 98765 43210',
+    aadhaar: '1234-5678-9012',
+    district: 'Ahilyanagar (Ahmednagar)',
+    city: 'Kopargaon',
+    ward: 4,
+    address: 'Shivaji Chowk, Ward 4, Kopargaon - 423601',
+    password: 'citizen123',
+    registeredAt: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()
+  };
+
   // Registered Citizens Database in Storage
   const [registeredCitizens, setRegisteredCitizens] = useState(() => {
     const saved = localStorage.getItem('kpg_registered_citizens');
@@ -33,38 +50,108 @@ export const AppProvider = ({ children }) => {
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       } catch (e) {}
     }
-    return [
-      {
-        id: 'CIT-8821',
-        name: 'Ramesh Deshmukh',
-        email: 'citizen@kopargaon.gov.in',
-        phone: '+91 98765 43210',
-        aadhaar: '1234-5678-9012',
-        district: 'Ahilyanagar (Ahmednagar)',
-        city: 'Kopargaon',
-        ward: 4,
-        address: 'Shivaji Chowk, Ward 4, Kopargaon - 423601',
-        password: 'citizen123',
-        registeredAt: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()
-      }
-    ];
+    return [defaultCitizen];
   });
 
   useEffect(() => {
     localStorage.setItem('kpg_registered_citizens', JSON.stringify(registeredCitizens));
   }, [registeredCitizens]);
 
+  // JWT Token State for Citizen and Municipal Officer Sessions
+  const [citizenToken, setCitizenToken] = useState(() => {
+    const token = localStorage.getItem('kpg_citizen_token');
+    if (isTokenValid(token)) return token;
+    
+    // Preserve logged-in user if available in localStorage
+    const savedUserStr = localStorage.getItem('kpg_citizen_user');
+    let userObj = defaultCitizen;
+    if (savedUserStr) {
+      try {
+        const parsed = JSON.parse(savedUserStr);
+        if (parsed && (parsed.name || parsed.fullName)) {
+          userObj = parsed;
+        }
+      } catch (e) {}
+    }
+
+    const seededToken = generateClientJwtToken(
+      { id: userObj.id, email: userObj.email, role: 'citizen', name: userObj.name || userObj.fullName },
+      24
+    );
+    localStorage.setItem('kpg_citizen_token', seededToken);
+    localStorage.setItem('kpg_citizen_user', JSON.stringify(userObj));
+    return seededToken;
+  });
+
+  const [officerToken, setOfficerToken] = useState(() => {
+    const token = localStorage.getItem('kpg_officer_token');
+    return isTokenValid(token) ? token : null;
+  });
+
   // Active Citizen User State
   const [citizenUser, setCitizenUser] = useState(() => {
     const saved = localStorage.getItem('kpg_citizen_user');
-    return saved ? JSON.parse(saved) : null;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && (parsed.name || parsed.fullName)) return parsed;
+      } catch (e) {}
+    }
+    return defaultCitizen;
   });
 
   // Officer / Higher Authority user state
   const [officerUser, setOfficerUser] = useState(() => {
+    const token = localStorage.getItem('kpg_officer_token');
+    if (!isTokenValid(token)) {
+      localStorage.removeItem('kpg_officer_token');
+      localStorage.removeItem('kpg_officer_user');
+      return null;
+    }
     const saved = localStorage.getItem('kpg_officer_user');
     return saved ? JSON.parse(saved) : null;
   });
+
+  // Validate active JWT tokens on focus and interval
+  useEffect(() => {
+    const validateSessions = () => {
+      const cToken = localStorage.getItem('kpg_citizen_token');
+      if (cToken && !isTokenValid(cToken)) {
+        const savedUserStr = localStorage.getItem('kpg_citizen_user');
+        let currentObj = defaultCitizen;
+        if (savedUserStr) {
+          try {
+            const parsed = JSON.parse(savedUserStr);
+            if (parsed && (parsed.name || parsed.fullName)) currentObj = parsed;
+          } catch(e) {}
+        }
+        const refreshedToken = generateClientJwtToken(
+          { id: currentObj.id, email: currentObj.email, role: 'citizen', name: currentObj.name || currentObj.fullName },
+          24
+        );
+        setCitizenToken(refreshedToken);
+        setCitizenUser(currentObj);
+        localStorage.setItem('kpg_citizen_token', refreshedToken);
+        localStorage.setItem('kpg_citizen_user', JSON.stringify(currentObj));
+      }
+
+      const oToken = localStorage.getItem('kpg_officer_token');
+      if (oToken && !isTokenValid(oToken)) {
+        setOfficerToken(null);
+        setOfficerUser(null);
+        localStorage.removeItem('kpg_officer_token');
+        localStorage.removeItem('kpg_officer_user');
+      }
+    };
+
+    validateSessions();
+    window.addEventListener('focus', validateSessions);
+    const interval = setInterval(validateSessions, 60000);
+    return () => {
+      window.removeEventListener('focus', validateSessions);
+      clearInterval(interval);
+    };
+  }, []);
 
   // Active role toggle ('officer' | 'higher_authority')
   const [activeGovernanceRole, setActiveGovernanceRole] = useState(() => {
@@ -429,7 +516,6 @@ export const AppProvider = ({ children }) => {
 
   // Citizen Authentication & Registration
   const registerCitizen = (data) => {
-    // Mandatory Validation 1: District Constraint
     const normalizedDistrict = (data.district || '').trim().toLowerCase();
     const isDistrictValid = normalizedDistrict.includes('ahilyanagar') || normalizedDistrict.includes('ahmednagar');
 
@@ -438,7 +524,6 @@ export const AppProvider = ({ children }) => {
       return false;
     }
 
-    // Mandatory Validation 2: City Constraint
     const normalizedCity = (data.city || '').trim().toLowerCase();
     const isCityValid = normalizedCity.includes('kopargaon');
 
@@ -447,14 +532,12 @@ export const AppProvider = ({ children }) => {
       return false;
     }
 
-    // Mandatory Validation 3: 12-Digit Aadhaar Format Validation
     const cleanAadhaar = (data.aadhaar || '').replace(/\D/g, '');
     if (cleanAadhaar.length !== 12) {
-      showToast('Aadhaar Error: Please enter a valid 12-digit Aadhaar Number (उदा. 1234 5678 9012)!', 'error');
+      showToast('Aadhaar Error: Please enter a valid 12-digit Aadhaar Number!', 'error');
       return false;
     }
 
-    // Duplicate Check
     const cleanEmail = (data.email || '').trim().toLowerCase();
     const exists = registeredCitizens.some(c => {
       const emailMatch = c.email && c.email.toLowerCase() === cleanEmail;
@@ -463,17 +546,18 @@ export const AppProvider = ({ children }) => {
     });
 
     if (exists) {
-      showToast('An account with this Email or Aadhaar Number is already registered. Please log in or reset password.', 'warning');
+      showToast('An account with this Email or Aadhaar Number is already registered.', 'warning');
       return false;
     }
 
-    // Create New Citizen Entity
     const formattedAadhaar = `${cleanAadhaar.slice(0,4)}-${cleanAadhaar.slice(4,8)}-${cleanAadhaar.slice(8,12)}`;
+    const fullName = data.fullName || data.name || 'Registered Citizen';
     const newCitizen = {
       id: `CIT-${Math.floor(1000 + Math.random() * 9000)}`,
-      name: data.fullName || 'Registered Citizen',
+      name: fullName,
+      fullName: fullName,
       email: cleanEmail,
-      phone: data.mobile || '+91 98000 00000',
+      phone: data.mobile || data.phone || '+91 98000 00000',
       aadhaar: formattedAadhaar,
       district: 'Ahilyanagar (Ahmednagar)',
       city: 'Kopargaon',
@@ -484,9 +568,13 @@ export const AppProvider = ({ children }) => {
     };
 
     setRegisteredCitizens(prev => [newCitizen, ...prev]);
-    setCitizenUser(newCitizen);
 
-    // Audit log
+    const token = generateClientJwtToken({ id: newCitizen.id, email: newCitizen.email, role: 'citizen', name: newCitizen.name }, 24);
+    setCitizenToken(token);
+    setCitizenUser(newCitizen);
+    localStorage.setItem('kpg_citizen_token', token);
+    localStorage.setItem('kpg_citizen_user', JSON.stringify(newCitizen));
+
     const auditEntry = createAuditLog(
       { name: newCitizen.name, role: 'Citizen', department: 'Resident' },
       'CITIZEN_ACCOUNT_REGISTERED',
@@ -517,13 +605,63 @@ export const AppProvider = ({ children }) => {
     });
 
     if (found) {
-      setCitizenUser(found);
-      showToast(`Welcome back, ${found.name}!`);
+      const userName = found.name || found.fullName || 'Citizen';
+      const userObj = {
+        ...found,
+        id: found.id,
+        userId: found.id,
+        name: userName,
+        fullName: userName,
+        email: found.email,
+        role: 'citizen'
+      };
+
+      const token = generateClientJwtToken({ id: userObj.id, email: userObj.email, role: 'citizen', name: userObj.name }, 24);
+      setCitizenToken(token);
+      setCitizenUser(userObj);
+      localStorage.setItem('kpg_citizen_token', token);
+      localStorage.setItem('kpg_citizen_user', JSON.stringify(userObj));
+      showToast(`Welcome back, ${userName}!`);
       return true;
     } else {
-      showToast('Invalid Email/Aadhaar or Password. Please try again or use Forgot Password.', 'error');
+      showToast('Invalid Email/Aadhaar or Password.', 'error');
       return false;
     }
+  };
+
+  const updateCitizenProfile = (updatedFields) => {
+    if (!citizenUser) return false;
+
+    const newName = updatedFields.fullName || updatedFields.name || citizenUser.name || citizenUser.fullName;
+    const updatedUser = {
+      ...citizenUser,
+      ...updatedFields,
+      name: newName,
+      fullName: newName
+    };
+
+    setCitizenUser(updatedUser);
+    localStorage.setItem('kpg_citizen_user', JSON.stringify(updatedUser));
+
+    setRegisteredCitizens(prev =>
+      prev.map(c => (c.id === updatedUser.id || c.email === updatedUser.email ? { ...c, ...updatedUser } : c))
+    );
+
+    try {
+      if (citizenToken) {
+        fetch('/api/citizens/profile', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${citizenToken}`
+          },
+          body: JSON.stringify(updatedUser)
+        }).catch(() => {});
+      }
+    } catch (e) {}
+
+    showToast('Profile updated successfully!');
+    return true;
   };
 
   const resetCitizenPassword = (identifier, newPassword) => {
@@ -543,7 +681,7 @@ export const AppProvider = ({ children }) => {
     }));
 
     if (matched) {
-      showToast('Password updated successfully! You may now sign in with your new password.');
+      showToast('Password updated successfully!');
       return true;
     } else {
       showToast('Could not find citizen account matching provided identity.', 'error');
@@ -552,7 +690,10 @@ export const AppProvider = ({ children }) => {
   };
 
   const logoutCitizen = () => {
+    setCitizenToken(null);
     setCitizenUser(null);
+    localStorage.removeItem('kpg_citizen_token');
+    localStorage.removeItem('kpg_citizen_user');
     showToast('Logged Out Successfully', 'info');
   };
 
@@ -565,7 +706,11 @@ export const AppProvider = ({ children }) => {
         department: 'Municipal Headquarters',
         badge: 'KMC-OFFICER-001'
       };
+      const token = generateClientJwtToken({ officerId, role: 'officer', name: officer.name }, 24);
+      setOfficerToken(token);
       setOfficerUser(officer);
+      localStorage.setItem('kpg_officer_token', token);
+      localStorage.setItem('kpg_officer_user', JSON.stringify(officer));
       showToast('Municipal Clearance Verified. Welcome to Control Center.');
       return true;
     } else {
@@ -575,11 +720,13 @@ export const AppProvider = ({ children }) => {
   };
 
   const logoutOfficer = () => {
+    setOfficerToken(null);
     setOfficerUser(null);
+    localStorage.removeItem('kpg_officer_token');
+    localStorage.removeItem('kpg_officer_user');
     showToast('Logged Out Successfully from Control Center', 'info');
   };
 
-  // Notification Actions
   const markNotificationRead = (id) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   };
@@ -593,7 +740,6 @@ export const AppProvider = ({ children }) => {
     setNotifications([]);
   };
 
-  // Add New Citizen Complaint
   const addComplaint = (newCompData) => {
     const categoriesMap = {
       'Garbage': 'Sanitation & Solid Waste Management',
@@ -728,659 +874,51 @@ export const AppProvider = ({ children }) => {
       }
       return c;
     }));
-
-    showToast(`Complaint ${id} status updated to ${newStatus}`);
+    showToast(`Ticket #${id} updated to ${newStatus}`, 'info');
   };
 
-  const assignComplaint = (id, officerName, department) => {
-    const now = new Date().toISOString();
+  const isCitizenAuthenticated = Boolean(citizenToken && citizenUser);
+  const isOfficerAuthenticated = Boolean(officerToken && officerUser);
 
-    setComplaints(prev => prev.map(c => {
-      if (c.id === id) {
-        const targetDept = department || c.department;
-        const updatedTimeline = [
-          ...c.timeline,
-          {
-            id: `EVT-${Date.now()}`,
-            status: 'In Progress',
-            timestamp: now,
-            actor: { name: officerUser?.name || 'Municipal Commissioner', role: 'Authority', department: targetDept },
-            action: 'Officer Assigned',
-            note: `Assigned to Field Engineer ${officerName} (${targetDept}).`
-          }
-        ];
-
-        const auditEntry = createAuditLog(
-          { name: officerUser?.name || 'Municipal Officer', role: 'Authority', department: targetDept },
-          'COMPLAINT_ASSIGNED',
-          id,
-          'Complaint',
-          { assignedOfficer: c.assignedOfficer },
-          { assignedOfficer: officerName, department: targetDept }
-        );
-        setAuditLogs(prevAudit => [auditEntry, ...prevAudit]);
-
-        const notif = createNotification(
-          'officer',
-          `Ticket #${id} Assigned to You`,
-          `You have been assigned to resolve ticket #${id} (${c.category}, Ward ${c.ward}).`,
-          id,
-          'High',
-          targetDept
-        );
-        setNotifications(prevNotif => [notif, ...prevNotif]);
-
-        return {
-          ...c,
-          status: 'In Progress',
-          assignedOfficer: officerName,
-          department: targetDept,
-          workStartedAt: c.workStartedAt || now,
-          updatedAt: now,
-          timeline: updatedTimeline
-        };
-      }
-      return c;
-    }));
-
-    showToast(`Assigned Ticket #${id} to ${officerName}`);
+  const value = {
+    theme,
+    toggleTheme,
+    citizenUser,
+    citizenToken,
+    isCitizenAuthenticated,
+    registerCitizen,
+    loginCitizen,
+    updateCitizenProfile,
+    resetCitizenPassword,
+    logoutCitizen,
+    officerUser,
+    officerToken,
+    isOfficerAuthenticated,
+    loginOfficer,
+    logoutOfficer,
+    activeGovernanceRole,
+    setActiveGovernanceRole,
+    complaints,
+    addComplaint,
+    updateComplaintStatus,
+    notifications,
+    markNotificationRead,
+    markAllNotificationsRead,
+    clearNotifications,
+    announcements,
+    auditLogs,
+    toastMessage,
+    showToast,
+    registeredCitizens
   };
 
-  const submitCompletionReport = (id, reportData) => {
-    const now = new Date().toISOString();
-
-    setComplaints(prev => prev.map(c => {
-      if (c.id === id) {
-        const updatedTimeline = [
-          ...c.timeline,
-          {
-            id: `EVT-${Date.now()}`,
-            status: 'Completed',
-            timestamp: now,
-            actor: { name: reportData.officerName, role: 'Officer', department: reportData.department },
-            action: 'Official Work Completion Report Submitted',
-            note: `Completion Certificate generated (${reportData.reportId}). Work verified.`
-          }
-        ];
-
-        const auditEntry = createAuditLog(
-          { name: reportData.officerName, role: 'Officer', department: reportData.department },
-          'COMPLETION_REPORT_SUBMITTED',
-          id,
-          'CompletionReport',
-          { status: c.status },
-          { status: 'Completed', reportId: reportData.reportId }
-        );
-        setAuditLogs(prevAudit => [auditEntry, ...prevAudit]);
-
-        const notif = createNotification(
-          'citizen',
-          `Complaint #${id} Completed - Official Report Available`,
-          `Work completed by ${reportData.department}. Download your official completion certificate!`,
-          id,
-          'Normal',
-          reportData.department
-        );
-        setNotifications(prevNotif => [notif, ...prevNotif]);
-
-        return {
-          ...c,
-          status: 'Completed',
-          completedAt: now,
-          completionReport: reportData,
-          updatedAt: now,
-          timeline: updatedTimeline
-        };
-      }
-      return c;
-    }));
-
-    showToast(`Official Work Completion Report Generated for Ticket ${id}! Status marked Completed.`);
-  };
-
-  const issueOfficerWarning = (id, officerName, warningNote) => {
-    const now = new Date().toISOString();
-
-    setComplaints(prev => prev.map(c => {
-      if (c.id === id) {
-        return {
-          ...c,
-          timeline: [
-            ...c.timeline,
-            {
-              id: `EVT-${Date.now()}`,
-              status: 'Escalated',
-              timestamp: now,
-              actor: { name: 'Municipal Commissioner Office', role: 'Higher Authority', department: 'Apex Governance' },
-              action: 'Formal Warning Issued',
-              note: `Higher Authority warning to ${officerName}: ${warningNote}`
-            }
-          ]
-        };
-      }
-      return c;
-    }));
-
-    const auditEntry = createAuditLog(
-      { name: 'Municipal Commissioner', role: 'Higher Authority', department: 'Apex Governance' },
-      'OFFICER_WARNING_ISSUED',
-      id,
-      'Officer',
-      null,
-      { officerName, warningNote }
-    );
-    setAuditLogs(prev => [auditEntry, ...prev]);
-
-    const notif = createNotification(
-      'officer',
-      `FORMAL WARNING: Ticket #${id}`,
-      `Municipal Commissioner issued a warning regarding ticket #${id}: ${warningNote}`,
-      id,
-      'Escalated',
-      'Apex Governance'
-    );
-    setNotifications(prev => [notif, ...prev]);
-  };
-
-  const requestExplanation = (id, explanationNote) => {
-    const now = new Date().toISOString();
-
-    setComplaints(prev => prev.map(c => {
-      if (c.id === id) {
-        return {
-          ...c,
-          timeline: [
-            ...c.timeline,
-            {
-              id: `EVT-${Date.now()}`,
-              status: 'Under Review',
-              timestamp: now,
-              actor: { name: 'Municipal Commissioner Office', role: 'Higher Authority', department: 'Apex Governance' },
-              action: 'Formal Explanation Requested',
-              note: `Higher Authority request: ${explanationNote}`
-            }
-          ]
-        };
-      }
-      return c;
-    }));
-
-    const notif = createNotification(
-      'officer',
-      `EXPLANATION REQUIRED: Ticket #${id}`,
-      `Higher Authority requested formal delay explanation: ${explanationNote}`,
-      id,
-      'High',
-      'Apex Governance'
-    );
-    setNotifications(prev => [notif, ...prev]);
-  };
-
-  const addAnnouncement = (data) => {
-    const newAnn = {
-      id: `ANN-2026-${Math.floor(100 + Math.random() * 900)}`,
-      title: data.title,
-      description: data.description,
-      category: data.category || 'General Advisory',
-      priority: data.priority || 'Normal',
-      targetWards: data.targetWards || [1, 2, 3, 4, 5, 6, 7, 8],
-      publishedBy: data.publishedBy || 'Municipal Administration',
-      publishDate: new Date().toISOString(),
-      expiryDate: data.expiryDate || new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(),
-      status: 'Published',
-      attachments: []
-    };
-
-    setAnnouncements(prev => [newAnn, ...prev]);
-
-    const notif = createNotification(
-      'citizen',
-      `Public Advisory: ${newAnn.title}`,
-      newAnn.description.slice(0, 120) + '...',
-      null,
-      newAnn.priority,
-      'Municipal Administration'
-    );
-    setNotifications(prev => [notif, ...prev]);
-
-    const auditEntry = createAuditLog(
-      { name: 'Municipal Officer', role: 'Officer', department: 'Administration' },
-      'PUBLIC_ANNOUNCEMENT_PUBLISHED',
-      newAnn.id,
-      'Announcement',
-      null,
-      { title: newAnn.title, priority: newAnn.priority }
-    );
-    setAuditLogs(prev => [auditEntry, ...prev]);
-  };
-
-  // Municipal Permissions & Licensing State
-  const [permissionApplications, setPermissionApplications] = useState(() => {
-    const saved = localStorage.getItem('kpg_permissions');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    const now = Date.now();
-    return [
-      {
-        id: 'PERM-2026-9041',
-        category: 'Residential',
-        permissionType: 'New House Construction',
-        applicantName: 'Ramesh Deshmukh',
-        applicantEmail: 'citizen@kopargaon.gov.in',
-        applicantPhone: '+91 98765 43210',
-        aadhaarNumber: '1234-5678-9012',
-        propertyNumber: 'KPG-PROP-4218',
-        propertyAddress: 'Shivaji Chowk, Ward 4, Kopargaon',
-        wardNumber: 4,
-        estimatedCost: '18,50,000',
-        proposedDuration: '8 Months',
-        projectDescription: 'Construction of G+1 residential bungalow with rainwater harvesting compliance.',
-        status: 'Approved',
-        certificateNumber: 'KMC-PERM-2026-9041',
-        submittedAt: new Date(now - 14 * 24 * 3600 * 1000).toISOString(),
-        approvedAt: new Date(now - 2 * 24 * 3600 * 1000).toISOString(),
-        inspectionLog: {
-          fieldRemarks: 'Setbacks and structural boundary line verified compliant with Kopargaon Bye-laws.',
-          inspectorSignature: 'Er. V. R. Thorat',
-          inspectedAt: new Date(now - 4 * 24 * 3600 * 1000).toISOString()
-        }
-      },
-      {
-        id: 'PERM-2026-9088',
-        category: 'Commercial',
-        permissionType: 'Shop Construction',
-        applicantName: 'Priya Sharma',
-        applicantEmail: 'priya.s@kopargaon.gov.in',
-        applicantPhone: '+91 98220 11223',
-        aadhaarNumber: '9876-5432-1098',
-        propertyNumber: 'KPG-PROP-1102',
-        propertyAddress: 'Station Road Market, Ward 2',
-        wardNumber: 2,
-        estimatedCost: '8,00,000',
-        proposedDuration: '4 Months',
-        projectDescription: 'Commercial retail shop renovation and frontage modification.',
-        status: 'Inspection Scheduled',
-        submittedAt: new Date(now - 3 * 24 * 3600 * 1000).toISOString(),
-        scheduledInspectionDate: new Date(now + 24 * 3600 * 1000).toISOString().split('T')[0]
-      },
-      {
-        id: 'PERM-2026-9102',
-        category: 'Business',
-        permissionType: 'Trade License',
-        applicantName: 'Anil Kulkarni',
-        applicantEmail: 'anil.k@kopargaon.gov.in',
-        applicantPhone: '+91 98500 44332',
-        aadhaarNumber: '4455-6677-8899',
-        propertyNumber: 'KPG-PROP-3310',
-        propertyAddress: 'MG Road Commercial Complex, Ward 6',
-        wardNumber: 6,
-        estimatedCost: '2,50,000',
-        proposedDuration: '1 Year Renewal',
-        projectDescription: 'Annual Trade License for General Provisions & Grocery Outlet.',
-        status: 'Submitted',
-        submittedAt: new Date(now - 12 * 3600 * 1000).toISOString()
-      }
-    ];
-  });
-
-  // Municipal Tax & Revenue Records State
-  const [taxRecords, setTaxRecords] = useState(() => {
-    const saved = localStorage.getItem('kpg_tax_records');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    const now = Date.now();
-    return [
-      {
-        id: 'TAX-2026-8812',
-        citizenId: 'CIT-8821',
-        citizenName: 'Ramesh Deshmukh',
-        citizenEmail: 'citizen@kopargaon.gov.in',
-        propertyNumber: 'KPG-PROP-4218',
-        address: 'Shivaji Chowk, Ward 4, Kopargaon',
-        ward: 4,
-        taxCategory: 'Property Tax',
-        amount: 4500,
-        penalty: 0,
-        status: 'Unpaid',
-        billNumber: 'BILL-2026-8812',
-        dueDate: new Date(now + 20 * 24 * 3600 * 1000).toISOString(),
-        createdAt: new Date(now - 10 * 24 * 3600 * 1000).toISOString()
-      },
-      {
-        id: 'TAX-2026-8813',
-        citizenId: 'CIT-8821',
-        citizenName: 'Ramesh Deshmukh',
-        citizenEmail: 'citizen@kopargaon.gov.in',
-        propertyNumber: 'KPG-PROP-4218',
-        address: 'Shivaji Chowk, Ward 4, Kopargaon',
-        ward: 4,
-        taxCategory: 'Water Tax',
-        amount: 1200,
-        penalty: 0,
-        status: 'Paid',
-        billNumber: 'BILL-2026-8813',
-        receiptNumber: 'REC-2026-9941',
-        paidAt: new Date(now - 5 * 24 * 3600 * 1000).toISOString(),
-        dueDate: new Date(now + 15 * 24 * 3600 * 1000).toISOString(),
-        createdAt: new Date(now - 25 * 24 * 3600 * 1000).toISOString()
-      },
-      {
-        id: 'TAX-2026-8840',
-        citizenId: 'CIT-7712',
-        citizenName: 'Priya Sharma',
-        citizenEmail: 'priya.s@kopargaon.gov.in',
-        propertyNumber: 'KPG-PROP-1102',
-        address: 'Station Road Market, Ward 2',
-        ward: 2,
-        taxCategory: 'Trade License Fees',
-        amount: 3200,
-        penalty: 250,
-        status: 'Unpaid',
-        billNumber: 'BILL-2026-8840',
-        dueDate: new Date(now - 5 * 24 * 3600 * 1000).toISOString(),
-        createdAt: new Date(now - 35 * 24 * 3600 * 1000).toISOString()
-      }
-    ];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('kpg_permissions', JSON.stringify(permissionApplications));
-  }, [permissionApplications]);
-
-  useEffect(() => {
-    localStorage.setItem('kpg_tax_records', JSON.stringify(taxRecords));
-  }, [taxRecords]);
-
-  // Permission Application Actions
-  const submitPermissionApplication = (data) => {
-    const newId = `PERM-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-    const newApp = {
-      id: newId,
-      category: data.category || 'Residential',
-      permissionType: data.permissionType || 'New House Construction',
-      applicantName: data.applicantName || citizenUser?.name || 'Citizen Applicant',
-      applicantEmail: data.applicantEmail || citizenUser?.email || 'citizen@kopargaon.gov.in',
-      applicantPhone: data.applicantPhone || '+91 98000 00000',
-      aadhaarNumber: data.aadhaarNumber || '1234-5678-9012',
-      propertyNumber: data.propertyNumber || 'KPG-PROP-NEW',
-      propertyAddress: data.propertyAddress || 'Kopargaon',
-      wardNumber: parseInt(data.wardNumber) || 4,
-      estimatedCost: data.estimatedCost || '10,00,000',
-      proposedDuration: data.proposedDuration || '6 Months',
-      projectDescription: data.projectDescription || '',
-      uploadedDocs: data.uploadedDocs || {},
-      status: 'Submitted',
-      submittedAt: new Date().toISOString()
-    };
-
-    setPermissionApplications(prev => [newApp, ...prev]);
-
-    const auditEntry = createAuditLog(
-      { name: newApp.applicantName, role: 'Citizen', department: 'Resident' },
-      'PERMISSION_APPLICATION_SUBMITTED',
-      newApp.id,
-      'PermissionApplication',
-      null,
-      { category: newApp.category, type: newApp.permissionType }
-    );
-    setAuditLogs(prev => [auditEntry, ...prev]);
-
-    const notif = createNotification(
-      'officer',
-      `New Permission Application #${newApp.id}`,
-      `${newApp.permissionType} application submitted by ${newApp.applicantName} in Ward ${newApp.wardNumber}.`,
-      null,
-      'Normal',
-      'Town Planning & Licensing'
-    );
-    setNotifications(prev => [notif, ...prev]);
-
-    showToast(`Permission Application ${newId} Submitted Successfully! SLA tracking active.`);
-    return newApp;
-  };
-
-  const updatePermissionStatus = (id, newStatus, note = '') => {
-    const now = new Date().toISOString();
-
-    setPermissionApplications(prev => prev.map(app => {
-      if (app.id === id) {
-        const certNumber = newStatus === 'Approved' ? (app.certificateNumber || `KMC-PERM-2026-${app.id.replace(/\D/g, '')}`) : app.certificateNumber;
-
-        const auditEntry = createAuditLog(
-          { name: officerUser?.name || 'Municipal Officer', role: 'Officer', department: 'Town Planning' },
-          'PERMISSION_STATUS_UPDATED',
-          id,
-          'PermissionApplication',
-          { status: app.status },
-          { status: newStatus, note, certNumber }
-        );
-        setAuditLogs(prevAudit => [auditEntry, ...prevAudit]);
-
-        const notif = createNotification(
-          'citizen',
-          `Permission Application #${id} Update`,
-          `Your application status has been changed to "${newStatus}". Note: ${note || 'Updated by Town Planning Authority.'}`,
-          null,
-          'Normal',
-          'Town Planning'
-        );
-        setNotifications(prevNotif => [notif, ...prevNotif]);
-
-        return {
-          ...app,
-          status: newStatus,
-          certificateNumber: certNumber,
-          approvedAt: newStatus === 'Approved' ? now : app.approvedAt,
-          updatedAt: now
-        };
-      }
-      return app;
-    }));
-
-    showToast(`Application #${id} status updated to ${newStatus}`);
-  };
-
-  const scheduleInspection = (id, inspectionData) => {
-    setPermissionApplications(prev => prev.map(app => {
-      if (app.id === id) {
-        return {
-          ...app,
-          status: 'Inspection Scheduled',
-          scheduledInspectionDate: inspectionData.scheduledDate,
-          assignedInspector: inspectionData.inspectorName,
-          inspectionNotes: inspectionData.notes
-        };
-      }
-      return app;
-    }));
-
-    const auditEntry = createAuditLog(
-      { name: officerUser?.name || 'Municipal Officer', role: 'Officer', department: 'Town Planning' },
-      'INSPECTION_SCHEDULED',
-      id,
-      'PermissionApplication',
-      null,
-      inspectionData
-    );
-    setAuditLogs(prev => [auditEntry, ...prev]);
-
-    showToast(`Inspection scheduled for Application #${id} on ${inspectionData.scheduledDate}`);
-  };
-
-  const submitInspectionReport = (id, reportData) => {
-    setPermissionApplications(prev => prev.map(app => {
-      if (app.id === id) {
-        return {
-          ...app,
-          status: reportData.inspectionResult === 'Passed' ? 'Inspection Completed' : 'Under Review',
-          inspectionLog: reportData
-        };
-      }
-      return app;
-    }));
-
-    const auditEntry = createAuditLog(
-      { name: reportData.inspectorSignature || 'Field Inspector', role: 'Officer', department: 'Engineering' },
-      'INSPECTION_REPORT_SUBMITTED',
-      id,
-      'PermissionInspection',
-      null,
-      reportData
-    );
-    setAuditLogs(prev => [auditEntry, ...prev]);
-
-    showToast(`Field Inspection Report logged for Application #${id}. Findings: ${reportData.inspectionResult}`);
-  };
-
-  // Municipal Tax & Revenue Actions
-  const createTaxRecord = (data) => {
-    const newId = `TAX-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-    const billNumber = `BILL-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-
-    const newTax = {
-      id: newId,
-      citizenId: citizenUser?.id || 'CIT-8821',
-      citizenName: data.citizenName || 'Ramesh Deshmukh',
-      citizenEmail: data.citizenEmail || 'citizen@kopargaon.gov.in',
-      propertyNumber: data.propertyNumber || 'KPG-PROP-4218',
-      address: data.address || 'Shivaji Chowk, Ward 4, Kopargaon',
-      ward: parseInt(data.ward) || 4,
-      taxCategory: data.taxCategory || 'Property Tax',
-      amount: parseInt(data.amount) || 2500,
-      penalty: 0,
-      status: 'Unpaid',
-      billNumber: billNumber,
-      dueDate: data.dueDate || new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
-      createdAt: new Date().toISOString()
-    };
-
-    setTaxRecords(prev => [newTax, ...prev]);
-
-    const auditEntry = createAuditLog(
-      { name: officerUser?.name || 'Revenue Officer', role: 'Officer', department: 'Treasury' },
-      'TAX_ASSESSMENT_CREATED',
-      newTax.id,
-      'TaxRecord',
-      null,
-      { amount: newTax.amount, category: newTax.taxCategory }
-    );
-    setAuditLogs(prev => [auditEntry, ...prev]);
-
-    const notif = createNotification(
-      'citizen',
-      `New Tax Demand Bill #${newTax.billNumber}`,
-      `A new ${newTax.taxCategory} demand bill for ₹${newTax.amount} has been issued for your property in Ward ${newTax.ward}.`,
-      null,
-      'High',
-      'Tax & Revenue'
-    );
-    setNotifications(prev => [notif, ...prev]);
-
-    showToast(`Created Tax Assessment ${newId}! Demand bill ${billNumber} issued.`);
-    return newTax;
-  };
-
-  const processTaxPayment = (taxId, paymentMethod = 'UPI') => {
-    const now = new Date().toISOString();
-    const receiptNumber = `REC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-
-    setTaxRecords(prev => prev.map(t => {
-      if (t.id === taxId) {
-        const auditEntry = createAuditLog(
-          { name: t.citizenName, role: 'Citizen', department: 'Resident' },
-          'TAX_PAYMENT_PROCESSED',
-          taxId,
-          'TaxPayment',
-          { status: t.status },
-          { status: 'Paid', receiptNumber, paymentMethod }
-        );
-        setAuditLogs(prevAudit => [auditEntry, ...prevAudit]);
-
-        const notif = createNotification(
-          'citizen',
-          `Tax Payment Successful - Receipt #${receiptNumber}`,
-          `Payment of ₹${t.amount + (t.penalty || 0)} for ${t.taxCategory} completed successfully via ${paymentMethod}.`,
-          null,
-          'Normal',
-          'Tax Treasury'
-        );
-        setNotifications(prevNotif => [notif, ...prevNotif]);
-
-        return {
-          ...t,
-          status: 'Paid',
-          receiptNumber: receiptNumber,
-          paymentMethod: paymentMethod,
-          paidAt: now
-        };
-      }
-      return t;
-    }));
-
-    showToast(`Payment recorded successfully! Official Receipt ${receiptNumber} generated.`);
-  };
-
-  const updateAnnouncement = (id, data) => {
-    setAnnouncements(prev => prev.map(a => a.id === id ? { ...a, ...data } : a));
-  };
-
-  const archiveAnnouncement = (id) => {
-    setAnnouncements(prev => prev.map(a => a.id === id ? { ...a, status: 'Archived' } : a));
-  };
-
-  return (
-    <AppContext.Provider value={{
-      theme,
-      toggleTheme,
-      registeredCitizens,
-      citizenUser,
-      officerUser,
-      activeGovernanceRole,
-      setActiveGovernanceRole,
-      complaints,
-      permissionApplications,
-      taxRecords,
-      notifications,
-      announcements,
-      auditLogs,
-      toastMessage,
-      showToast,
-      registerCitizen,
-      loginCitizen,
-      resetCitizenPassword,
-      logoutCitizen,
-      loginOfficer,
-      logoutOfficer,
-      addComplaint,
-      updateComplaintStatus,
-      assignComplaint,
-      submitCompletionReport,
-      issueOfficerWarning,
-      requestExplanation,
-      submitPermissionApplication,
-      updatePermissionStatus,
-      scheduleInspection,
-      submitInspectionReport,
-      createTaxRecord,
-      processTaxPayment,
-      addAnnouncement,
-      updateAnnouncement,
-      archiveAnnouncement,
-      markNotificationRead,
-      markAllNotificationsRead,
-      clearNotifications
-    }}>
-      {children}
-    </AppContext.Provider>
-  );
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
 
-export const useApp = () => useContext(AppContext);
+export const useApp = () => {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error('useApp must be used within an AppProvider');
+  }
+  return context;
+};

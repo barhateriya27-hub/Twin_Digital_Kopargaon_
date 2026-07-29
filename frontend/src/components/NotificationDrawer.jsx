@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { Bell, X, Check, Filter, AlertTriangle, ShieldAlert, ArrowRight, CheckCheck, Trash2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export const NotificationDrawer = ({ isOpen, onClose, userRole = 'officer', onSelectComplaint }) => {
+  const { t } = useTranslation();
   const { notifications = [], markNotificationRead, markAllNotificationsRead, clearNotifications } = useApp();
   const [filter, setFilter] = useState('all'); // 'all' | 'unread' | 'urgent'
 

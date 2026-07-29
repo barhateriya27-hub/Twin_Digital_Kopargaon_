@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { X, FileCheck, Upload, ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export const CompletionReportModal = ({ isOpen, onClose, complaint, onSubmitReport }) => {
+  const { t } = useTranslation();
   const { officerUser, showToast } = useApp();
 
   const [actionsTaken, setActionsTaken] = useState('');
@@ -74,10 +76,10 @@ export const CompletionReportModal = ({ isOpen, onClose, complaint, onSubmitRepo
               </div>
               <div>
                 <h2 className="text-base font-bold tracking-tight">
-                  Mandatory Work Completion Report
+                  {t('completionReport.headerTitle', 'Mandatory Work Completion Report')}
                 </h2>
                 <p className="text-xs text-slate-300 font-mono">
-                  Ticket #{complaint.id} • {complaint.category} (Ward {complaint.ward})
+                  Ticket #{complaint.id} • {complaint.category} ({t('taxPortal.wardPrefix', 'Ward')} {complaint.ward})
                 </p>
               </div>
             </div>
@@ -94,9 +96,9 @@ export const CompletionReportModal = ({ isOpen, onClose, complaint, onSubmitRepo
             <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-lg p-3 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
               <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
               <div>
-                <p className="font-semibold">Official Governance Compliance Mandate</p>
+                <p className="font-semibold">{t('completionReport.mandateTitle', 'Official Governance Compliance Mandate')}</p>
                 <p className="text-[11px] opacity-90">
-                  Complaints cannot be marked as Completed without generating a signed completion report. This report will be publicly downloadable.
+                  {t('completionReport.mandateDesc', 'Complaints cannot be marked as Completed without generating a signed completion report. This report will be publicly downloadable.')}
                 </p>
               </div>
             </div>
@@ -104,14 +106,14 @@ export const CompletionReportModal = ({ isOpen, onClose, complaint, onSubmitRepo
             {/* Actions Taken */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Actions Taken & Field Operations Executed *
+                {t('completionReport.labelActions', 'Actions Taken & Field Operations Executed *')}
               </label>
               <textarea
                 required
                 rows={3}
                 value={actionsTaken}
                 onChange={(e) => setActionsTaken(e.target.value)}
-                placeholder="Detail the technical repair work, debris removal, pipe sealing, or maintenance completed by the department team..."
+                placeholder={t('completionReport.placeholderActions', 'Detail the technical repair work, debris removal, pipe sealing, or maintenance completed by the department team...')}
                 className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
               />
             </div>
@@ -120,27 +122,27 @@ export const CompletionReportModal = ({ isOpen, onClose, complaint, onSubmitRepo
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Materials & Consumables Used *
+                  {t('completionReport.labelMaterials', 'Materials & Consumables Used *')}
                 </label>
                 <input
                   type="text"
                   required
                   value={materialsUsed}
                   onChange={(e) => setMaterialsUsed(e.target.value)}
-                  placeholder="e.g. Cold mix asphalt, PVC 4 inch pipe, 50kg lime"
+                  placeholder={t('completionReport.placeholderMaterials', 'e.g. Cold mix asphalt, PVC 4 inch pipe, 50kg lime')}
                   className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Resources & Machinery Deployed
+                  {t('completionReport.labelResources', 'Resources & Machinery Deployed')}
                 </label>
                 <input
                   type="text"
                   value={resourcesDeployed}
                   onChange={(e) => setResourcesDeployed(e.target.value)}
-                  placeholder="e.g. 1 Tipper Truck, 4 Sanitation Workers, JCB Excavator"
+                  placeholder={t('completionReport.placeholderResources', 'e.g. 1 Tipper Truck, 4 Sanitation Workers, JCB Excavator')}
                   className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
                 />
               </div>
@@ -149,12 +151,12 @@ export const CompletionReportModal = ({ isOpen, onClose, complaint, onSubmitRepo
             {/* Image Upload for Work Completed Photo */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Post-Work Site Verification Photo (After Image)
+                {t('completionReport.labelPhoto', 'Post-Work Site Verification Photo (After Image)')}
               </label>
               <div className="flex items-center gap-4">
                 <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 transition-colors">
                   <Upload className="w-4 h-4 text-sky-500" />
-                  <span>Upload Site Photo</span>
+                  <span>{t('completionReport.btnUploadPhoto', 'Upload Site Photo')}</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -165,7 +167,7 @@ export const CompletionReportModal = ({ isOpen, onClose, complaint, onSubmitRepo
                 {afterPreview && (
                   <div className="flex items-center gap-2">
                     <img src={afterPreview} alt="Work Done" className="w-12 h-12 object-cover rounded-md border border-slate-300" />
-                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">Photo attached</span>
+                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">{t('completionReport.photoAttached', 'Photo attached')}</span>
                   </div>
                 )}
               </div>
@@ -174,13 +176,13 @@ export const CompletionReportModal = ({ isOpen, onClose, complaint, onSubmitRepo
             {/* Remarks */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Officer Final Remarks & Recommendations
+                {t('completionReport.labelRemarks', 'Officer Final Remarks & Recommendations')}
               </label>
               <input
                 type="text"
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
-                placeholder="e.g. Site cleared and inspected. Normal operational status restored."
+                placeholder={t('completionReport.placeholderRemarks', 'e.g. Site cleared and inspected. Normal operational status restored.')}
                 className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
               />
             </div>
@@ -189,7 +191,7 @@ export const CompletionReportModal = ({ isOpen, onClose, complaint, onSubmitRepo
             <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
               <div>
                 <span className="font-semibold text-slate-900 dark:text-slate-100 block">
-                  Reporting Officer: {officerUser?.name || 'Municipal Administrator'}
+                  {t('completionReport.reportingOfficer', 'Reporting Officer:')} {officerUser?.name || 'Municipal Administrator'}
                 </span>
                 <span className="text-[11px] text-slate-500">
                   {officerUser?.department || 'Municipal Headquarters'} • Badge #{officerUser?.badge || 'KMC-OFFICER-001'}
@@ -197,7 +199,7 @@ export const CompletionReportModal = ({ isOpen, onClose, complaint, onSubmitRepo
               </div>
               <div className="flex items-center gap-1 text-emerald-600 font-semibold text-[11px]">
                 <ShieldCheck className="w-4 h-4" />
-                <span>Authorized Sign-off</span>
+                <span>{t('completionReport.authSignoff', 'Authorized Sign-off')}</span>
               </div>
             </div>
 
@@ -208,7 +210,7 @@ export const CompletionReportModal = ({ isOpen, onClose, complaint, onSubmitRepo
                 onClick={onClose}
                 className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
               >
-                Cancel
+                {t('announcements.btnCancel', 'Cancel')}
               </button>
               <button
                 type="submit"
@@ -216,7 +218,7 @@ export const CompletionReportModal = ({ isOpen, onClose, complaint, onSubmitRepo
                 className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-md transition-colors flex items-center gap-2 disabled:opacity-50"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>{isSubmitting ? 'Generating Official Report...' : 'Submit Report & Complete Complaint'}</span>
+                <span>{isSubmitting ? t('completionReport.btnGenerating', 'Generating Official Report...') : t('completionReport.btnSubmitReport', 'Submit Report & Complete Complaint')}</span>
               </button>
             </div>
           </form>

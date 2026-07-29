@@ -6,25 +6,43 @@ import { LandingPage } from './pages/LandingPage';
 import { CitizenLogin } from './pages/citizen/CitizenLogin';
 import { CitizenRegister } from './pages/citizen/CitizenRegister';
 import { CitizenDashboard } from './pages/citizen/CitizenDashboard';
+import { EmergencyServicesPage } from './pages/citizen/EmergencyServicesPage';
 import { MunicipalityLoading } from './pages/municipality/MunicipalityLoading';
 import { MunicipalityWowScreen } from './pages/municipality/MunicipalityWowScreen';
 import { MunicipalityLogin } from './pages/municipality/MunicipalityLogin';
 import { MunicipalityDashboard } from './pages/municipality/MunicipalityDashboard';
 import { NotFoundPage } from './pages/NotFoundPage';
 
-// Protected Route wrappers
+// Protected Route Wrappers (Require valid JWT session)
 const ProtectedCitizenRoute = ({ children }) => {
-  const { citizenUser } = useApp();
-  if (!citizenUser) {
+  const { isCitizenAuthenticated } = useApp();
+  if (!isCitizenAuthenticated) {
     return <Navigate to="/citizen/login" replace />;
   }
   return children;
 };
 
 const ProtectedOfficerRoute = ({ children }) => {
-  const { officerUser } = useApp();
-  if (!officerUser) {
+  const { isOfficerAuthenticated } = useApp();
+  if (!isOfficerAuthenticated) {
     return <Navigate to="/municipality/login" replace />;
+  }
+  return children;
+};
+
+// Public-Only Route Wrappers (Prevent authenticated users from viewing login/register forms)
+const PublicOnlyCitizenRoute = ({ children }) => {
+  const { isCitizenAuthenticated } = useApp();
+  if (isCitizenAuthenticated) {
+    return <Navigate to="/citizen/dashboard" replace />;
+  }
+  return children;
+};
+
+const PublicOnlyOfficerRoute = ({ children }) => {
+  const { isOfficerAuthenticated } = useApp();
+  if (isOfficerAuthenticated) {
+    return <Navigate to="/municipality/dashboard" replace />;
   }
   return children;
 };
@@ -38,8 +56,22 @@ export function AppContent() {
         <Route path="/" element={<LandingPage />} />
 
         {/* Citizen Portal */}
-        <Route path="/citizen/login" element={<CitizenLogin />} />
-        <Route path="/citizen/register" element={<CitizenRegister />} />
+        <Route 
+          path="/citizen/login" 
+          element={
+            <PublicOnlyCitizenRoute>
+              <CitizenLogin />
+            </PublicOnlyCitizenRoute>
+          } 
+        />
+        <Route 
+          path="/citizen/register" 
+          element={
+            <PublicOnlyCitizenRoute>
+              <CitizenRegister />
+            </PublicOnlyCitizenRoute>
+          } 
+        />
         <Route 
           path="/citizen/dashboard" 
           element={
@@ -48,11 +80,26 @@ export function AppContent() {
             </ProtectedCitizenRoute>
           } 
         />
+        <Route 
+          path="/citizen/emergency" 
+          element={
+            <ProtectedCitizenRoute>
+              <EmergencyServicesPage />
+            </ProtectedCitizenRoute>
+          } 
+        />
 
         {/* Municipality Portal Sequence */}
         <Route path="/municipality/loading" element={<MunicipalityLoading />} />
         <Route path="/municipality/wow" element={<MunicipalityWowScreen />} />
-        <Route path="/municipality/login" element={<MunicipalityLogin />} />
+        <Route 
+          path="/municipality/login" 
+          element={
+            <PublicOnlyOfficerRoute>
+              <MunicipalityLogin />
+            </PublicOnlyOfficerRoute>
+          } 
+        />
         <Route 
           path="/municipality/dashboard" 
           element={
@@ -72,7 +119,7 @@ export function AppContent() {
 export default function App() {
   return (
     <AppProvider>
-      <Router>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AppContent />
       </Router>
     </AppProvider>

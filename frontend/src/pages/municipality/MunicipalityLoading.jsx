@@ -1,23 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Building2, Cpu, CheckCircle2 } from 'lucide-react';
 
 export const MunicipalityLoading = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
 
   const loadingMessages = [
-    "Connecting to Smart City Network...",
-    "Loading Digital Twin...",
-    "Synchronizing AI Engine...",
-    "Loading City Map...",
-    "Connecting GIS Services...",
-    "Fetching City Analytics...",
-    "Preparing AI Prediction Engine...",
-    "Establishing Secure Connection...",
-    "✔ Connected Successfully"
+    t('municipalityLoading.step1', "Connecting to Smart City Network..."),
+    t('municipalityLoading.step2', "Loading Digital Twin..."),
+    t('municipalityLoading.step3', "Synchronizing AI Engine..."),
+    t('municipalityLoading.step4', "Loading City Map..."),
+    t('municipalityLoading.step5', "Connecting GIS Services..."),
+    t('municipalityLoading.step6', "Fetching City Analytics..."),
+    t('municipalityLoading.step7', "Preparing AI Prediction Engine..."),
+    t('municipalityLoading.step8', "Establishing Secure Connection..."),
+    t('municipalityLoading.step9', "✔ Connected Successfully")
   ];
 
   useEffect(() => {
@@ -40,10 +42,10 @@ export const MunicipalityLoading = () => {
     }, intervalTime);
 
     return () => clearInterval(timer);
-  }, [navigate]);
+  }, [navigate, loadingMessages.length]);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-900 dark:bg-slate-900 text-[#1E293B] dark:text-slate-200 flex flex-col items-center justify-center relative overflow-hidden px-4 selection:bg-[#F97316] selection:text-white">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-900 text-[#1E293B] dark:text-slate-200 flex flex-col items-center justify-center relative overflow-hidden px-4 selection:bg-[#F97316] selection:text-white">
       
       {/* Tricolor Ribbon */}
       <div className="h-[4px] w-full flex shrink-0 absolute top-0 left-0 right-0 z-50">
@@ -65,11 +67,11 @@ export const MunicipalityLoading = () => {
           </div>
         </div>
 
-        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#0F172A] dark:text-slate-100 mb-1">
-          AI DIGITAL TWIN OF KOPARGAON
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#0F172A] dark:text-slate-100 mb-1 uppercase">
+          {t('sidebar.title', 'AI DIGITAL TWIN OF KOPARGAON')}
         </h1>
         <p className="text-xs font-bold text-[#F97316] tracking-widest uppercase mb-8">
-          SMART CITY DECISION SUPPORT SYSTEM
+          {t('hero.tagline', 'SMART CITY DECISION SUPPORT SYSTEM')}
         </p>
 
         {/* Animated Progress Bar */}

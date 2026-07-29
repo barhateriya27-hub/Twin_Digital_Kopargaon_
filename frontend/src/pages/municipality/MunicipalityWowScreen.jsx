@@ -1,10 +1,12 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle2, ShieldCheck, Cpu, Activity, Database, Sparkles } from 'lucide-react';
 
 export const MunicipalityWowScreen = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -15,16 +17,16 @@ export const MunicipalityWowScreen = () => {
   }, [navigate]);
 
   const statusCards = [
-    { title: "AI Engine Online", icon: <Cpu className="w-5 h-5 text-[#22C55E]" /> },
-    { title: "GIS Map Connected", icon: <Database className="w-5 h-5 text-[#22C55E]" /> },
-    { title: "Live Analytics Ready", icon: <Activity className="w-5 h-5 text-[#22C55E]" /> },
-    { title: "Prediction Module Active", icon: <Sparkles className="w-5 h-5 text-[#22C55E]" /> },
-    { title: "Simulation Engine Ready", icon: <ShieldCheck className="w-5 h-5 text-[#22C55E]" /> },
-    { title: "Secure Connection Established", icon: <CheckCircle2 className="w-5 h-5 text-[#22C55E]" /> }
+    { title: t('wowScreen.aiEngine', "AI Engine Online"), icon: <Cpu className="w-5 h-5 text-[#22C55E]" /> },
+    { title: t('wowScreen.gisMap', "GIS Map Connected"), icon: <Database className="w-5 h-5 text-[#22C55E]" /> },
+    { title: t('wowScreen.analytics', "Live Analytics Ready"), icon: <Activity className="w-5 h-5 text-[#22C55E]" /> },
+    { title: t('wowScreen.prediction', "Prediction Module Active"), icon: <Sparkles className="w-5 h-5 text-[#22C55E]" /> },
+    { title: t('wowScreen.simulation', "Simulation Engine Ready"), icon: <ShieldCheck className="w-5 h-5 text-[#22C55E]" /> },
+    { title: t('wowScreen.secure', "Secure Connection Established"), icon: <CheckCircle2 className="w-5 h-5 text-[#22C55E]" /> }
   ];
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-900 dark:bg-slate-900 text-[#1E293B] dark:text-slate-200 flex flex-col items-center justify-center relative overflow-hidden px-4 selection:bg-[#F97316] selection:text-white">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-900 text-[#1E293B] dark:text-slate-200 flex flex-col items-center justify-center relative overflow-hidden px-4 selection:bg-[#F97316] selection:text-white">
       
       {/* Tricolor Ribbon */}
       <div className="h-[4px] w-full flex shrink-0 absolute top-0 left-0 right-0 z-50">
@@ -45,14 +47,14 @@ export const MunicipalityWowScreen = () => {
           animate={{ opacity: 1, y: 0 }}
           className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#22C55E]/40 bg-[#22C55E]/10 text-[#22C55E] text-xs font-bold mb-6"
         >
-          <CheckCircle2 className="w-4 h-4 text-[#22C55E]" /> SYSTEM DIAGNOSTICS CLEARED
+          <CheckCircle2 className="w-4 h-4 text-[#22C55E]" /> {t('wowScreen.diagnosticsCleared', 'SYSTEM DIAGNOSTICS CLEARED')}
         </motion.div>
 
-        <h1 className="text-3xl sm:text-5xl font-black tracking-tight mb-2 text-[#0F172A] dark:text-slate-100">
-          AI DIGITAL TWIN OF KOPARGAON
+        <h1 className="text-3xl sm:text-5xl font-black tracking-tight mb-2 text-[#0F172A] dark:text-slate-100 uppercase">
+          {t('sidebar.title', 'AI DIGITAL TWIN OF KOPARGAON')}
         </h1>
         <p className="text-sm sm:text-base font-bold text-[#F97316] tracking-widest uppercase mb-10">
-          SMART CITY CONTROL CENTER
+          {t('municipalityDashboard.commandCenter', 'SMART CITY CONTROL CENTER')}
         </p>
 
         {/* 6 STATUS CARDS */}
@@ -83,9 +85,11 @@ export const MunicipalityWowScreen = () => {
           className="p-6 rounded-2xl bg-white dark:bg-slate-800 border-t-4 border-t-[#F97316] border-x border-b border-[#E2E8F0] dark:border-slate-700 shadow-xl shadow-slate-200/50"
         >
           <span className="text-xl sm:text-2xl font-black text-[#0F172A] dark:text-slate-100 tracking-wide uppercase">
-            Welcome, Municipal Officer
+            {t('wowScreen.welcomeOfficer', 'Welcome, Municipal Officer')}
           </span>
-          <p className="text-xs font-semibold text-[#64748B] dark:text-slate-400 mt-1">Initializing Officer Authentication Protocol...</p>
+          <p className="text-xs font-semibold text-[#64748B] dark:text-slate-400 mt-1">
+            {t('wowScreen.initializingAuth', 'Initializing Officer Authentication Protocol...')}
+          </p>
         </motion.div>
       </motion.div>
     </div>

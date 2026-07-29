@@ -1,11 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import jwt from 'jsonwebtoken';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const JWT_SECRET = process.env.JWT_SECRET || 'kopargaon_smart_city_jwt_secret_key_2026';
 
 app.use(cors());
 app.use(express.json());
@@ -499,10 +501,23 @@ app.post('/api/citizens/register', (req, res) => {
   };
 
   registeredCitizensDB.unshift(newCitizen);
-  res.status(201).json({ success: true, citizen: newCitizen });
+  const token = jwt.sign(
+    { id: newCitizen.id, email: newCitizen.email, role: 'citizen', name: newCitizen.name },
+    JWT_SECRET,
+    { expiresIn: '24h' }
+  );
+  res.status(201).json({
+    success: true,
+    userId: newCitizen.id,
+    fullName: newCitizen.name,
+    email: newCitizen.email,
+    role: 'citizen',
+    token,
+    citizen: newCitizen
+  });
 });
 
-// Citizen Login REST API
+// Citizen Login REST API with JWT Token
 app.post('/api/citizens/login', (req, res) => {
   const { identifier, password } = req.body;
   if (!identifier || !password) {
@@ -519,9 +534,147 @@ app.post('/api/citizens/login', (req, res) => {
   });
 
   if (user) {
-    res.json({ success: true, citizen: user });
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: 'citizen', name: user.name },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    res.json({
+      success: true,
+      userId: user.id,
+      fullName: user.name,
+      email: user.email,
+      role: 'citizen',
+      token,
+      citizen: user
+    });
   } else {
     res.status(401).json({ success: false, error: 'Invalid Email/Aadhaar or password.' });
+  }
+});
+
+// Citizen Verify Session / Me Endpoint
+app.get('/api/citizens/me', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'No token provided.' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = registeredCitizensDB.find(c => c.id === decoded.id || c.email === decoded.email);
+    if (user) {
+      res.json({
+        success: true,
+        userId: user.id,
+        fullName: user.name,
+        email: user.email,
+        role: 'citizen',
+        token,
+        citizen: user
+      });
+    } else {
+      res.status(404).json({ success: false, error: 'Citizen profile not found.' });
+    }
+  } catch (err) {
+    res.status(401).json({ success: false, error: 'Token expired or invalid.' });
+  }
+});
+
+// Citizen Profile Update Endpoint
+app.put('/api/citizens/profile', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'No token provided.' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const userIndex = registeredCitizensDB.findIndex(c => c.id === decoded.id || c.email === decoded.email);
+    if (userIndex !== -1) {
+      const { fullName, name, email, phone, ward, address } = req.body;
+      const updatedName = fullName || name || registeredCitizensDB[userIndex].name;
+      registeredCitizensDB[userIndex] = {
+        ...registeredCitizensDB[userIndex],
+        name: updatedName,
+        email: email || registeredCitizensDB[userIndex].email,
+        phone: phone || registeredCitizensDB[userIndex].phone,
+        ward: ward !== undefined ? parseInt(ward) : registeredCitizensDB[userIndex].ward,
+        address: address || registeredCitizensDB[userIndex].address
+      };
+      const updatedUser = registeredCitizensDB[userIndex];
+      res.json({
+        success: true,
+        userId: updatedUser.id,
+        fullName: updatedUser.name,
+        email: updatedUser.email,
+        role: 'citizen',
+        citizen: updatedUser
+      });
+    } else {
+      res.status(404).json({ success: false, error: 'Citizen profile not found.' });
+    }
+  } catch (err) {
+    res.status(401).json({ success: false, error: 'Token expired or invalid.' });
+  }
+});
+
+// Municipal Officer Login REST API with JWT Token
+app.post('/api/officers/login', (req, res) => {
+  const { officerId, password } = req.body;
+  if ((officerId === 'kpg' && password === 'kpg@123') || (officerId === 'admin' && password === 'admin123')) {
+    const officer = {
+      officerId: officerId,
+      name: 'Municipal Administrator',
+      role: 'Smart City Commissioner',
+      department: 'Municipal Headquarters',
+      badge: 'KMC-OFFICER-001'
+    };
+    const token = jwt.sign(
+      { officerId: officer.officerId, role: 'officer', name: officer.name },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+    res.json({
+      success: true,
+      userId: officer.officerId,
+      fullName: officer.name,
+      email: 'officer@kopargaon.gov.in',
+      role: officer.role,
+      token,
+      officer
+    });
+  } else {
+    res.status(401).json({ success: false, error: 'Invalid Officer ID or Access Code.' });
+  }
+});
+
+// Officer Verify Session / Me Endpoint
+app.get('/api/officers/me', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'No token provided.' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.role === 'officer') {
+      const officer = {
+        officerId: decoded.officerId || 'kpg',
+        name: decoded.name || 'Municipal Administrator',
+        role: 'Smart City Commissioner',
+        department: 'Municipal Headquarters',
+        badge: 'KMC-OFFICER-001'
+      };
+      res.json({ success: true, officer, token });
+    } else {
+      res.status(403).json({ success: false, error: 'Invalid officer role token.' });
+    }
+  } catch (err) {
+    res.status(401).json({ success: false, error: 'Token expired or invalid.' });
   }
 });
 

@@ -1,10 +1,12 @@
 import React, { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { X, Printer, Download, Share2, ShieldCheck, QrCode, Building2, CheckCircle2, DollarSign, Receipt, CreditCard } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export const TaxBillReceiptModal = ({ isOpen, onClose, taxRecord, isReceipt = false }) => {
-  const { showToast } = useApp();
+  const { t } = useTranslation();
+  const { showToast, citizenUser } = useApp();
   const printRef = useRef(null);
 
   if (!isOpen || !taxRecord) return null;
@@ -19,6 +21,8 @@ export const TaxBillReceiptModal = ({ isOpen, onClose, taxRecord, isReceipt = fa
   const penalty = taxRecord.penalty || 0;
   const totalPayable = baseAmount + penalty;
 
+  const displayName = taxRecord.citizenName || citizenUser?.fullName || citizenUser?.name || 'Citizen';
+
   const handlePrint = () => {
     window.print();
   };
@@ -31,7 +35,7 @@ export const TaxBillReceiptModal = ({ isOpen, onClose, taxRecord, isReceipt = fa
       `KOPARGAON MUNICIPAL CORPORATION - ${isReceipt ? 'OFFICIAL TAX PAYMENT RECEIPT' : 'OFFICIAL TAX DEMAND BILL'}\n` +
       `Bill Number: ${billNumber}\n` +
       `${isReceipt ? `Receipt Number: ${receiptNumber}\n` : ''}` +
-      `Citizen Name: ${taxRecord.citizenName || 'Ramesh Deshmukh'}\n` +
+      `Citizen Name: ${displayName}\n` +
       `Property Assessment #: ${taxRecord.propertyNumber || 'KPG-PROP-4218'}\n` +
       `Tax Category: ${taxRecord.taxCategory || 'Property Tax'}\n` +
       `Assessment Year: 2025-2026\n` +
@@ -62,7 +66,7 @@ export const TaxBillReceiptModal = ({ isOpen, onClose, taxRecord, isReceipt = fa
             <div className="flex items-center gap-2">
               <Receipt className="w-5 h-5 text-emerald-400 shrink-0" />
               <span className="text-xs sm:text-sm font-bold tracking-tight">
-                {isReceipt ? 'Official Tax Payment Receipt' : 'Official Municipal Tax Demand Bill'}
+                {isReceipt ? t('taxPortal.modalReceiptTitle', 'Official Tax Payment Receipt') : t('taxPortal.modalBillTitle', 'Official Municipal Tax Demand Bill')}
               </span>
             </div>
 
@@ -71,13 +75,13 @@ export const TaxBillReceiptModal = ({ isOpen, onClose, taxRecord, isReceipt = fa
                 onClick={handlePrint}
                 className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-md flex items-center gap-1 transition-colors"
               >
-                <Printer className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Print</span>
+                <Printer className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t('taxPortal.btnPrint', 'Print')}</span>
               </button>
               <button
                 onClick={handleDownload}
                 className="px-2.5 py-1 bg-sky-600 hover:bg-sky-500 text-xs font-semibold rounded-md flex items-center gap-1 transition-colors"
               >
-                <Download className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Download</span>
+                <Download className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t('taxPortal.btnDownload', 'Download')}</span>
               </button>
               <button
                 onClick={onClose}
@@ -160,7 +164,7 @@ export const TaxBillReceiptModal = ({ isOpen, onClose, taxRecord, isReceipt = fa
                     <tbody>
                       <tr className="border-b border-slate-200">
                         <td className="p-2 bg-slate-100 font-semibold w-1/3 border-r border-slate-200">Taxpayer Name</td>
-                        <td className="p-2 font-bold text-slate-900">{taxRecord.citizenName || 'Ramesh Deshmukh'}</td>
+                        <td className="p-2 font-bold text-slate-900">{displayName}</td>
                       </tr>
                       <tr className="border-b border-slate-200">
                         <td className="p-2 bg-slate-100 font-semibold border-r border-slate-200">Tax Category</td>

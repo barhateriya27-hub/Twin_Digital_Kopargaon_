@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { 
   DollarSign, Receipt, Plus, Search, Filter, CheckCircle2, Eye, Download, 
   Building2, User, Calendar, ShieldCheck, AlertCircle, FileText
@@ -9,6 +10,7 @@ import { useApp } from '../../context/AppContext';
 import { TaxBillReceiptModal } from './TaxBillReceiptModal';
 
 export const OfficerTaxManagementView = () => {
+  const { t } = useTranslation();
   const { taxRecords = [], createTaxRecord, processTaxPayment, showToast } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,7 +20,7 @@ export const OfficerTaxManagementView = () => {
   // New Tax Form State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [formData, setFormData] = useState({
-    citizenName: 'Ramesh Deshmukh',
+    citizenName: '',
     citizenEmail: 'citizen@kopargaon.gov.in',
     propertyNumber: 'KPG-PROP-4218',
     address: 'Shivaji Chowk, Ward 4, Kopargaon',
@@ -76,15 +78,15 @@ export const OfficerTaxManagementView = () => {
           <div>
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                MUNICIPAL REVENUE & TAX ADMINISTRATION
+                {t('taxPortal.adminTag', 'MUNICIPAL REVENUE & TAX ADMINISTRATION')}
               </span>
-              <span className="text-xs text-slate-300 font-mono">Kopargaon Municipal Corporation Treasury</span>
+              <span className="text-xs text-slate-300 font-mono">{t('taxPortal.treasuryTitle', 'Kopargaon Municipal Corporation Treasury')}</span>
             </div>
             <h1 className="text-xl font-black tracking-tight mt-1">
-              Property, Water & Commercial Tax Assessment Hub
+              {t('taxPortal.hubTitle', 'Property, Water & Commercial Tax Assessment Hub')}
             </h1>
             <p className="text-xs text-slate-300 max-w-2xl mt-0.5">
-              Create tax assessments, generate demand bills, record offline cash/cheque counter payments, manage exemptions, and audit ward collection efficiency.
+              {t('taxPortal.hubSubtitle', 'Create tax assessments, generate demand bills, record offline cash/cheque counter payments, manage exemptions, and audit ward collection efficiency.')}
             </p>
           </div>
         </div>
@@ -93,24 +95,24 @@ export const OfficerTaxManagementView = () => {
           onClick={() => setIsCreateModalOpen(true)}
           className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow-lg shadow-emerald-600/30 transition-all flex items-center gap-2 text-xs uppercase tracking-wide shrink-0"
         >
-          <Plus className="w-4 h-4" /> Create Tax Assessment
+          <Plus className="w-4 h-4" /> {t('taxPortal.btnCreateAssessment', 'Create Tax Assessment')}
         </button>
       </div>
 
       {/* Revenue KPI Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Revenue Collected</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">{t('taxPortal.kpiTotalCollected', 'Total Revenue Collected')}</span>
           <span className="text-3xl font-black text-emerald-600 font-mono mt-1 block">₹{totalRevenueCollected.toLocaleString('en-IN')}</span>
         </div>
 
         <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-amber-200 dark:border-amber-900/50 shadow-sm">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 block">Total Pending Dues</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 block">{t('taxPortal.kpiPendingDues', 'Total Pending Dues')}</span>
           <span className="text-3xl font-black text-amber-600 dark:text-amber-400 font-mono mt-1 block">₹{totalPendingDues.toLocaleString('en-IN')}</span>
         </div>
 
         <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-sky-200 dark:border-sky-900/50 shadow-sm">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 block">Active Assessments</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 block">{t('taxPortal.kpiActiveAssessments', 'Active Assessments')}</span>
           <span className="text-3xl font-black text-slate-900 dark:text-slate-100 font-mono mt-1 block">{totalAssessments}</span>
         </div>
       </div>
@@ -123,7 +125,7 @@ export const OfficerTaxManagementView = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search Tax ID, Citizen, Property #, Address..."
+            placeholder={t('taxPortal.searchPlaceholder', 'Search Tax ID, Citizen, Property #, Address...')}
             className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-medium"
           />
         </div>
@@ -134,7 +136,7 @@ export const OfficerTaxManagementView = () => {
             onChange={(e) => setCategoryFilter(e.target.value)}
             className="px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-700 dark:text-slate-300"
           >
-            <option value="All">All Tax Categories</option>
+            <option value="All">{t('taxPortal.allCategories', 'All Tax Categories')}</option>
             {TAX_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
 
@@ -143,10 +145,10 @@ export const OfficerTaxManagementView = () => {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-bold text-slate-700 dark:text-slate-300"
           >
-            <option value="All">All Statuses</option>
-            <option value="Unpaid">Unpaid</option>
-            <option value="Paid">Paid</option>
-            <option value="Overdue">Overdue</option>
+            <option value="All">{t('taxPortal.allStatuses', 'All Statuses')}</option>
+            <option value="Unpaid">{t('taxPortal.statusUnpaid', 'Unpaid')}</option>
+            <option value="Paid">{t('taxPortal.statusPaid', 'Paid')}</option>
+            <option value="Overdue">{t('taxPortal.statusOverdue', 'Overdue')}</option>
           </select>
         </div>
       </div>
@@ -157,20 +159,20 @@ export const OfficerTaxManagementView = () => {
           <table className="w-full min-w-[750px] text-left border-collapse text-xs">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-950 text-slate-500 font-semibold border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider text-[10px]">
-                <th className="p-3">Tax ID</th>
-                <th className="p-3">Tax Category</th>
-                <th className="p-3">Taxpayer & Property #</th>
-                <th className="p-3">Ward</th>
-                <th className="p-3">Amount Payable</th>
-                <th className="p-3">Status</th>
-                <th className="p-3 text-right">Actions</th>
+                <th className="p-3">{t('taxPortal.thTaxId', 'Tax ID')}</th>
+                <th className="p-3">{t('taxPortal.thTaxCategory', 'Tax Category')}</th>
+                <th className="p-3">{t('taxPortal.thTaxpayerProperty', 'Taxpayer & Property #')}</th>
+                <th className="p-3">{t('taxPortal.thWard', 'Ward')}</th>
+                <th className="p-3">{t('taxPortal.thAmountPayable', 'Amount Payable')}</th>
+                <th className="p-3">{t('taxPortal.thStatus', 'Status')}</th>
+                <th className="p-3 text-right">{t('taxPortal.thActions', 'Actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
               {filteredTaxes.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-slate-400">
-                    No tax records match the specified search or filter criteria.
+                    {t('taxPortal.noRecordsFound', 'No tax records match the specified search or filter criteria.')}
                   </td>
                 </tr>
               ) : (
@@ -190,7 +192,7 @@ export const OfficerTaxManagementView = () => {
                     </td>
 
                     <td className="p-3 font-bold">
-                      Ward {tax.ward || 4}
+                      {t('taxPortal.wardPrefix', 'Ward')} {tax.ward || 4}
                     </td>
 
                     <td className="p-3 font-mono font-bold text-slate-900 dark:text-slate-100">
@@ -202,7 +204,7 @@ export const OfficerTaxManagementView = () => {
                         tax.status === 'Paid' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-300' :
                         'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-300'
                       }`}>
-                        {tax.status}
+                        {tax.status === 'Paid' ? t('taxPortal.statusPaid', 'Paid') : tax.status === 'Overdue' ? t('taxPortal.statusOverdue', 'Overdue') : t('taxPortal.statusUnpaid', 'Unpaid')}
                       </span>
                     </td>
 
@@ -212,7 +214,7 @@ export const OfficerTaxManagementView = () => {
                           onClick={() => { setSelectedRecordForBill(tax); setIsReceiptView(tax.status === 'Paid'); }}
                           className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold rounded-lg text-[11px]"
                         >
-                          View Bill/Receipt
+                          {t('taxPortal.btnViewReceipt', 'View Bill/Receipt')}
                         </button>
 
                         {tax.status !== 'Paid' && (
@@ -220,7 +222,7 @@ export const OfficerTaxManagementView = () => {
                             onClick={() => handleRecordOfflinePayment(tax.id)}
                             className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[11px] shadow-sm"
                           >
-                            Record Cash Payment
+                            {t('taxPortal.btnRecordCash', 'Record Cash Payment')}
                           </button>
                         )}
                       </div>
@@ -246,14 +248,14 @@ export const OfficerTaxManagementView = () => {
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
                   <Plus className="w-5 h-5 text-emerald-600" />
-                  <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100">Create New Tax Assessment</h3>
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100">{t('taxPortal.modalCreateTitle', 'Create New Tax Assessment')}</h3>
                 </div>
                 <button onClick={() => setIsCreateModalOpen(false)} className="text-slate-400 hover:text-slate-700">✕</button>
               </div>
 
               <form onSubmit={handleCreateSubmit} className="space-y-3">
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Citizen Name *</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t('taxPortal.labelCitizenName', 'Citizen Name *')}</label>
                   <input
                     type="text"
                     name="citizenName"
@@ -265,7 +267,7 @@ export const OfficerTaxManagementView = () => {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Property # / Assessment Ref *</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t('taxPortal.labelPropertyRef', 'Property # / Assessment Ref *')}</label>
                   <input
                     type="text"
                     name="propertyNumber"
@@ -278,7 +280,7 @@ export const OfficerTaxManagementView = () => {
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Tax Category *</label>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t('taxPortal.labelTaxCat', 'Tax Category *')}</label>
                     <select
                       name="taxCategory"
                       value={formData.taxCategory}
@@ -290,20 +292,20 @@ export const OfficerTaxManagementView = () => {
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Ward Number *</label>
+                    <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t('taxPortal.labelWardNum', 'Ward Number *')}</label>
                     <select
                       name="ward"
                       value={formData.ward}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold"
                     >
-                      {Array.from({ length: 28 }, (_, i) => i + 1).map(w => <option key={w} value={w}>Ward {w}</option>)}
+                      {Array.from({ length: 28 }, (_, i) => i + 1).map(w => <option key={w} value={w}>{t('taxPortal.wardPrefix', 'Ward')} {w}</option>)}
                     </select>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Assessment Amount (₹) *</label>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">{t('taxPortal.labelAmount', 'Assessment Amount (₹) *')}</label>
                   <input
                     type="number"
                     name="amount"
@@ -318,7 +320,7 @@ export const OfficerTaxManagementView = () => {
                   type="submit"
                   className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg transition-all uppercase tracking-wide text-xs"
                 >
-                  Issue Demand Bill & Assessment
+                  {t('taxPortal.btnSubmitDemand', 'Issue Demand Bill & Assessment')}
                 </button>
               </form>
             </motion.div>

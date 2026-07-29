@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { 
   Building2, CheckCircle2, Clock, AlertTriangle, FileText, Search, Filter, Plus, 
   Calendar, Eye, Check, X, PauseCircle, Send, Award, FileCheck, ShieldCheck, MapPin, User
@@ -10,6 +11,7 @@ import { InspectionManagementModal } from './InspectionManagementModal';
 import { DigitalPermissionCertificateModal } from './DigitalPermissionCertificateModal';
 
 export const PermissionsDashboardView = () => {
+  const { t } = useTranslation();
   const { 
     permissionApplications = [], 
     updatePermissionStatus, 

@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { UserCheck, Mail, Lock, ArrowRight, Home, Sparkles, LogIn, ShieldAlert, KeyRound, CreditCard } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { UserCheck, Mail, Lock, ArrowRight, Home, Sparkles, LogIn, ShieldAlert, KeyRound } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { ForgotPasswordModal } from '../../components/ForgotPasswordModal';
+import { LanguageSelector } from '../../components/LanguageSelector';
 
 export const CitizenLogin = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { loginCitizen, showToast } = useApp();
 
   const [identifier, setIdentifier] = useState(''); // Email or Aadhaar
@@ -16,7 +19,7 @@ export const CitizenLogin = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!identifier || !password) {
-      showToast('Please enter both Email/Aadhaar and password / कृपया ईमेल/आधार आणि संकेतशब्द प्रविष्ट करा', 'warning');
+      showToast(t('citizenAuth.identifierLabel', 'Please enter Email/Aadhaar and password'), 'warning');
       return;
     }
     const success = loginCitizen(identifier, password);
@@ -28,7 +31,7 @@ export const CitizenLogin = () => {
   const handleDemoFill = () => {
     setIdentifier('citizen@kopargaon.gov.in');
     setPassword('citizen123');
-    showToast('Demo Citizen Credentials Loaded (Aadhaar: 1234-5678-9012)', 'info');
+    showToast(t('citizenAuth.demoButton', 'Demo Credentials Loaded'), 'info');
   };
 
   return (
@@ -50,21 +53,24 @@ export const CitizenLogin = () => {
             </div>
             <div>
               <span className="font-extrabold text-base text-slate-900 dark:text-slate-100 block leading-tight">
-                कोपरगाव <span className="text-orange-600">नागरिक पोर्टल</span>
+                {t('citizenAuth.headerTitle', 'Kopargaon Citizen Portal')}
               </span>
               <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 block font-semibold">
-                Kopargaon Citizen Portal • Govt. of Maharashtra
+                {t('citizenAuth.headerSubtitle', 'Kopargaon Municipal Council • Govt. of Maharashtra')}
               </span>
             </div>
           </Link>
 
-          <Link
-            to="/"
-            className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-orange-600 transition-colors"
-          >
-            <Home className="w-4 h-4" />
-            मुख्यपृष्ठ / Back to Home
-          </Link>
+          <div className="flex items-center gap-3">
+            <LanguageSelector variant="topbar" />
+            <Link
+              to="/"
+              className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-orange-600 transition-colors"
+            >
+              <Home className="w-4 h-4" />
+              {t('citizenAuth.backToHome', 'Back to Home')}
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -83,14 +89,18 @@ export const CitizenLogin = () => {
                 <circle cx="50" cy="45" r="8" fill="currentColor" />
               </svg>
             </div>
-            <h1 className="text-xl font-black text-slate-900 dark:text-slate-100 mb-1">नागरिक लॉगिन / Citizen Login</h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Smart City Grievance Redressal & Services</p>
+            <h1 className="text-xl font-black text-slate-900 dark:text-slate-100 mb-1">
+              {t('citizenAuth.loginTitle', 'Citizen Login')}
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              {t('citizenAuth.loginSubtitle', 'Smart City Grievance Redressal & Services')}
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                ईमेल पत्ता / आधार क्रमांक (Email or Aadhaar) *
+                {t('citizenAuth.identifierLabel', 'Email or Aadhaar Number *')}
               </label>
               <div className="relative">
                 <Mail className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
@@ -98,7 +108,7 @@ export const CitizenLogin = () => {
                   type="text"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="citizen@example.com OR 1234 5678 9012"
+                  placeholder={t('citizenAuth.identifierPlaceholder', 'citizen@example.com OR 1234 5678 9012')}
                   className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
                   required
                 />
@@ -107,7 +117,7 @@ export const CitizenLogin = () => {
 
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
-                संकेतशब्द / Password *
+                {t('citizenAuth.passwordLabel', 'Password *')}
               </label>
               <div className="relative">
                 <Lock className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5" />
@@ -115,7 +125,7 @@ export const CitizenLogin = () => {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder={t('citizenAuth.passwordPlaceholder', '••••••••')}
                   className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
                   required
                 />
@@ -128,14 +138,14 @@ export const CitizenLogin = () => {
                 onClick={handleDemoFill}
                 className="text-orange-600 hover:text-orange-700 flex items-center gap-1"
               >
-                <Sparkles className="w-3.5 h-3.5" /> डेमो क्रेडेंशियल्स / Demo Account
+                <Sparkles className="w-3.5 h-3.5" /> {t('citizenAuth.demoButton', 'Demo Account')}
               </button>
               <button
                 type="button"
                 onClick={() => setIsForgotModalOpen(true)}
                 className="text-slate-500 hover:text-orange-600 dark:text-slate-400 dark:hover:text-orange-400 flex items-center gap-1 transition-colors"
               >
-                <KeyRound className="w-3.5 h-3.5" /> पास्‍वार्ड विसरलात? / Forgot?
+                <KeyRound className="w-3.5 h-3.5" /> {t('citizenAuth.forgotPassword', 'Forgot Password?')}
               </button>
             </div>
 
@@ -145,7 +155,7 @@ export const CitizenLogin = () => {
                 className="w-full py-3.5 px-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow-lg shadow-orange-600/20 transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wide"
               >
                 <LogIn className="w-4 h-4" />
-                लॉगिन करा / Sign In
+                {t('citizenAuth.signInBtn', 'Sign In')}
               </button>
 
               <button
@@ -153,7 +163,7 @@ export const CitizenLogin = () => {
                 onClick={() => navigate('/citizen/register')}
                 className="w-full py-3.5 px-4 bg-slate-100 dark:bg-slate-900/50 hover:bg-slate-200 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-600 font-bold rounded-xl transition-all text-sm uppercase tracking-wide"
               >
-                नवीन नोंदणी / Register Account
+                {t('citizenAuth.registerBtn', 'Register Account')}
               </button>
             </div>
           </form>
@@ -161,7 +171,7 @@ export const CitizenLogin = () => {
           <div className="mt-8 text-center pt-6 border-t border-slate-100 dark:border-slate-800 font-semibold text-xs">
             <p className="text-slate-500 dark:text-slate-400 flex items-center justify-center gap-1">
               <ShieldAlert className="w-3.5 h-3.5 text-orange-500" />
-              महाराष्ट्र शासन डिजिटल सेवा सुरक्षितता मानके
+              {t('citizenAuth.securityNotice', 'Government of Maharashtra Digital Security Standards')}
             </p>
           </div>
         </motion.div>
@@ -174,7 +184,7 @@ export const CitizenLogin = () => {
       />
 
       <footer className="py-4 text-center text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shrink-0">
-        कोपरगाव नगरपरिषद • नागरी सेवा हेल्पलाईन: 1800-233-1042 | support@kopargaon.gov.in
+        {t('footer.disclaimer', 'Kopargaon Municipal Council • Citizen Helpline: 1800-233-1042 | support@kopargaon.gov.in')}
       </footer>
     </div>
   );

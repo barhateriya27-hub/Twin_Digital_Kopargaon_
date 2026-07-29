@@ -1,0 +1,14 @@
+{
+  "name": "twin-digital-kopargaon-root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI Digital Twin of Kopargaon Smart City Unified Root Workspace",
+  "scripts": {
+    "dev": "npm run dev --prefix frontend",
+    "start": "npm run dev --prefix frontend",
+    "start:frontend": "npm run dev --prefix frontend",
+    "start:backend": "npm start --prefix backend",
+    "build": "npm run build --prefix frontend",
+    "build:frontend": "npm run build --prefix frontend"
+  }
+}
