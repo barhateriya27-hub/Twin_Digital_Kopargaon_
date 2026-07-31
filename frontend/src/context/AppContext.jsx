@@ -175,84 +175,100 @@ export const AppProvider = ({ children }) => {
     const now = Date.now();
     return [
       {
-        id: 'KPG-2026-1042',
+        id: 'CMP1023',
         citizenId: 'CIT-8821',
-        submittedBy: 'Ramesh Patil',
-        citizenEmail: 'ramesh.p@kopargaon.gov.in',
-        category: 'Sanitation',
-        title: 'Severe Garbage Overflow & Drain Blockage',
-        description: 'Waste heap overflowing near Shivaji Chowk market area blocking main drainage line causing foul odor and health hazard.',
-        address: 'Shivaji Chowk Market, Ward 4',
+        submittedBy: 'Swanandi Kathale',
+        citizenEmail: 'citizen@kopargaon.gov.in',
+        category: 'Streetlight Maintenance',
+        title: 'Streetlight Malfunction near Shivaji Chowk',
+        description: 'LED streetlamp fixture flickering and failing at night near Shivaji Chowk.',
+        address: 'Shivaji Chowk, Ward 4',
         ward: 4,
         latitude: 19.8855,
         longitude: 74.4821,
-        imageUrl: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=800&q=80',
-        status: 'Pending',
-        priority: 'High',
-        department: 'Sanitation & Solid Waste Management',
-        assignedOfficer: null,
-        createdAt: new Date(now - 36 * 3600 * 1000).toISOString(),
-        submittedAt: new Date(now - 36 * 3600 * 1000).toISOString(),
-        dueDate: new Date(now + 36 * 3600 * 1000).toISOString(),
-        workStartedAt: null,
-        completedAt: null,
+        imageUrl: 'https://images.unsplash.com/photo-1517420704952-d9f39e95b43e?auto=format&fit=crop&w=800&q=80',
+        status: 'Resolved',
+        priority: 'Normal',
+        department: 'Electrical & Public Lighting',
+        assignedOfficer: 'Er. Ramesh Shinde',
+        createdAt: new Date(now - 72 * 3600 * 1000).toISOString(),
+        submittedAt: new Date(now - 72 * 3600 * 1000).toISOString(),
+        dueDate: new Date(now - 24 * 3600 * 1000).toISOString(),
+        workStartedAt: new Date(now - 48 * 3600 * 1000).toISOString(),
+        completedAt: new Date(now - 24 * 3600 * 1000).toISOString(),
         isEscalated: false,
-        remarks: [],
+        remarks: ['Replacement LED bulb installed and tested by electrical squad.'],
         supportingDocuments: [],
         completionReport: null,
         timeline: [
           {
             id: 'EVT-1001',
             status: 'Pending',
-            timestamp: new Date(now - 36 * 3600 * 1000).toISOString(),
-            actor: { name: 'Ramesh Patil', role: 'Citizen', department: 'Resident' },
-            action: 'Complaint Registered',
-            note: 'Submitted ticket via Citizen Portal with geolocation.'
+            timestamp: new Date(now - 72 * 3600 * 1000).toISOString(),
+            actor: { name: 'Swanandi Kathale', role: 'Citizen', department: 'Resident' },
+            action: 'Complaint Submitted',
+            note: 'Registered ticket via Citizen Portal.'
+          },
+          {
+            id: 'EVT-1002',
+            status: 'In Progress',
+            timestamp: new Date(now - 48 * 3600 * 1000).toISOString(),
+            actor: { name: 'Er. Ramesh Shinde', role: 'Officer Assigned', department: 'Electrical' },
+            action: 'Officer Assigned',
+            note: 'Assigned to field electrical maintenance unit.'
+          },
+          {
+            id: 'EVT-1003',
+            status: 'Resolved',
+            timestamp: new Date(now - 24 * 3600 * 1000).toISOString(),
+            actor: { name: 'Er. Ramesh Shinde', role: 'Municipal Officer', department: 'Electrical' },
+            action: 'Complaint Closed',
+            note: 'Lighting fixture replaced and operational.'
           }
         ]
       },
       {
-        id: 'KPG-2026-1039',
-        citizenId: 'CIT-7712',
-        submittedBy: 'Priya Sharma',
-        citizenEmail: 'priya.s@kopargaon.gov.in',
+        id: 'CMP1032',
+        citizenId: 'CIT-8821',
+        submittedBy: 'Swanandi Kathale',
+        citizenEmail: 'citizen@kopargaon.gov.in',
         category: 'Water Supply',
-        title: 'Main Pipeline Burst & Low Pressure',
-        description: 'Underground pipeline leakage near Ward 2 high school causing water logging on main street.',
-        address: 'Near Mahatma Gandhi School, Ward 2',
-        ward: 2,
-        latitude: 19.8912,
-        longitude: 74.4789,
+        title: 'Water Supply Pipeline Leakage',
+        description: 'Underground main line valve seepage near Ward 4 market street causing low water pressure.',
+        address: 'Market Yard, Ward 4',
+        ward: 4,
+        latitude: 19.8890,
+        longitude: 74.4810,
         imageUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb186a5b7?auto=format&fit=crop&w=800&q=80',
         status: 'In Progress',
-        priority: 'Emergency',
+        priority: 'High',
         department: 'Water Supply & Sewerage Department',
         assignedOfficer: 'Er. Suresh Deshmukh',
-        createdAt: new Date(now - 48 * 3600 * 1000).toISOString(),
-        submittedAt: new Date(now - 48 * 3600 * 1000).toISOString(),
-        dueDate: new Date(now + 24 * 3600 * 1000).toISOString(),
-        workStartedAt: new Date(now - 12 * 3600 * 1000).toISOString(),
+        createdAt: new Date(now - 24 * 3600 * 1000).toISOString(),
+        submittedAt: new Date(now - 24 * 3600 * 1000).toISOString(),
+        dueDate: new Date(now + 48 * 3600 * 1000).toISOString(),
+        workStartedAt: new Date(now - 6 * 3600 * 1000).toISOString(),
         completedAt: null,
         isEscalated: false,
-        remarks: ['Heavy excavation squad deployed.'],
+        remarks: ['Excavation and valve replacement squad deployed.'],
         supportingDocuments: [],
         completionReport: null,
         timeline: [
           {
-            id: 'EVT-1002',
+            id: 'EVT-1004',
             status: 'Pending',
-            timestamp: new Date(now - 48 * 3600 * 1000).toISOString(),
-            actor: { name: 'Priya Sharma', role: 'Citizen', department: 'Resident' },
-            action: 'Complaint Registered',
-            note: 'Submitted pipeline issue.'
+            timestamp: new Date(now - 24 * 3600 * 1000).toISOString(),
+            actor: { name: 'Swanandi Kathale', role: 'Citizen', department: 'Resident' },
+            action: 'Complaint Submitted',
+            note: 'Submitted water leakage report.'
           },
           {
-            id: 'EVT-1003',
+            id: 'EVT-1005',
             status: 'In Progress',
-            timestamp: new Date(now - 12 * 3600 * 1000).toISOString(),
-            actor: { name: 'Er. Suresh Deshmukh', role: 'Municipal Officer', department: 'Water Supply' },
-            action: 'Work Started',
-            note: 'Assigned repair team. Work in execution.'
+            timestamp: new Date(now - 6 * 3600 * 1000).toISOString(),
+            actor: { name: 'Er. Suresh Deshmukh', role: 'Officer Assigned', department: 'Water Supply' },
+            action: 'Officer Assigned',
+            note: 'Repair team assigned. Excavation in progress.'
           }
         ]
       },
@@ -279,27 +295,10 @@ export const AppProvider = ({ children }) => {
         workStartedAt: null,
         completedAt: null,
         isEscalated: true,
-        remarks: ['SLA breached (3 days limit exceeded). Escalated to Higher Authority.'],
+        remarks: ['SLA breached. Escalated to Higher Authority.'],
         supportingDocuments: [],
         completionReport: null,
-        timeline: [
-          {
-            id: 'EVT-1004',
-            status: 'Pending',
-            timestamp: new Date(now - 96 * 3600 * 1000).toISOString(),
-            actor: { name: 'Anil Kulkarni', role: 'Citizen', department: 'Resident' },
-            action: 'Complaint Registered',
-            note: 'Submitted pothole ticket.'
-          },
-          {
-            id: 'EVT-1005',
-            status: 'Escalated',
-            timestamp: new Date(now - 24 * 3600 * 1000).toISOString(),
-            actor: { name: 'SYSTEM_SLA_ENGINE', role: 'System Daemon', department: 'Governance Engine' },
-            action: 'SLA Auto-Escalation',
-            note: 'Complaint unresolved past 3 working days SLA. Escalated to Higher Authority Portal.'
-          }
-        ]
+        timeline: []
       }
     ];
   });
@@ -317,24 +316,23 @@ export const AppProvider = ({ children }) => {
     return [
       {
         id: 'NOTIF-101',
-        recipientRole: 'officer',
-        title: 'New High Priority Complaint',
-        description: 'Complaint KPG-2026-1042 registered in Sanitation Department (Ward 4).',
-        complaintId: 'KPG-2026-1042',
-        priority: 'High',
-        department: 'Sanitation & Solid Waste Management',
-        timestamp: new Date(now - 36 * 3600 * 1000).toISOString(),
+        recipientRole: 'citizen',
+        title: 'Complaint CMP1023 Status Updated',
+        description: 'Your complaint CMP1023 (Streetlight Maintenance) has been marked Resolved by Electrical Department.',
+        complaintId: 'CMP1023',
+        priority: 'Normal',
+        department: 'Electrical & Public Lighting',
+        timestamp: new Date(now - 24 * 3600 * 1000).toISOString(),
         read: false
       },
       {
         id: 'NOTIF-102',
-        recipientRole: 'higher_authority',
-        title: 'SLA Breach Auto-Escalation Warning',
-        description: 'Complaint KPG-2026-0988 (PWD Ward 6) breached 3-day SLA limit and requires immediate intervention.',
-        complaintId: 'KPG-2026-0988',
-        priority: 'Escalated',
-        department: 'Public Works (PWD)',
-        timestamp: new Date(now - 24 * 3600 * 1000).toISOString(),
+        recipientRole: 'citizen',
+        title: 'Water Supply Interruption Tomorrow',
+        description: 'Notice: Water supply interruption scheduled tomorrow in Ward 4 for pipeline maintenance.',
+        priority: 'High',
+        department: 'Water Supply',
+        timestamp: new Date(now - 12 * 3600 * 1000).toISOString(),
         read: false
       }
     ];
@@ -353,27 +351,40 @@ export const AppProvider = ({ children }) => {
     return [
       {
         id: 'ANN-2026-001',
-        title: 'Scheduled Water Supply Shutdown - Ward 2 & Ward 4',
-        description: 'Water pipeline maintenance scheduled on Sunday from 08:00 AM to 04:00 PM. Residents are requested to store adequate water.',
-        category: 'Water Supply Shutdown',
+        title: 'Water supply interruption tomorrow',
+        description: 'Water supply pipeline maintenance scheduled tomorrow from 08:00 AM to 04:00 PM. Ward 2 & Ward 4 residents are requested to store adequate water.',
+        category: 'Water Supply Notices',
         priority: 'High',
         targetWards: [2, 4],
         publishedBy: 'Chief Water Engineer',
-        publishDate: new Date(now - 24 * 3600 * 1000).toISOString(),
+        publishDate: new Date(now - 12 * 3600 * 1000).toISOString(),
         expiryDate: new Date(now + 48 * 3600 * 1000).toISOString(),
         status: 'Published',
         attachments: []
       },
       {
         id: 'ANN-2026-002',
-        title: 'Monsoon Heavy Rainfall Advisory & Emergency Helpline',
-        description: 'High rainfall advisory issued for Kopargaon district. Emergency helpline active 24x7: 1800-233-4567.',
-        category: 'Emergency Notice',
-        priority: 'Urgent/Emergency',
+        title: 'Property tax due on 31 Aug',
+        description: 'Pay your Kopargaon municipal property tax online before 31 Aug 2026 to claim a 5% early payment rebate.',
+        category: 'Government Schemes',
+        priority: 'Normal',
         targetWards: [1, 2, 3, 4, 5, 6, 7, 8],
-        publishedBy: 'Municipal Commissioner Office',
-        publishDate: new Date(now).toISOString(),
-        expiryDate: new Date(now + 72 * 3600 * 1000).toISOString(),
+        publishedBy: 'Revenue & Tax Assessment Dept',
+        publishDate: new Date(now - 24 * 3600 * 1000).toISOString(),
+        expiryDate: new Date(now + 30 * 24 * 3600 * 1000).toISOString(),
+        status: 'Published',
+        attachments: []
+      },
+      {
+        id: 'ANN-2026-003',
+        title: 'New road construction in Ward 5',
+        description: 'Concrete road paving and drainage infrastructure construction started in Ward 5 Station Road Corridor.',
+        category: 'Road Closures',
+        priority: 'Normal',
+        targetWards: [5],
+        publishedBy: 'City Engineer, Kopargaon Municipal Council',
+        publishDate: new Date(now - 36 * 3600 * 1000).toISOString(),
+        expiryDate: new Date(now + 15 * 24 * 3600 * 1000).toISOString(),
         status: 'Published',
         attachments: []
       }

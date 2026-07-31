@@ -1,28 +1,14 @@
 import React from 'react';
-import { SmartCityDigitalTwin } from '../digitaltwin/SmartCityDigitalTwin';
-import { getKopargaonPOIs } from '../../services/poiService';
+import { MapLibreGisCommandCenter } from './MapLibreGisCommandCenter';
 
 export const SmartCityMap = ({
-  pois: externalPois = [],
   userLocation,
-  selectedCategory = 'All',
-  searchQuery = ''
+  complaints = []
 }) => {
-  const displayPois = getKopargaonPOIs(
-    selectedCategory,
-    searchQuery,
-    userLocation?.lat,
-    userLocation?.lng
-  );
-
-  const poisToRender = externalPois.length > 0 ? externalPois : displayPois;
-
   return (
-    <SmartCityDigitalTwin
-      pois={poisToRender}
+    <MapLibreGisCommandCenter
       userLocation={userLocation}
-      selectedCategory={selectedCategory}
-      searchQuery={searchQuery}
+      complaints={complaints}
     />
   );
 };
