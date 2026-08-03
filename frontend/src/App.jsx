@@ -2,16 +2,28 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
 import { Toast } from './components/Toast';
-import { GlobalAIAssistant } from './components/ai/GlobalAIAssistant';
+
+// Layout Shells
+import { CitizenLayout } from './layouts/CitizenLayout';
+import { MunicipalityLayout } from './layouts/MunicipalityLayout';
+
+// Public & Auth Pages
 import { LandingPage } from './pages/LandingPage';
 import { CitizenLogin } from './pages/citizen/CitizenLogin';
 import { CitizenRegister } from './pages/citizen/CitizenRegister';
 import { CitizenDashboard } from './pages/citizen/CitizenDashboard';
 import { EmergencyServicesPage } from './pages/citizen/EmergencyServicesPage';
+
+// Municipality Pages
 import { MunicipalityLoading } from './pages/municipality/MunicipalityLoading';
 import { MunicipalityWowScreen } from './pages/municipality/MunicipalityWowScreen';
 import { MunicipalityLogin } from './pages/municipality/MunicipalityLogin';
 import { MunicipalityDashboard } from './pages/municipality/MunicipalityDashboard';
+import { HigherAuthorityDashboard } from './pages/municipality/HigherAuthorityDashboard';
+import { PermissionsDashboardView } from './components/permissions/PermissionsDashboardView';
+import { OfficerTaxManagementView } from './components/tax/OfficerTaxManagementView';
+import { AnnouncementManager } from './components/AnnouncementManager';
+import { IncidentArchive } from './components/IncidentArchive';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 // Protected Route Wrappers (Require valid JWT session)
@@ -52,14 +64,12 @@ export function AppContent() {
   return (
     <>
       <Toast />
-      {/* Global AI Assistant across all routes */}
-      <GlobalAIAssistant />
 
       <Routes>
         {/* Landing Page */}
         <Route path="/" element={<LandingPage />} />
 
-        {/* Citizen Portal */}
+        {/* Citizen Authentication Routes */}
         <Route 
           path="/citizen/login" 
           element={
@@ -76,24 +86,33 @@ export function AppContent() {
             </PublicOnlyCitizenRoute>
           } 
         />
-        <Route 
-          path="/citizen/dashboard" 
-          element={
-            <ProtectedCitizenRoute>
-              <CitizenDashboard />
-            </ProtectedCitizenRoute>
-          } 
-        />
-        <Route 
-          path="/citizen/emergency" 
-          element={
-            <ProtectedCitizenRoute>
-              <EmergencyServicesPage />
-            </ProtectedCitizenRoute>
-          } 
-        />
 
-        {/* Municipality Portal Sequence */}
+        {/* 1. CITIZEN PORTAL PERSISTENT LAYOUT SHELL */}
+        <Route 
+          element={
+            <ProtectedCitizenRoute>
+              <CitizenLayout />
+            </ProtectedCitizenRoute>
+          }
+        >
+          <Route path="/citizen/dashboard" element={<CitizenDashboard activeTab="dashboard" embedded />} />
+          <Route path="/citizen/smart-map" element={<CitizenDashboard activeTab="smart_map" embedded />} />
+          <Route path="/citizen/register-complaint" element={<CitizenDashboard activeTab="register_complaint" embedded />} />
+          <Route path="/citizen/track-complaint" element={<CitizenDashboard activeTab="track_complaint" embedded />} />
+          <Route path="/citizen/property-tax" element={<CitizenDashboard activeTab="property_tax" embedded />} />
+          <Route path="/citizen/water-tax" element={<CitizenDashboard activeTab="water_tax" embedded />} />
+          <Route path="/citizen/water-supply" element={<CitizenDashboard activeTab="water_supply" embedded />} />
+          <Route path="/citizen/electricity" element={<CitizenDashboard activeTab="electricity" embedded />} />
+          <Route path="/citizen/weather" element={<CitizenDashboard activeTab="weather" embedded />} />
+          <Route path="/citizen/emergency" element={<EmergencyServicesPage embedded />} />
+          <Route path="/citizen/announcements" element={<CitizenDashboard activeTab="announcements" embedded />} />
+          <Route path="/citizen/nearby-services" element={<CitizenDashboard activeTab="nearby_services" embedded />} />
+          <Route path="/citizen/ai-assistant" element={<CitizenDashboard activeTab="ai_assistant" embedded />} />
+          <Route path="/citizen/profile" element={<CitizenDashboard activeTab="profile" embedded />} />
+          <Route path="/citizen/settings" element={<CitizenDashboard activeTab="settings" embedded />} />
+        </Route>
+
+        {/* Municipality Authentication & Intro Sequence */}
         <Route path="/municipality/loading" element={<MunicipalityLoading />} />
         <Route path="/municipality/wow" element={<MunicipalityWowScreen />} />
         <Route 
@@ -104,14 +123,32 @@ export function AppContent() {
             </PublicOnlyOfficerRoute>
           } 
         />
+
+        {/* 2. MUNICIPALITY PORTAL PERSISTENT LAYOUT SHELL */}
         <Route 
-          path="/municipality/dashboard" 
           element={
             <ProtectedOfficerRoute>
-              <MunicipalityDashboard />
+              <MunicipalityLayout />
             </ProtectedOfficerRoute>
-          } 
-        />
+          }
+        >
+          <Route path="/municipality/dashboard" element={<MunicipalityDashboard defaultTab="dashboard" embedded />} />
+          <Route path="/municipality/overview" element={<MunicipalityDashboard defaultTab="overview" embedded />} />
+          <Route path="/municipality/complaints" element={<MunicipalityDashboard defaultTab="complaints" embedded />} />
+          <Route path="/municipality/gis" element={<MunicipalityDashboard defaultTab="gis" embedded />} />
+          <Route path="/municipality/wards" element={<MunicipalityDashboard defaultTab="ward_mgmt" embedded />} />
+          <Route path="/municipality/water" element={<MunicipalityDashboard defaultTab="water_supply" embedded />} />
+          <Route path="/municipality/waste" element={<MunicipalityDashboard defaultTab="waste_mgmt" embedded />} />
+          <Route path="/municipality/roads" element={<MunicipalityDashboard defaultTab="traffic_roads" embedded />} />
+          <Route path="/municipality/permissions" element={<PermissionsDashboardView />} />
+          <Route path="/municipality/revenue" element={<OfficerTaxManagementView />} />
+          <Route path="/municipality/notices" element={<AnnouncementManager />} />
+          <Route path="/municipality/emergency" element={<IncidentArchive />} />
+          <Route path="/municipality/reports" element={<MunicipalityDashboard defaultTab="reports_analytics" embedded />} />
+          <Route path="/municipality/ai-assistant" element={<MunicipalityDashboard defaultTab="ai_assistant" embedded />} />
+          <Route path="/municipality/settings" element={<MunicipalityDashboard defaultTab="settings" embedded />} />
+          <Route path="/municipality/higher-authority" element={<HigherAuthorityDashboard />} />
+        </Route>
 
         {/* 404 Fallback */}
         <Route path="*" element={<NotFoundPage />} />

@@ -1,18 +1,19 @@
 import React from 'react';
 import {
   LayoutDashboard,
-  Map,
-  PlusCircle,
+  BarChart3,
   ClipboardList,
-  Receipt,
+  Map,
+  Building2,
   Droplets,
-  Zap,
-  CloudSun,
+  Trash2,
+  TrafficCone,
+  FileCheck,
+  Coins,
+  Megaphone,
   ShieldAlert,
-  Bell,
-  Navigation,
+  LineChart,
   Bot,
-  User,
   Settings,
   LogOut,
   X
@@ -20,38 +21,39 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 
 /**
- * Official NIC Government Citizen Portal Sidebar Component
- * Positioned under top Navbar with independent vertical scrolling.
+ * Official Municipality Admin Sidebar Component
+ * Positioned under top AdminHeader with independent vertical scrolling.
  */
-export const CitizenSidebar = ({
+export const AdminSidebar = ({
   activeTab,
   activePath,
   onSelectTab,
-  onOpenEmergencyModal,
   onLogout,
   mobileOpen = false,
-  onCloseMobile
+  onCloseMobile,
+  complaintCount = 0,
+  escalatedCount = 0
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const currentPath = activePath || location.pathname;
 
   const menuItems = [
-    { id: 'dashboard', path: '/citizen/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'smart_map', path: '/citizen/smart-map', label: 'Smart City Map', icon: Map },
-    { id: 'register_complaint', path: '/citizen/register-complaint', label: 'Register Complaint', icon: PlusCircle },
-    { id: 'track_complaint', path: '/citizen/track-complaint', label: 'Track Complaint', icon: ClipboardList },
-    { id: 'property_tax', path: '/citizen/property-tax', label: 'Property Tax', icon: Receipt },
-    { id: 'water_tax', path: '/citizen/water-tax', label: 'Water Tax', icon: Droplets },
-    { id: 'water_supply', path: '/citizen/water-supply', label: 'Water Supply', icon: Droplets },
-    { id: 'electricity', path: '/citizen/electricity', label: 'Electricity', icon: Zap },
-    { id: 'weather', path: '/citizen/weather', label: 'Weather', icon: CloudSun },
-    { id: 'emergency', path: '/citizen/emergency', label: 'Emergency', icon: ShieldAlert, isEmergency: true },
-    { id: 'announcements', path: '/citizen/announcements', label: 'Announcements', icon: Bell },
-    { id: 'nearby_services', path: '/citizen/nearby-services', label: 'Nearby Services', icon: Navigation },
-    { id: 'ai_assistant', path: '/citizen/ai-assistant', label: 'AI Assistant', icon: Bot },
-    { id: 'profile', path: '/citizen/profile', label: 'Profile', icon: User },
-    { id: 'settings', path: '/citizen/settings', label: 'Settings', icon: Settings },
+    { id: 'dashboard', path: '/municipality/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'overview', path: '/municipality/overview', label: 'Municipal Overview', icon: BarChart3 },
+    { id: 'complaints', path: '/municipality/complaints', label: 'Complaints', icon: ClipboardList, badge: complaintCount > 0 ? complaintCount : null },
+    { id: 'gis', path: '/municipality/gis', label: 'Smart City GIS', icon: Map },
+    { id: 'ward_mgmt', path: '/municipality/wards', label: 'Ward Management', icon: Building2 },
+    { id: 'water_supply', path: '/municipality/water', label: 'Water Supply', icon: Droplets },
+    { id: 'waste_mgmt', path: '/municipality/waste', label: 'Waste Management', icon: Trash2 },
+    { id: 'traffic_roads', path: '/municipality/roads', label: 'Traffic & Roads', icon: TrafficCone },
+    { id: 'permissions', path: '/municipality/permissions', label: 'Building & Permissions', icon: FileCheck },
+    { id: 'revenue_taxes', path: '/municipality/revenue', label: 'Revenue & Taxes', icon: Coins },
+    { id: 'notices', path: '/municipality/notices', label: 'Notices', icon: Megaphone },
+    { id: 'emergency_alerts', path: '/municipality/emergency', label: 'Emergency & Alerts', icon: ShieldAlert, badge: escalatedCount > 0 ? `${escalatedCount} Escalated` : null },
+    { id: 'reports_analytics', path: '/municipality/reports', label: 'Reports & Analytics', icon: LineChart },
+    { id: 'ai_assistant', path: '/municipality/ai-assistant', label: 'AI Assistant', icon: Bot },
+    { id: 'settings', path: '/municipality/settings', label: 'Settings', icon: Settings },
   ];
 
   const handleNavClick = (item) => {
@@ -59,18 +61,10 @@ export const CitizenSidebar = ({
       window.dispatchEvent(new CustomEvent('OPEN_GLOBAL_AI_ASSISTANT'));
     }
 
-    if (item.isEmergency) {
-      if (onOpenEmergencyModal) {
-        onOpenEmergencyModal();
-      } else {
-        navigate('/citizen/emergency');
-      }
+    if (onSelectTab) {
+      onSelectTab(item.id, item.path);
     } else {
-      if (onSelectTab) {
-        onSelectTab(item.id, item.path);
-      } else {
-        navigate(item.path);
-      }
+      navigate(item.path);
     }
     if (onCloseMobile) onCloseMobile();
   };
@@ -94,7 +88,7 @@ export const CitizenSidebar = ({
         {/* Mobile Header in Drawer */}
         <div className="p-3 border-b border-slate-200 bg-[#0B2545] text-white flex items-center justify-between lg:hidden">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-black uppercase text-white">CITIZEN SERVICES</span>
+            <span className="text-xs font-black uppercase text-white">ADMINISTRATIVE MODULES</span>
           </div>
           <button
             onClick={onCloseMobile}
@@ -108,7 +102,7 @@ export const CitizenSidebar = ({
         <nav className="flex-1 py-3 px-3 space-y-1 overflow-y-auto custom-scrollbar">
           <div className="px-3 py-1 mb-1">
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
-              GOVERNMENT MODULES
+              ADMINISTRATIVE MODULES
             </span>
           </div>
 
@@ -116,36 +110,34 @@ export const CitizenSidebar = ({
             const Icon = item.icon;
             const isActive = currentPath === item.path || (activeTab && activeTab === item.id);
 
-            // Emergency item styling: ALWAYS RED
-            if (item.isEmergency) {
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavClick(item)}
-                  className="w-full flex items-center gap-3 px-3.5 py-2.5 my-1.5 rounded-xl bg-[#B71C1C] hover:bg-[#991B1B] text-white transition-all text-xs font-bold uppercase tracking-wider shadow-sm border border-red-800 cursor-pointer"
-                >
-                  <ShieldAlert className="w-4 h-4 text-white shrink-0 animate-pulse" />
-                  <span className="truncate">{item.label} (24x7)</span>
-                </button>
-              );
-            }
-
             return (
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-xs font-semibold text-left border-l-4 cursor-pointer ${
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all text-xs font-semibold text-left border-l-4 cursor-pointer ${
                   isActive
                     ? 'border-[#0B2545] bg-[#0B2545]/10 text-[#0B2545] font-bold'
                     : 'border-transparent text-slate-600 hover:bg-slate-50 hover:text-[#0B2545]'
                 }`}
               >
-                <Icon
-                  className={`w-4 h-4 shrink-0 transition-colors ${
-                    isActive ? 'text-[#0B2545]' : 'text-slate-500'
-                  }`}
-                />
-                <span className="truncate">{item.label}</span>
+                <div className="flex items-center gap-2.5 truncate">
+                  <Icon
+                    className={`w-4 h-4 shrink-0 transition-colors ${
+                      isActive ? 'text-[#0B2545]' : 'text-slate-500'
+                    }`}
+                  />
+                  <span className="truncate">{item.label}</span>
+                </div>
+
+                {item.badge && (
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold shrink-0 ${
+                    item.id === 'emergency_alerts' 
+                      ? 'bg-red-600 text-white animate-pulse'
+                      : 'bg-[#0B2545] text-white'
+                  }`}>
+                    {item.badge}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -159,7 +151,7 @@ export const CitizenSidebar = ({
           >
             <div className="flex items-center gap-2">
               <LogOut className="w-4 h-4 text-slate-500" />
-              <span>Logout Citizen</span>
+              <span>Logout Officer</span>
             </div>
             <span className="text-[10px] font-mono text-slate-400">NIC SECURE</span>
           </button>
@@ -169,4 +161,4 @@ export const CitizenSidebar = ({
   );
 };
 
-export default CitizenSidebar;
+export default AdminSidebar;

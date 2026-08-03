@@ -289,9 +289,9 @@ export const GlobalAIAssistant = () => {
   return (
     <>
       {!isOpen && (
-        <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end">
+        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999] flex flex-col items-end">
           <div className="group relative flex items-center">
-            <div className="absolute right-16 opacity-0 group-hover:opacity-100 transition-opacity bg-[#0B1F3A] text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-lg whitespace-nowrap border border-[#FF9933] pointer-events-none">
+            <div className="hidden sm:block absolute right-16 opacity-0 group-hover:opacity-100 transition-opacity bg-[#0B1F3A] text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-lg whitespace-nowrap border border-[#FF9933] pointer-events-none">
               🤖 AI Smart Assistant
             </div>
             <div className="absolute inset-0 rounded-full bg-[#FF9933] opacity-40 animate-ping"></div>
@@ -301,10 +301,10 @@ export const GlobalAIAssistant = () => {
                 setIsOpen(true);
                 setIsMinimized(false);
               }}
-              className="relative w-14 h-14 rounded-full bg-[#0B1F3A] text-white flex items-center justify-center shadow-2xl hover:scale-110 transition-transform duration-300 border-2 border-[#FF9933]"
+              className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#0B1F3A] text-white flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-transform duration-300 border-2 border-[#FF9933] cursor-pointer"
               title="Kopargaon AI Smart Assistant"
             >
-              <Bot className="w-7 h-7 text-[#FF9933]" />
+              <Bot className="w-6 h-6 sm:w-7 sm:h-7 text-[#FF9933]" />
             </button>
           </div>
         </div>
@@ -313,17 +313,17 @@ export const GlobalAIAssistant = () => {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ x: '100%', opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: '100%', opacity: 0 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-            className={`fixed bottom-0 right-0 z-[10000] bg-white border-l border-[#0B1F3A]/20 shadow-2xl flex flex-col transition-all duration-300 ${
+            initial={{ y: 30, opacity: 0, scale: 0.95 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 30, opacity: 0, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 260 }}
+            className={`fixed bottom-4 right-4 sm:bottom-5 sm:right-5 z-[10000] bg-white border border-[#0B2545]/20 shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ${
               isMinimized
-                ? 'h-14 w-full sm:w-[380px] md:w-[420px] rounded-t-2xl'
-                : 'h-full sm:h-[620px] sm:bottom-4 sm:right-4 w-full sm:w-[380px] md:w-[420px] sm:rounded-3xl border'
+                ? 'w-[calc(100vw-32px)] sm:w-[380px] max-w-[380px] h-13 rounded-2xl'
+                : 'w-[calc(100vw-32px)] sm:w-[380px] max-w-[380px] h-[520px] max-h-[calc(100vh-80px)] rounded-2xl'
             }`}
           >
-            <div className="bg-[#0B1F3A] text-white p-3.5 sm:rounded-t-3xl border-b-2 border-[#FF9933] flex items-center justify-between shrink-0 shadow-md">
+            <div className="bg-[#0B2545] text-white p-3 border-b-2 border-[#FF9933] flex items-center justify-between shrink-0 shadow-sm">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center p-1 relative">
                   <Bot className="w-5 h-5 text-[#FF9933]" />

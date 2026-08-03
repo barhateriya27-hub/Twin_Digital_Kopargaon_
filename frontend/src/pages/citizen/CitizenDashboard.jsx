@@ -64,7 +64,7 @@ import { WelcomeWidget } from '../../components/dashboard/WelcomeWidget';
 import { getKopargaonPOIs } from '../../services/poiService';
 import { getUserLocation } from '../../services/mapService';
 
-export const CitizenDashboard = () => {
+export const CitizenDashboard = ({ activeTab: initialActiveTab = 'dashboard', embedded = true }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { 
@@ -78,11 +78,18 @@ export const CitizenDashboard = () => {
     showToast 
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(initialActiveTab);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [publicReportTarget, setPublicReportTarget] = useState(null);
   const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Synchronize initialActiveTab when changed via props/route
+  useEffect(() => {
+    if (initialActiveTab) {
+      setActiveTab(initialActiveTab);
+    }
+  }, [initialActiveTab]);
 
   // Spatial location state
   const [userLocation, setUserLocation] = useState(null);
@@ -166,50 +173,10 @@ export const CitizenDashboard = () => {
     navigate('/');
   };
 
-  return (
-    <div className="min-h-screen bg-[#F8FAFC] flex text-slate-800 font-sans selection:bg-[#0B2545] selection:text-white">
-      
-      {/* 1. OFFICIAL LEFT SIDEBAR */}
-      <CitizenSidebar
-        activeTab={activeTab}
-        onSelectTab={(tab) => {
-          setActiveTab(tab);
-          setIsMobileMenuOpen(false);
-        }}
-        onOpenEmergencyModal={() => setActiveTab('emergency')}
-        onLogout={handleLogout}
-        mobileOpen={isMobileMenuOpen}
-        onCloseMobile={() => setIsMobileMenuOpen(false)}
-      />
+  const mainContent = (
+    <div className="space-y-6 flex-1 max-w-7xl w-full mx-auto">
 
-      {/* 2. RIGHT MAIN CONTENT AREA & STICKY HEADER */}
-      <div className="flex-1 min-w-0 flex flex-col justify-between overflow-y-auto min-h-screen">
-        
-        {/* STICKY OFFICIAL GOVERNMENT HEADER */}
-        <GovHeader
-          citizenUser={citizenUser}
-          unreadCount={unreadCount}
-          onOpenNotifications={() => setIsNotifDrawerOpen(true)}
-          onOpenProfile={() => setActiveTab('profile')}
-          onLogout={handleLogout}
-          onToggleMobileMenu={() => setIsMobileMenuOpen(true)}
-        />
-
-        {/* Emergency Advisory Banner if present */}
-        {emergencyNotice && (
-          <div className="bg-[#B71C1C] text-white px-4 py-2 text-xs font-semibold flex items-center justify-between shadow-md shrink-0 border-b border-red-900">
-            <div className="flex items-center gap-2 max-w-7xl mx-auto">
-              <ShieldAlert className="w-4 h-4 text-[#FF9933] shrink-0 animate-pulse" />
-              <span className="font-extrabold uppercase tracking-wider text-[#FF9933]">DISASTER ADVISORY:</span>
-              <span>{emergencyNotice.title} - {emergencyNotice.description}</span>
-            </div>
-          </div>
-        )}
-
-        {/* MAIN BODY WORKSPACE */}
-        <main className="p-4 sm:p-6 lg:p-8 space-y-6 flex-1 max-w-7xl w-full mx-auto">
-
-          {/* TAB 1: MAIN DASHBOARD OVERVIEW */}
+      {/* TAB 1: MAIN DASHBOARD OVERVIEW */}
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
               
@@ -688,10 +655,41 @@ export const CitizenDashboard = () => {
               </form>
             </div>
           )}
+    </div>
+  );
 
+  if (embedded) {
+    return mainContent;
+  }
+
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] flex text-slate-800 font-sans selection:bg-[#0B2545] selection:text-white">
+      <CitizenSidebar
+        activeTab={activeTab}
+        onSelectTab={(tab) => {
+          setActiveTab(tab);
+          setIsMobileMenuOpen(false);
+        }}
+        onOpenEmergencyModal={() => setActiveTab('emergency')}
+        onLogout={handleLogout}
+        mobileOpen={isMobileMenuOpen}
+        onCloseMobile={() => setIsMobileMenuOpen(false)}
+      />
+
+      <div className="flex-1 min-w-0 flex flex-col justify-between overflow-y-auto min-h-screen">
+        <GovHeader
+          citizenUser={citizenUser}
+          unreadCount={unreadCount}
+          onOpenNotifications={() => setIsNotifDrawerOpen(true)}
+          onOpenProfile={() => setActiveTab('profile')}
+          onLogout={handleLogout}
+          onToggleMobileMenu={() => setIsMobileMenuOpen(true)}
+        />
+
+        <main className="p-4 sm:p-6 lg:p-8 flex-1 max-w-7xl w-full mx-auto">
+          {mainContent}
         </main>
 
-        {/* MODALS & NOTIFICATION DRAWER */}
         <NotificationDrawer
           isOpen={isNotifDrawerOpen}
           onClose={() => setIsNotifDrawerOpen(false)}
@@ -706,7 +704,6 @@ export const CitizenDashboard = () => {
           />
         )}
 
-        {/* OFFICIAL GOVERNMENT FOOTER */}
         <footer className="py-4 px-6 text-center text-xs text-slate-600 border-t border-slate-200 bg-white shrink-0">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -718,9 +715,7 @@ export const CitizenDashboard = () => {
             </div>
           </div>
         </footer>
-
       </div>
-
     </div>
   );
 };
