@@ -42,7 +42,8 @@ import {
   ShieldCheck,
   Calendar,
   X,
-  Plus
+  Plus,
+  BrainCircuit
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
@@ -60,6 +61,7 @@ import { IncidentArchive } from '../../components/IncidentArchive';
 import { HigherAuthorityDashboard } from './HigherAuthorityDashboard';
 import { PermissionsDashboardView } from '../../components/permissions/PermissionsDashboardView';
 import { OfficerTaxManagementView } from '../../components/tax/OfficerTaxManagementView';
+import { DigitalTwinCommandCenter } from '../../components/digitaltwin/DigitalTwinCommandCenter';
 
 export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = true }) => {
   const navigate = useNavigate();
@@ -200,6 +202,7 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
   // Current page title mapping
   const pageTitles = {
     dashboard: 'Executive Administration Dashboard',
+    digital_twin: 'Digital Twin Intelligence Command Center',
     overview: 'Municipal Overview & Telemetry',
     complaints: 'Complaints Directory & SLA Lifecycle',
     gis: 'Smart City Spatial GIS Engine',
@@ -219,6 +222,23 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
 
   const mainContent = (
     <div className="space-y-6 max-w-7xl mx-auto w-full">
+
+      {/* ============================================================ */}
+      {/* DIGITAL TWIN COMMAND CENTER */}
+      {/* ============================================================ */}
+      {activeTab === 'digital_twin' && (
+        <DigitalTwinCommandCenter
+          complaints={complaints}
+          notifications={notifications}
+          announcements={announcements}
+          auditLogs={auditLogs}
+          onTabChange={setActiveTab}
+          onSelectComplaint={(complaint) => {
+            setSelectedComplaint(complaint);
+            setActiveTab('complaints');
+          }}
+        />
+      )}
 
       {/* ============================================================ */}
       {/* TAB 1: DASHBOARD HOME (ANSWERING: WHAT IS HAPPENING RIGHT NOW) */}
@@ -268,76 +288,76 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 
                 {/* Metric 1: Open Complaints */}
-                <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs flex flex-col justify-between space-y-3">
-                  <div className="flex items-center justify-between text-slate-500">
-                    <span className="text-xs font-extrabold uppercase tracking-wider text-slate-600">Open Complaints</span>
-                    <div className="p-2 rounded-xl bg-sky-50 text-[#0B2545]">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col justify-between space-y-3">
+                  <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300">Open Complaints</span>
+                    <div className="p-2 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-[#0B2545] dark:text-sky-300">
                       <FileText className="w-5 h-5" />
                     </div>
                   </div>
                   <div>
-                    <span className="text-3xl font-black text-[#0B2545]">{pendingCount + inProgressCount}</span>
-                    <span className="text-xs text-slate-500 font-medium block mt-0.5">Active field tickets requiring attention</span>
+                    <span className="text-3xl font-black text-[#0B2545] dark:text-white">{pendingCount + inProgressCount}</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block mt-0.5">Active field tickets requiring attention</span>
                   </div>
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-mono">
-                    <span>Updated 2 mins ago</span>
-                    <span className="text-[#0B2545] font-bold">{totalComplaints} Total</span>
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                    <span>Updated just now</span>
+                    <span className="text-[#0B2545] dark:text-sky-300 font-bold">{totalComplaints} Total</span>
                   </div>
                 </div>
 
                 {/* Metric 2: Pending Complaints */}
-                <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs flex flex-col justify-between space-y-3">
-                  <div className="flex items-center justify-between text-slate-500">
-                    <span className="text-xs font-extrabold uppercase tracking-wider text-slate-600">Pending Inspection</span>
-                    <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col justify-between space-y-3">
+                  <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300">Pending Inspection</span>
+                    <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400">
                       <Clock className="w-5 h-5" />
                     </div>
                   </div>
                   <div>
-                    <span className="text-3xl font-black text-amber-600">{pendingCount}</span>
-                    <span className="text-xs text-slate-500 font-medium block mt-0.5">Awaiting officer dispatch</span>
+                    <span className="text-3xl font-black text-amber-600 dark:text-amber-400">{pendingCount}</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block mt-0.5">Awaiting officer dispatch</span>
                   </div>
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-mono">
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                     <span>Target: &lt;24h Dispatch</span>
-                    <span className="text-amber-600 font-bold">{pendingCount > 0 ? 'Action Needed' : 'Clear'}</span>
+                    <span className="text-amber-600 dark:text-amber-400 font-bold">{pendingCount > 0 ? 'Action Needed' : 'Clear'}</span>
                   </div>
                 </div>
 
                 {/* Metric 3: Resolved Today / Total */}
-                <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs flex flex-col justify-between space-y-3">
-                  <div className="flex items-center justify-between text-slate-500">
-                    <span className="text-xs font-extrabold uppercase tracking-wider text-slate-600">Resolved Tickets</span>
-                    <div className="p-2 rounded-xl bg-emerald-50 text-[#138808]">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col justify-between space-y-3">
+                  <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300">Resolved Tickets</span>
+                    <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-[#138808] dark:text-emerald-400">
                       <CheckCircle2 className="w-5 h-5" />
                     </div>
                   </div>
                   <div>
-                    <span className="text-3xl font-black text-[#138808]">{resolvedCount}</span>
-                    <span className="text-xs text-slate-500 font-medium block mt-0.5">Work completion verified</span>
+                    <span className="text-3xl font-black text-[#138808] dark:text-emerald-400">{resolvedCount}</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block mt-0.5">Work completion verified</span>
                   </div>
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-mono">
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                     <span>Resolution Rate</span>
-                    <span className="text-[#138808] font-bold">
+                    <span className="text-[#138808] dark:text-emerald-400 font-bold">
                       {totalComplaints > 0 ? `${Math.round((resolvedCount / totalComplaints) * 100)}%` : '100%'}
                     </span>
                   </div>
                 </div>
 
                 {/* Metric 4: Active Alerts & Escalations */}
-                <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs flex flex-col justify-between space-y-3">
-                  <div className="flex items-center justify-between text-slate-500">
-                    <span className="text-xs font-extrabold uppercase tracking-wider text-slate-600">Active Alerts</span>
-                    <div className="p-2 rounded-xl bg-red-50 text-red-600">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-xs flex flex-col justify-between space-y-3">
+                  <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300">Active Alerts</span>
+                    <div className="p-2 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400">
                       <ShieldAlert className="w-5 h-5" />
                     </div>
                   </div>
                   <div>
-                    <span className="text-3xl font-black text-red-600">{escalatedCount || announcements.length}</span>
-                    <span className="text-xs text-slate-500 font-medium block mt-0.5">Disaster bulletins & SLA risks</span>
+                    <span className="text-3xl font-black text-red-600 dark:text-red-400">{escalatedCount || announcements.length}</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block mt-0.5">Disaster bulletins & SLA risks</span>
                   </div>
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-mono">
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                     <span>Higher Escalations</span>
-                    <span className="text-red-600 font-bold">{escalatedCount} Critical</span>
+                    <span className="text-red-600 dark:text-red-400 font-bold">{escalatedCount} Critical</span>
                   </div>
                 </div>
 
@@ -347,17 +367,17 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 
                 {/* PRIORITY ISSUES (7 COLS) */}
-                <div className="lg:col-span-7 bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="lg:col-span-7 bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
                     <div className="flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></div>
-                      <h3 className="text-sm font-black uppercase tracking-wider text-[#0B2545]">
+                      <h3 className="text-sm font-black uppercase tracking-wider text-[#0B2545] dark:text-white">
                         Priority Issues Requiring Action
                       </h3>
                     </div>
                     <button
                       onClick={() => setActiveTab('complaints')}
-                      className="text-xs font-bold text-[#0B2545] hover:underline flex items-center gap-1"
+                      className="text-xs font-bold text-[#0B2545] dark:text-sky-300 hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       View All <ChevronRight className="w-3.5 h-3.5" />
                     </button>
@@ -372,26 +392,26 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
                       priorityIssues.map((issue) => (
                         <div
                           key={issue.id}
-                          className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                          className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                         >
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
-                                issue.isEscalated ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-amber-100 text-amber-800'
+                                issue.isEscalated ? 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300 border border-red-200 dark:border-red-800' : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
                               }`}>
                                 {issue.isEscalated ? '🔴 Critical SLA Risk' : '🟠 High Priority'}
                               </span>
-                              <span className="font-mono text-xs font-bold text-[#0B2545]">{issue.id}</span>
-                              <span className="text-xs text-slate-500 font-semibold">• Ward {issue.ward}</span>
+                              <span className="font-mono text-xs font-bold text-[#0B2545] dark:text-sky-300">{issue.id}</span>
+                              <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">• Ward {issue.ward}</span>
                             </div>
-                            <h4 className="font-bold text-xs text-slate-900">{issue.title}</h4>
-                            <p className="text-[11px] text-slate-500">{issue.locationName || `Ward ${issue.ward}, Kopargaon`}</p>
+                            <h4 className="font-bold text-xs text-slate-900 dark:text-white">{issue.title}</h4>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">{issue.locationName || `Ward ${issue.ward}, Kopargaon`}</p>
                           </div>
 
                           <div className="flex items-center gap-2 shrink-0">
                             <button
                               onClick={() => setSelectedComplaint(issue)}
-                              className="px-3 py-1.5 bg-[#0B2545] text-white rounded-lg text-xs font-bold hover:bg-[#07192E] transition-colors"
+                              className="px-3 py-1.5 bg-[#0B2545] dark:bg-sky-600 text-white rounded-lg text-xs font-bold hover:bg-[#07192E] dark:hover:bg-sky-500 transition-colors cursor-pointer"
                             >
                               Inspect Ticket
                             </button>
@@ -402,73 +422,50 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
                   </div>
                 </div>
 
-                {/* LIVE CITY STATUS (5 COLS) */}
-                <div className="lg:col-span-5 bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <h3 className="text-sm font-black uppercase tracking-wider text-[#0B2545] flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-[#138808]" />
-                      Live City Operations Feed
+                {/* LIVE CITY STATUS (5 COLS) — derived from real complaints */}
+                <div className="lg:col-span-5 bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+                    <h3 className="text-sm font-black uppercase tracking-wider text-[#0B2545] dark:text-white flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-[#138808] dark:text-emerald-400" />
+                      City Services Status
                     </h3>
-                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[10px] font-extrabold uppercase">
-                      ● LIVE FEED
+                    <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 rounded-full text-[10px] font-extrabold uppercase border border-emerald-300 dark:border-emerald-800">
+                      REAL DATA
                     </span>
                   </div>
 
                   <div className="space-y-3 text-xs font-semibold">
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <Droplets className="w-4 h-4 text-sky-600" />
-                        <div>
-                          <span className="block text-slate-900">Water Supply Grid</span>
-                          <span className="text-[10px] text-slate-500 font-mono">Godavari Headworks Intake: 98.4%</span>
-                        </div>
-                      </div>
-                      <span className="px-2 py-0.5 bg-emerald-500 text-white rounded text-[10px] font-extrabold uppercase">Operational</span>
-                    </div>
+                    {(() => {
+                      const waterOpen = complaints.filter(c => (c.category?.includes('Water')) && c.status !== 'Completed' && c.status !== 'Resolved').length;
+                      const garbageOpen = complaints.filter(c => (c.category?.includes('Garbage') || c.category?.includes('Sanitation')) && c.status !== 'Completed' && c.status !== 'Resolved').length;
+                      const electricOpen = complaints.filter(c => (c.category?.includes('Light') || c.category?.includes('Electric')) && c.status !== 'Completed' && c.status !== 'Resolved').length;
+                      const trafficOpen = complaints.filter(c => (c.category?.includes('Traffic') || c.category?.includes('Road') || c.category?.includes('Pothole')) && c.status !== 'Completed' && c.status !== 'Resolved').length;
 
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <Trash2 className="w-4 h-4 text-emerald-600" />
-                        <div>
-                          <span className="block text-slate-900">Waste Collection Fleet</span>
-                          <span className="text-[10px] text-slate-500 font-mono">28 Wards Covered (92%)</span>
-                        </div>
-                      </div>
-                      <span className="px-2 py-0.5 bg-emerald-500 text-white rounded text-[10px] font-extrabold uppercase">Operational</span>
-                    </div>
+                      const services = [
+                        { label: 'Water Supply Grid', icon: Droplets, iconColor: 'text-sky-600 dark:text-sky-400', open: waterOpen, detail: waterOpen === 0 ? 'No active complaints' : `${waterOpen} open complaint${waterOpen > 1 ? 's' : ''}` },
+                        { label: 'Sanitation & Waste Fleet', icon: Trash2, iconColor: 'text-emerald-600 dark:text-emerald-400', open: garbageOpen, detail: garbageOpen === 0 ? 'No active complaints' : `${garbageOpen} open complaint${garbageOpen > 1 ? 's' : ''}` },
+                        { label: 'Electricity & Street Lights', icon: Zap, iconColor: 'text-amber-500 dark:text-amber-400', open: electricOpen, detail: electricOpen === 0 ? 'No active complaints' : `${electricOpen} open complaint${electricOpen > 1 ? 's' : ''}` },
+                        { label: 'Traffic & Road Infrastructure', icon: TrafficCone, iconColor: 'text-blue-600 dark:text-blue-400', open: trafficOpen, detail: trafficOpen === 0 ? 'No active complaints' : `${trafficOpen} open complaint${trafficOpen > 1 ? 's' : ''}` },
+                        { label: 'All Other Services', icon: CloudSun, iconColor: 'text-slate-500 dark:text-slate-400', open: Math.max(0, (pendingCount + inProgressCount) - waterOpen - garbageOpen - electricOpen - trafficOpen), detail: `${totalComplaints} total registered` },
+                      ];
 
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <Zap className="w-4 h-4 text-amber-500" />
-                        <div>
-                          <span className="block text-slate-900">Electricity Substation Grid</span>
-                          <span className="text-[10px] text-slate-500 font-mono">MSEDCL Feeder Uninterrupted</span>
-                        </div>
-                      </div>
-                      <span className="px-2 py-0.5 bg-emerald-500 text-white rounded text-[10px] font-extrabold uppercase">Operational</span>
-                    </div>
-
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <TrafficCone className="w-4 h-4 text-blue-600" />
-                        <div>
-                          <span className="block text-slate-900">Traffic & Key Junctions</span>
-                          <span className="text-[10px] text-slate-500 font-mono">Station Rd & Highway clear</span>
-                        </div>
-                      </div>
-                      <span className="px-2 py-0.5 bg-emerald-500 text-white rounded text-[10px] font-extrabold uppercase">Operational</span>
-                    </div>
-
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <CloudSun className="w-4 h-4 text-amber-600" />
-                        <div>
-                          <span className="block text-slate-900">Kopargaon Weather & Air Quality</span>
-                          <span className="text-[10px] text-slate-500 font-mono">29°C Clear • AQI 52 (Good)</span>
-                        </div>
-                      </div>
-                      <span className="px-2 py-0.5 bg-sky-600 text-white rounded text-[10px] font-extrabold uppercase">29°C LIVE</span>
-                    </div>
+                      return services.map((svc, idx) => {
+                        const Icon = svc.icon;
+                        const status = svc.open === 0 ? { label: 'Clear', cls: 'bg-emerald-500 text-white' } : svc.open >= 3 ? { label: `${svc.open} Issues`, cls: 'bg-red-500 text-white animate-pulse' } : { label: `${svc.open} Issue${svc.open > 1 ? 's' : ''}`, cls: 'bg-amber-500 text-white' };
+                        return (
+                          <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600 flex items-center justify-between">
+                            <div className="flex items-center gap-2.5">
+                              <Icon className={`w-4 h-4 ${svc.iconColor}`} />
+                              <div>
+                                <span className="block text-slate-900 dark:text-white">{svc.label}</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">{svc.detail}</span>
+                              </div>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${status.cls}`}>{status.label}</span>
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
                 </div>
 
@@ -478,14 +475,14 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 
                 {/* RECENT COMPLAINTS (7 COLS) */}
-                <div className="lg:col-span-7 bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <h3 className="text-sm font-black uppercase tracking-wider text-[#0B2545]">
+                <div className="lg:col-span-7 bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+                    <h3 className="text-sm font-black uppercase tracking-wider text-[#0B2545] dark:text-white">
                       Recent Citizen Complaints Lifecycles
                     </h3>
                     <button
                       onClick={() => setActiveTab('complaints')}
-                      className="px-3 py-1 bg-[#0B2545] text-white rounded-lg text-xs font-bold hover:bg-[#07192E]"
+                      className="px-3 py-1 bg-[#0B2545] dark:bg-sky-600 text-white rounded-lg text-xs font-bold hover:bg-[#07192E] dark:hover:bg-sky-500 cursor-pointer"
                     >
                       Complaints Directory
                     </button>
@@ -495,31 +492,31 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
                     {complaints.slice(0, 4).map((c) => (
                       <div
                         key={c.id}
-                        className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                        className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                       >
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="font-mono text-xs font-bold text-[#0B2545]">{c.id}</span>
-                            <span className="text-xs font-bold text-slate-700">{c.category}</span>
-                            <span className="text-xs text-slate-500">• Ward {c.ward}</span>
+                            <span className="font-mono text-xs font-bold text-[#0B2545] dark:text-sky-300">{c.id}</span>
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{c.category}</span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">• Ward {c.ward}</span>
                           </div>
-                          <h4 className="font-bold text-xs text-slate-800">{c.title}</h4>
-                          <p className="text-[11px] text-slate-500 mt-0.5">Assigned Officer: {c.assignedOfficer || 'Ward Field Engineer'}</p>
+                          <h4 className="font-bold text-xs text-slate-800 dark:text-white">{c.title}</h4>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Assigned Officer: {c.assignedOfficer || 'Ward Field Engineer'}</p>
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
                           <span className={`px-2 py-1 rounded text-[10px] font-extrabold uppercase ${
                             c.status === 'Completed' || c.status === 'Resolved' 
-                              ? 'bg-emerald-100 text-emerald-800' 
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' 
                               : c.status === 'In Progress' 
-                              ? 'bg-blue-100 text-blue-800' 
-                              : 'bg-amber-100 text-amber-800'
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300' 
+                              : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
                           }`}>
                             {c.status}
                           </span>
                           <button
                             onClick={() => setSelectedComplaint(c)}
-                            className="p-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-100 text-[#0B2545]"
+                            className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-[#0B2545] dark:text-white cursor-pointer"
                             title="Inspect Details"
                           >
                             <Eye className="w-4 h-4" />
@@ -531,18 +528,18 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
                 </div>
 
                 {/* SMALL GIS PREVIEW CARD (5 COLS) */}
-                <div className="lg:col-span-5 bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="lg:col-span-5 bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
                     <div>
-                      <h3 className="text-sm font-black uppercase tracking-wider text-[#0B2545]">
+                      <h3 className="text-sm font-black uppercase tracking-wider text-[#0B2545] dark:text-white">
                         Kopargaon Smart City GIS
                       </h3>
-                      <p className="text-[11px] text-slate-500">Spatial telemetry & Ward complaint clusters</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">Spatial telemetry & Ward complaint clusters</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setActiveTab('gis')}
-                        className="px-3 py-1.5 bg-[#0B2545] text-white rounded-lg text-xs font-bold hover:bg-[#07192E] flex items-center gap-1 shadow-xs"
+                        className="px-3 py-1.5 bg-[#0B2545] dark:bg-sky-600 text-white rounded-lg text-xs font-bold hover:bg-[#07192E] dark:hover:bg-sky-500 flex items-center gap-1 shadow-xs cursor-pointer"
                       >
                         <Map className="w-3.5 h-3.5 text-[#FF9933]" />
                         Open Full GIS
@@ -550,8 +547,7 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
                     </div>
                   </div>
 
-                  {/* Compact Map Canvas Preview */}
-                  <div className="relative h-64 w-full rounded-xl overflow-hidden border border-slate-200 shadow-inner">
+                  <div className="relative h-64 w-full rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-inner">
                     <MapLibreGisCommandCenter
                       complaints={complaints}
                       onSelectComplaint={(inc) => {
@@ -562,10 +558,10 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
                   </div>
 
                   <div className="flex items-center justify-between text-xs pt-1">
-                    <span className="text-slate-500 font-mono text-[11px]">28 Wards • Spatial Layer Active</span>
+                    <span className="text-slate-500 dark:text-slate-400 font-mono text-[11px]">28 Wards • Spatial Layer Active</span>
                     <button
                       onClick={() => setActiveTab('complaints')}
-                      className="text-[#0B2545] font-bold hover:underline"
+                      className="text-[#0B2545] dark:text-sky-300 font-bold hover:underline cursor-pointer"
                     >
                       View Complaints on GIS →
                     </button>
@@ -578,15 +574,15 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 
                 {/* MUNICIPAL NOTICES (6 COLS) */}
-                <div className="lg:col-span-6 bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                    <h3 className="text-sm font-black uppercase tracking-wider text-[#0B2545] flex items-center gap-2">
+                <div className="lg:col-span-6 bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+                    <h3 className="text-sm font-black uppercase tracking-wider text-[#0B2545] dark:text-white flex items-center gap-2">
                       <Megaphone className="w-4 h-4 text-amber-500" />
                       Important Municipal Notices
                     </h3>
                     <button
                       onClick={() => setActiveTab('notices')}
-                      className="text-xs font-bold text-[#0B2545] hover:underline"
+                      className="text-xs font-bold text-[#0B2545] dark:text-sky-300 hover:underline cursor-pointer"
                     >
                       Manage Notices
                     </button>
@@ -599,15 +595,15 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
                       </div>
                     ) : (
                       announcements.slice(0, 3).map((notice) => (
-                        <div key={notice.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                        <div key={notice.id} className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600 space-y-1">
                           <div className="flex items-center justify-between">
-                            <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-[9px] font-extrabold uppercase">
+                            <span className="px-2 py-0.5 bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 rounded text-[9px] font-extrabold uppercase">
                               {notice.priority || 'Official Notice'}
                             </span>
                             <span className="text-[10px] text-slate-400 font-mono">{notice.date || 'Today'}</span>
                           </div>
-                          <h4 className="font-bold text-xs text-slate-900">{notice.title}</h4>
-                          <p className="text-[11px] text-slate-600 line-clamp-2">{notice.description}</p>
+                          <h4 className="font-bold text-xs text-slate-900 dark:text-white">{notice.title}</h4>
+                          <p className="text-[11px] text-slate-600 dark:text-slate-300 line-clamp-2">{notice.description}</p>
                         </div>
                       ))
                     )}
@@ -632,14 +628,14 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
                     <div className="p-3 bg-white/10 rounded-xl border border-white/10 space-y-1">
                       <span className="text-[#FF9933] font-bold block text-[11px] uppercase">🚨 SLA Risk Warning</span>
                       <p className="text-slate-200">
-                        12 complaints related to water supply were reported in Ward 6 within the last 24 hours. Recommend inspecting main Godavari feeder line.
+                        Active grievances in Ward 4 & Ward 6 require immediate officer assignment to avoid 72-hour SLA breach.
                       </p>
                     </div>
 
                     <div className="p-3 bg-white/10 rounded-xl border border-white/10 space-y-1">
                       <span className="text-emerald-400 font-bold block text-[11px] uppercase">📊 Resolution Efficiency</span>
                       <p className="text-slate-200">
-                        Sanitation team resolved {resolvedCount} tickets today. Overall ward resolution compliance is currently operating at {totalComplaints > 0 ? Math.round((resolvedCount / totalComplaints) * 100) : 100}%.
+                        Sanitation team resolved {resolvedCount} tickets today. Overall ward resolution compliance is operating at {totalComplaints > 0 ? Math.round((resolvedCount / totalComplaints) * 100) : 100}%.
                       </p>
                     </div>
                   </div>
@@ -658,77 +654,77 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
               </div>
 
               {/* QUICK ADMINISTRATIVE ACTIONS */}
-              <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
-                <h3 className="text-sm font-black uppercase tracking-wider text-[#0B2545]">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-xs space-y-4">
+                <h3 className="text-sm font-black uppercase tracking-wider text-[#0B2545] dark:text-white">
                   Quick Administrative Actions
                 </h3>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                   <button
                     onClick={() => setActiveTab('notices')}
-                    className="p-3 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 text-center transition-all cursor-pointer space-y-1.5"
+                    className="p-3 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-600 text-center transition-all cursor-pointer space-y-1.5"
                   >
-                    <PlusCircle className="w-5 h-5 mx-auto text-[#0B2545]" />
-                    <span className="block text-xs font-bold text-slate-800">Create Notice</span>
+                    <PlusCircle className="w-5 h-5 mx-auto text-[#0B2545] dark:text-sky-300" />
+                    <span className="block text-xs font-bold text-slate-800 dark:text-white">Create Notice</span>
                   </button>
 
                   <button
                     onClick={() => setActiveTab('complaints')}
-                    className="p-3 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 text-center transition-all cursor-pointer space-y-1.5"
+                    className="p-3 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-600 text-center transition-all cursor-pointer space-y-1.5"
                   >
-                    <ClipboardList className="w-5 h-5 mx-auto text-[#0B2545]" />
-                    <span className="block text-xs font-bold text-slate-800">Review Complaints</span>
+                    <ClipboardList className="w-5 h-5 mx-auto text-[#0B2545] dark:text-sky-300" />
+                    <span className="block text-xs font-bold text-slate-800 dark:text-white">Review Complaints</span>
                   </button>
 
                   <button
                     onClick={() => setActiveTab('gis')}
-                    className="p-3 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 text-center transition-all cursor-pointer space-y-1.5"
+                    className="p-3 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-600 text-center transition-all cursor-pointer space-y-1.5"
                   >
-                    <Map className="w-5 h-5 mx-auto text-[#0B2545]" />
-                    <span className="block text-xs font-bold text-slate-800">Open GIS</span>
+                    <Map className="w-5 h-5 mx-auto text-[#0B2545] dark:text-sky-300" />
+                    <span className="block text-xs font-bold text-slate-800 dark:text-white">Open GIS</span>
                   </button>
 
                   <button
                     onClick={() => setActiveTab('reports_analytics')}
-                    className="p-3 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 text-center transition-all cursor-pointer space-y-1.5"
+                    className="p-3 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-600 text-center transition-all cursor-pointer space-y-1.5"
                   >
-                    <LineChart className="w-5 h-5 mx-auto text-[#0B2545]" />
-                    <span className="block text-xs font-bold text-slate-800">Generate Report</span>
+                    <LineChart className="w-5 h-5 mx-auto text-[#0B2545] dark:text-sky-300" />
+                    <span className="block text-xs font-bold text-slate-800 dark:text-white">Generate Report</span>
                   </button>
 
                   <button
                     onClick={() => setActiveTab('emergency_alerts')}
-                    className="p-3 bg-red-50 hover:bg-red-100 rounded-xl border border-red-200 text-center transition-all cursor-pointer space-y-1.5"
+                    className="p-3 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-xl border border-red-200 dark:border-red-800 text-center transition-all cursor-pointer space-y-1.5"
                   >
-                    <ShieldAlert className="w-5 h-5 mx-auto text-red-600" />
-                    <span className="block text-xs font-bold text-red-700">Emergency Alert</span>
+                    <ShieldAlert className="w-5 h-5 mx-auto text-red-600 dark:text-red-400" />
+                    <span className="block text-xs font-bold text-red-700 dark:text-red-300">Emergency Alert</span>
                   </button>
 
                   <button
                     onClick={() => setActiveTab('ward_mgmt')}
-                    className="p-3 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 text-center transition-all cursor-pointer space-y-1.5"
+                    className="p-3 bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-600 text-center transition-all cursor-pointer space-y-1.5"
                   >
-                    <Building2 className="w-5 h-5 mx-auto text-[#0B2545]" />
-                    <span className="block text-xs font-bold text-slate-800">Ward Management</span>
+                    <Building2 className="w-5 h-5 mx-auto text-[#0B2545] dark:text-sky-300" />
+                    <span className="block text-xs font-bold text-slate-800 dark:text-white">Ward Management</span>
                   </button>
                 </div>
               </div>
 
               {/* RECENT ACTIVITY TIMELINE */}
-              <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
-                <h3 className="text-sm font-black uppercase tracking-wider text-[#0B2545]">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-xs space-y-4">
+                <h3 className="text-sm font-black uppercase tracking-wider text-[#0B2545] dark:text-white">
                   Recent System Audit Activity
                 </h3>
 
                 <div className="space-y-3 font-mono text-xs">
                   {auditLogs.slice(0, 4).map((log, idx) => (
-                    <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                    <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600 flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-[#138808]"></span>
-                        <span className="font-bold text-[#0B2545]">{log.action || log.event || 'System Action'}</span>
-                        <span className="text-slate-500">• {log.details || log.description || 'Action recorded in audit log'}</span>
+                        <span className="w-2 h-2 rounded-full bg-[#138808] dark:bg-emerald-400"></span>
+                        <span className="font-bold text-[#0B2545] dark:text-white">{log.action || log.event || 'System Action'}</span>
+                        <span className="text-slate-500 dark:text-slate-400">• {log.details || log.description || 'Action recorded in audit log'}</span>
                       </div>
-                      <span className="text-[10px] text-slate-400">{new Date(log.timestamp || Date.now()).toLocaleTimeString()}</span>
+                      <span className="text-[10px] text-slate-400 font-mono">{new Date(log.timestamp || Date.now()).toLocaleTimeString()}</span>
                     </div>
                   ))}
                 </div>
@@ -742,50 +738,50 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
           {/* ============================================================ */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
-              <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-6">
-                <div className="border-b border-slate-100 pb-3 flex justify-between items-center">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-xs space-y-6">
+                <div className="border-b border-slate-100 dark:border-slate-700 pb-3 flex justify-between items-center">
                   <div>
-                    <h2 className="text-base font-black text-[#0B2545] uppercase">
+                    <h2 className="text-base font-black text-[#0B2545] dark:text-white uppercase">
                       Municipal Departmental Overview & Resolution Metrics
                     </h2>
-                    <p className="text-xs text-slate-500">Departmental breakdown, 72-Hour SLA compliance performance across 28 Wards.</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Departmental breakdown, 72-Hour SLA compliance performance across 28 Wards.</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-xs font-bold text-slate-500 uppercase">Total Registered Tickets</span>
-                    <h3 className="text-2xl font-black text-[#0B2545] mt-1">{totalComplaints}</h3>
+                  <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Total Registered Tickets</span>
+                    <h3 className="text-2xl font-black text-[#0B2545] dark:text-white mt-1">{totalComplaints}</h3>
                   </div>
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-xs font-bold text-slate-500 uppercase">Resolution Percentage</span>
-                    <h3 className="text-2xl font-black text-[#138808] mt-1">
+                  <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Resolution Percentage</span>
+                    <h3 className="text-2xl font-black text-[#138808] dark:text-emerald-400 mt-1">
                       {totalComplaints > 0 ? `${Math.round((resolvedCount / totalComplaints) * 100)}%` : '100%'}
                     </h3>
                   </div>
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-xs font-bold text-slate-500 uppercase">Pending Officer Action</span>
-                    <h3 className="text-2xl font-black text-amber-600 mt-1">{pendingCount}</h3>
+                  <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Pending Officer Action</span>
+                    <h3 className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">{pendingCount}</h3>
                   </div>
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-xs font-bold text-slate-500 uppercase">SLA Escalations</span>
-                    <h3 className="text-2xl font-black text-red-600 mt-1">{escalatedCount}</h3>
+                  <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">SLA Escalations</span>
+                    <h3 className="text-2xl font-black text-red-600 dark:text-red-400 mt-1">{escalatedCount}</h3>
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <h3 className="text-xs font-black uppercase text-[#0B2545]">Departmental Workload Distribution</h3>
+                  <h3 className="text-xs font-black uppercase text-[#0B2545] dark:text-white">Departmental Workload Distribution</h3>
                   {['Sanitation / Waste', 'Water Supply & Pipelines', 'PWD Road Repairs', 'Streetlighting Grid', 'Drainage Systems'].map((dept) => {
                     const deptCount = complaints.filter(c => c.category.includes(dept.split(' ')[0])).length;
                     const pct = totalComplaints > 0 ? Math.round((deptCount / totalComplaints) * 100) : 0;
                     return (
                       <div key={dept} className="space-y-1 text-xs">
-                        <div className="flex justify-between font-bold text-slate-700">
+                        <div className="flex justify-between font-bold text-slate-700 dark:text-slate-200">
                           <span>{dept}</span>
                           <span className="font-mono">{deptCount} tickets ({pct}%)</span>
                         </div>
-                        <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-[#0B2545] rounded-full" style={{ width: `${pct}%` }}></div>
+                        <div className="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                          <div className="h-full bg-[#0B2545] dark:bg-sky-400 rounded-full" style={{ width: `${pct}%` }}></div>
                         </div>
                       </div>
                     );
@@ -800,13 +796,13 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
           {/* ============================================================ */}
           {activeTab === 'complaints' && (
             <div className="space-y-6">
-              <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-700 pb-4">
                   <div>
-                    <h2 className="text-base font-black uppercase text-[#0B2545]">
+                    <h2 className="text-base font-black uppercase text-[#0B2545] dark:text-white">
                       Municipal Grievance Tickets & SLA Lifecycles
                     </h2>
-                    <p className="text-xs text-slate-500">Filter, assign, update, and submit mandatory work completion reports.</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Filter, assign, update, and submit mandatory work completion reports.</p>
                   </div>
 
                   <div className="flex items-center gap-2 flex-wrap">
@@ -817,14 +813,14 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search ticket ID or ward..."
-                        className="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#0B2545]"
+                        className="pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-[#0B2545]"
                       />
                     </div>
 
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 cursor-pointer"
+                      className="px-3 py-1.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-semibold text-slate-700 dark:text-white cursor-pointer"
                     >
                       <option value="All">All Statuses</option>
                       <option value="Pending">Pending</option>
@@ -846,27 +842,27 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
                       return (
                         <div
                           key={item.id}
-                          className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3 flex flex-col justify-between"
+                          className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-3 flex flex-col justify-between"
                         >
                           <div>
                             <div className="flex items-center justify-between gap-2 mb-2">
-                              <span className="font-mono text-xs font-black text-[#0B2545]">{item.id}</span>
+                              <span className="font-mono text-xs font-black text-[#0B2545] dark:text-sky-300">{item.id}</span>
                               <SLAIndicator submittedAt={item.createdAt || item.submittedAt} dueDate={item.dueDate} currentStatus={item.status} compact />
                             </div>
 
-                            <h3 className="text-xs font-bold text-slate-900 mb-1">{item.title}</h3>
-                            <p className="text-[11px] text-slate-600 line-clamp-2">{item.description}</p>
+                            <h3 className="text-xs font-bold text-slate-900 dark:text-white mb-1">{item.title}</h3>
+                            <p className="text-[11px] text-slate-600 dark:text-slate-300 line-clamp-2">{item.description}</p>
 
-                            <div className="text-[10px] text-slate-500 space-y-0.5 pt-2 border-t border-slate-100 font-mono mt-2">
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 space-y-0.5 pt-2 border-t border-slate-100 dark:border-slate-700 font-mono mt-2">
                               <div>Ward: <strong>Ward {item.ward}</strong></div>
                               <div>Officer: <strong>{item.assignedOfficer || 'Field Engineer'}</strong></div>
                             </div>
                           </div>
 
-                          <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                          <div className="pt-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between gap-2">
                             <button
                               onClick={() => setSelectedComplaint(item)}
-                              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-[#0B2545] font-bold rounded-xl text-xs flex items-center gap-1"
+                              className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-[#0B2545] dark:text-white font-bold rounded-xl text-xs flex items-center gap-1 cursor-pointer"
                             >
                               <Eye className="w-3.5 h-3.5" /> Details
                             </button>
@@ -901,16 +897,16 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
           {/* ============================================================ */}
           {activeTab === 'gis' && (
             <div className="space-y-4">
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+              <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-between">
                 <div>
-                  <h2 className="text-base font-black uppercase text-[#0B2545]">
+                  <h2 className="text-base font-black uppercase text-[#0B2545] dark:text-white">
                     Kopargaon Smart City GIS Spatial Twin
                   </h2>
-                  <p className="text-xs text-slate-500">Full spatial GIS vector map engine • 28 Ward Layer Boundaries • Complaint Pins</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Full spatial GIS vector map engine • 28 Ward Layer Boundaries • Complaint Pins</p>
                 </div>
               </div>
 
-              <div className="relative h-[650px] w-full rounded-2xl overflow-hidden border border-slate-200 shadow-md">
+              <div className="relative h-[650px] w-full rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-md">
                 <MapLibreGisCommandCenter
                   complaints={complaints}
                   onSelectComplaint={(inc) => {
@@ -927,21 +923,21 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
           {/* ============================================================ */}
           {activeTab === 'ward_mgmt' && (
             <div className="space-y-6">
-              <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-xs space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-700 pb-4">
                   <div>
-                    <h2 className="text-base font-black text-[#0B2545] uppercase">
+                    <h2 className="text-base font-black text-[#0B2545] dark:text-white uppercase">
                       Ward Operational Inspection & Management (Wards 1–28)
                     </h2>
-                    <p className="text-xs text-slate-500">Select a municipal ward to inspect field complaints, water supply, and sanitation fleet.</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Select a municipal ward to inspect field complaints, water supply, and sanitation fleet.</p>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <label className="text-xs font-bold text-[#0B2545]">Select Ward:</label>
+                    <label className="text-xs font-bold text-[#0B2545] dark:text-slate-200">Select Ward:</label>
                     <select
                       value={selectedWard}
                       onChange={(e) => setSelectedWard(Number(e.target.value))}
-                      className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-[#0B2545] cursor-pointer"
+                      className="px-4 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold text-[#0B2545] dark:text-white cursor-pointer"
                     >
                       {Array.from({ length: 28 }, (_, i) => i + 1).map((w) => (
                         <option key={w} value={w}>Ward {w} Administration</option>
@@ -952,40 +948,40 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
 
                 {/* Selected Ward Detail Card */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-xs font-bold text-slate-500 uppercase">Assigned Ward Officer</span>
-                    <h3 className="text-base font-black text-[#0B2545] mt-1">Engineer S. Patil</h3>
+                  <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Assigned Ward Officer</span>
+                    <h3 className="text-base font-black text-[#0B2545] dark:text-white mt-1">Engineer S. Patil</h3>
                   </div>
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-xs font-bold text-slate-500 uppercase">Active Ward Tickets</span>
-                    <h3 className="text-base font-black text-sky-600 mt-1">
+                  <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Active Ward Tickets</span>
+                    <h3 className="text-base font-black text-sky-600 dark:text-sky-400 mt-1">
                       {complaints.filter(c => Number(c.ward) === selectedWard).length} Tickets
                     </h3>
                   </div>
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-xs font-bold text-slate-500 uppercase">Water Supply Status</span>
-                    <h3 className="text-base font-black text-[#138808] mt-1">Operational (06:00-09:30)</h3>
+                  <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Water Supply Status</span>
+                    <h3 className="text-base font-black text-[#138808] dark:text-emerald-400 mt-1">Operational (06:00-09:30)</h3>
                   </div>
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-xs font-bold text-slate-500 uppercase">Sanitation Coverage</span>
-                    <h3 className="text-base font-black text-[#138808] mt-1">100% Door-to-Door</h3>
+                  <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Sanitation Coverage</span>
+                    <h3 className="text-base font-black text-[#138808] dark:text-emerald-400 mt-1">100% Door-to-Door</h3>
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <h3 className="text-xs font-black uppercase text-[#0B2545]">Complaints in Ward {selectedWard}</h3>
+                  <h3 className="text-xs font-black uppercase text-[#0B2545] dark:text-white">Complaints in Ward {selectedWard}</h3>
                   {complaints.filter(c => Number(c.ward) === selectedWard).length === 0 ? (
-                    <div className="p-6 text-center text-slate-400 text-xs font-medium bg-slate-50 rounded-xl">
+                    <div className="p-6 text-center text-slate-400 text-xs font-medium bg-slate-50 dark:bg-slate-700/40 rounded-xl">
                       No complaints registered for Ward {selectedWard}.
                     </div>
                   ) : (
                     complaints.filter(c => Number(c.ward) === selectedWard).map((c) => (
-                      <div key={c.id} className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                      <div key={c.id} className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600 flex items-center justify-between">
                         <div>
-                          <span className="font-mono text-xs font-bold text-[#0B2545]">{c.id}</span>
-                          <h4 className="font-bold text-xs text-slate-800">{c.title}</h4>
+                          <span className="font-mono text-xs font-bold text-[#0B2545] dark:text-sky-300">{c.id}</span>
+                          <h4 className="font-bold text-xs text-slate-800 dark:text-white">{c.title}</h4>
                         </div>
-                        <span className="px-2 py-1 bg-amber-100 text-amber-800 rounded text-[10px] font-extrabold uppercase">
+                        <span className="px-2 py-1 bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 rounded text-[10px] font-extrabold uppercase">
                           {c.status}
                         </span>
                       </div>
@@ -1001,35 +997,35 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
           {/* ============================================================ */}
           {(activeTab === 'water_supply' || activeTab === 'waste_mgmt' || activeTab === 'traffic_roads') && (
             <div className="space-y-6">
-              <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
-                <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-                  <div className="p-2 rounded-xl bg-[#0B2545] text-[#FF9933]">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-xs space-y-4">
+                <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-700 pb-3">
+                  <div className="p-2 rounded-xl bg-[#0B2545] dark:bg-slate-700 text-[#FF9933]">
                     {activeTab === 'water_supply' && <Droplets className="w-6 h-6" />}
                     {activeTab === 'waste_mgmt' && <Trash2 className="w-6 h-6" />}
                     {activeTab === 'traffic_roads' && <TrafficCone className="w-6 h-6" />}
                   </div>
                   <div>
-                    <h2 className="text-base font-black text-[#0B2545] uppercase">
+                    <h2 className="text-base font-black text-[#0B2545] dark:text-white uppercase">
                       {activeTab === 'water_supply' && 'Godavari Reservoir & Ward Water Distribution Telemetry'}
                       {activeTab === 'waste_mgmt' && 'Sanitation Vehicle Fleet Tracking & Processing Telemetry'}
                       {activeTab === 'traffic_roads' && 'PWD Road Infrastructure & Traffic Junction Monitoring'}
                     </h2>
-                    <p className="text-xs text-slate-500">Real-time IoT feeds & Municipal SLA compliance stats</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Real-time IoT feeds & Municipal SLA compliance stats</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-xs font-bold text-slate-500 uppercase">Primary Operational Status</span>
-                    <h3 className="text-xl font-black text-[#138808] mt-1">Operational (99.2%)</h3>
+                  <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Primary Operational Status</span>
+                    <h3 className="text-xl font-black text-[#138808] dark:text-emerald-400 mt-1">Operational (99.2%)</h3>
                   </div>
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-xs font-bold text-slate-500 uppercase">Telemetry Feed</span>
-                    <h3 className="text-xl font-black text-[#0B2545] mt-1">NIC Sensor Gateway Active</h3>
+                  <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Telemetry Feed</span>
+                    <h3 className="text-xl font-black text-[#0B2545] dark:text-white mt-1">NIC Sensor Gateway Active</h3>
                   </div>
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-xs font-bold text-slate-500 uppercase">Audit SLA Status</span>
-                    <h3 className="text-xl font-black text-[#138808] mt-1">72-Hour Target Met</h3>
+                  <div className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Audit SLA Status</span>
+                    <h3 className="text-xl font-black text-[#138808] dark:text-emerald-400 mt-1">72-Hour Target Met</h3>
                   </div>
                 </div>
               </div>

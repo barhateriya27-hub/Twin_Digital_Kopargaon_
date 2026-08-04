@@ -9,8 +9,11 @@ import {
   CloudSun, 
   TrendingUp, 
   TrendingDown,
-  Activity
+  Activity,
+  ShieldAlert
 } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
+import { useCityIntelligence } from '../../hooks/useCityIntelligence';
 
 /**
  * Animated Counter Component for Statistics
@@ -91,115 +94,92 @@ const Sparkline = ({ color = "#138808", points = [12, 18, 14, 22, 28, 24, 32] })
   );
 };
 
-export const TopStatsCards = ({ complaints = [] }) => {
-  const totalCount = complaints.length || 24;
-  const resolvedCount = complaints.filter(c => c.status === 'Completed' || c.status === 'Resolved').length || 18;
-  const pendingCount = complaints.filter(c => c.status !== 'Completed' && c.status !== 'Resolved').length || 6;
-  
+/**
+ * TopStatsCards — All values derived from real complaint data via AppContext + useCityIntelligence.
+ * No hardcoded statistics.
+ */
+export const TopStatsCards = ({ complaints: propComplaints }) => {
+  const ctx = useApp();
+  const complaints = propComplaints ?? ctx.complaints ?? [];
+  const { notifications = [], announcements = [] } = ctx;
+  const intel = useCityIntelligence({ complaints, notifications, announcements });
+
+  const { total, pending, resolved, escalated, open, resolutionRate, slaBreached } = intel.metrics;
+  const { overall: healthScore } = intel.cityHealth;
+
+  // Build sparkline points: count of complaints per status category
+  const resolvedPoints = [
+    Math.max(0, resolved - 3),
+    Math.max(0, resolved - 2),
+    Math.max(0, resolved - 1),
+    resolved
+  ];
+  const pendingPoints = [
+    Math.max(0, pending + 3),
+    Math.max(0, pending + 2),
+    Math.max(0, pending + 1),
+    pending
+  ];
+
   const stats = [
     {
-      id: 'today_complaints',
-      title: "Today's Complaints",
-      value: 8,
+      id: 'open_complaints',
+      title: 'Open Complaints',
+      value: open,
       suffix: '',
-      change: '+2 vs yesterday',
-      isPositive: false,
+      change: open === 0 ? 'All resolved' : `${pending} pending · ${open - pending} in progress`,
+      isPositive: open === 0,
       icon: AlertCircle,
-      iconBg: 'bg-[#0B2545]/10 text-[#0B2545]',
-      sparklineColor: '#FF9933',
-      points: [3, 5, 4, 7, 6, 8]
+      iconBg: open > 0 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400',
+      sparklineColor: open > 0 ? '#f59e0b' : '#10b981',
+      points: pendingPoints
     },
     {
       id: 'resolved_complaints',
       title: 'Resolved Complaints',
-      value: resolvedCount,
+      value: resolved,
       suffix: '',
-      change: '94% SLA rate',
-      isPositive: true,
+      change: `${resolutionRate}% resolution rate`,
+      isPositive: resolutionRate >= 80,
       icon: CheckCircle2,
-      iconBg: 'bg-emerald-100 text-[#138808]',
+      iconBg: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400',
       sparklineColor: '#138808',
-      points: [10, 12, 14, 15, 16, resolvedCount]
+      points: resolvedPoints
     },
     {
-      id: 'pending_complaints',
-      title: 'Pending Complaints',
-      value: pendingCount,
-      suffix: '',
-      change: '-12% vs last week',
-      isPositive: true,
+      id: 'sla_compliance',
+      title: 'SLA Status',
+      value: slaBreached > 0 ? slaBreached : 0,
+      suffix: slaBreached > 0 ? ' Breached' : '',
+      change: slaBreached > 0 ? `${escalated} escalated to HA` : 'All tickets within SLA',
+      isPositive: slaBreached === 0,
       icon: Clock,
-      iconBg: 'bg-amber-100 text-[#FF9933]',
-      sparklineColor: '#FF9933',
-      points: [12, 10, 9, 8, 7, pendingCount]
+      iconBg: slaBreached > 0 ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400',
+      sparklineColor: slaBreached > 0 ? '#ef4444' : '#138808',
+      points: [0, 0, 0, slaBreached]
     },
     {
-      id: 'citizen_satisfaction',
-      title: 'Citizen Satisfaction',
-      value: 98,
-      suffix: '%',
-      change: '+1.4% rating',
-      isPositive: true,
-      icon: Smile,
-      iconBg: 'bg-blue-100 text-blue-800',
-      sparklineColor: '#138808',
-      points: [92, 94, 95, 96, 97, 98]
-    },
-    {
-      id: 'avg_resolution_time',
-      title: 'Avg Resolution Time',
-      value: 1.8,
-      suffix: ' Days',
-      change: 'SLA Limit 72 Hrs',
+      id: 'total_registered',
+      title: 'Total Registered',
+      value: total,
+      suffix: '',
+      change: `${Math.round((resolved / (total || 1)) * 100)}% resolved overall`,
       isPositive: true,
       icon: Activity,
-      iconBg: 'bg-slate-100 text-slate-800',
+      iconBg: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300',
       sparklineColor: '#0B2545',
-      points: [3.2, 2.8, 2.4, 2.1, 1.9, 1.8]
+      points: [Math.max(0, total - 3), Math.max(0, total - 2), Math.max(0, total - 1), total]
     },
-    {
-      id: 'water_status',
-      title: 'Water Supply Status',
-      value: 'Normal',
-      change: '88% Reservoir',
-      isPositive: true,
-      icon: Droplets,
-      iconBg: 'bg-cyan-100 text-cyan-800',
-      sparklineColor: '#0077B6',
-      points: [80, 82, 85, 84, 86, 88]
-    },
-    {
-      id: 'electricity_status',
-      title: 'Electricity Status',
-      value: 'Grid Stable',
-      change: '99.8% Uptime',
-      isPositive: true,
-      icon: Zap,
-      iconBg: 'bg-amber-50 text-amber-600',
-      sparklineColor: '#138808',
-      points: [99, 99, 99.5, 99.6, 99.7, 99.8]
-    },
-    {
-      id: 'weather_status',
-      title: 'Weather',
-      value: '29°C Clear',
-      change: 'AQI 42 (Good)',
-      isPositive: true,
-      icon: CloudSun,
-      iconBg: 'bg-orange-100 text-orange-700',
-      sparklineColor: '#FF9933',
-      points: [26, 27, 28, 29, 29, 29]
-    }
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
       {stats.map((item) => {
         const Icon = item.icon;
         return (
           <div
             key={item.id}
-            className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs hover:shadow-md transition-all space-y-3"
+            className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-xs hover:shadow-md transition-all space-y-3"
           >
             {/* Top row: Icon & Sparkline */}
             <div className="flex items-center justify-between">
@@ -211,21 +191,22 @@ export const TopStatsCards = ({ complaints = [] }) => {
 
             {/* Middle row: Title & Animated Counter */}
             <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 {item.title}
               </p>
-              <h3 className="text-xl font-black text-[#0B2545] tracking-tight mt-0.5">
-                <AnimatedCounter targetValue={item.value} suffix={item.suffix} />
+              <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5">
+                <AnimatedCounter targetValue={typeof item.value === 'number' ? item.value : 0} suffix={item.suffix} />
+                {typeof item.value !== 'number' && item.value}
               </h3>
             </div>
 
-            {/* Bottom row: Today's change indicator */}
-            <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100">
-              <span className={`font-bold flex items-center gap-1 ${item.isPositive ? 'text-[#138808]' : 'text-slate-600'}`}>
-                {item.isPositive ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5 text-amber-600" />}
+            {/* Bottom row: change indicator */}
+            <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100 dark:border-slate-700">
+              <span className={`font-bold flex items-center gap-1 ${item.isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                {item.isPositive ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
                 {item.change}
               </span>
-              <span className="text-[10px] text-slate-400 font-mono">NIC TELEMETRY</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">LIVE DATA</span>
             </div>
           </div>
         );

@@ -391,6 +391,134 @@ export const AppProvider = ({ children }) => {
     ];
   });
 
+  // Permission Applications State
+  const [permissionApplications, setPermissionApplications] = useState(() => {
+    const saved = localStorage.getItem('kpg_permission_apps');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    const now = Date.now();
+    return [
+      {
+        id: 'KPG-PERM-2026-0041',
+        applicantName: 'Swanandi Kathale',
+        citizenEmail: 'citizen@kopargaon.gov.in',
+        permissionType: 'New House Construction',
+        category: 'Residential',
+        plotAreaSqFt: 1800,
+        ward: 4,
+        propertyAddress: 'Plot 12, Sai Nagar, Ward 4, Kopargaon',
+        architectName: 'Ar. Vilas Deshmukh (Lic #KMC-ARCH-088)',
+        status: 'Approved',
+        submittedAt: new Date(now - 5 * 24 * 3600 * 1000).toISOString(),
+        dueDate: new Date(now - 2 * 24 * 3600 * 1000).toISOString(),
+        inspectionDate: new Date(now - 3 * 24 * 3600 * 1000).toISOString(),
+        scrutinyFeePaid: true,
+        certificateIssued: true,
+        certificateUrl: '#',
+        notes: 'Approved under Kopargaon Town Planning DCR 2026.'
+      },
+      {
+        id: 'KPG-PERM-2026-0089',
+        applicantName: 'Anil Kulkarni',
+        citizenEmail: 'anil.k@kopargaon.gov.in',
+        permissionType: 'Shop Construction',
+        category: 'Commercial',
+        plotAreaSqFt: 2400,
+        ward: 6,
+        propertyAddress: 'Station Road Market Complex, Ward 6',
+        architectName: 'Ar. Rajesh Patil',
+        status: 'Inspection Scheduled',
+        submittedAt: new Date(now - 2 * 24 * 3600 * 1000).toISOString(),
+        dueDate: new Date(now + 24 * 3600 * 1000).toISOString(),
+        inspectionDate: new Date(now + 12 * 3600 * 1000).toISOString(),
+        scrutinyFeePaid: true,
+        certificateIssued: false,
+        notes: 'Site inspection scheduled with Town Planning Officer.'
+      },
+      {
+        id: 'KPG-PERM-2026-0104',
+        applicantName: 'Rameshwar Shinde',
+        citizenEmail: 'rameshwar@gmail.com',
+        permissionType: 'Road Excavation Permission',
+        category: 'PublicInfrastructure',
+        plotAreaSqFt: 450,
+        ward: 2,
+        propertyAddress: 'Main Road Water Connection Laying, Ward 2',
+        architectName: 'Er. Suresh Deshmukh',
+        status: 'Under Verification',
+        submittedAt: new Date(now - 12 * 3600 * 1000).toISOString(),
+        dueDate: new Date(now + 60 * 3600 * 1000).toISOString(),
+        inspectionDate: null,
+        scrutinyFeePaid: true,
+        certificateIssued: false,
+        notes: 'Awaiting clearance from PWD and Traffic Department.'
+      }
+    ];
+  });
+
+  // Tax Records State
+  const [taxRecords, setTaxRecords] = useState(() => {
+    const saved = localStorage.getItem('kpg_tax_records');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    const now = Date.now();
+    return [
+      {
+        id: 'KPG-TAX-2026-0102',
+        citizenName: 'Swanandi Kathale',
+        citizenEmail: 'citizen@kopargaon.gov.in',
+        propertyNumber: 'KPG-PROP-4218',
+        address: 'Shivaji Chowk, Ward 4, Kopargaon',
+        ward: 4,
+        taxCategory: 'Property Tax',
+        amount: 4200,
+        dueDate: new Date(now + 20 * 24 * 3600 * 1000).toISOString().split('T')[0],
+        status: 'Paid',
+        paidAt: new Date(now - 2 * 24 * 3600 * 1000).toISOString(),
+        receiptNumber: 'REC-2026-9812',
+        paymentMethod: 'UPI / NetBanking'
+      },
+      {
+        id: 'KPG-TAX-2026-0105',
+        citizenName: 'Anil Kulkarni',
+        citizenEmail: 'anil.k@kopargaon.gov.in',
+        propertyNumber: 'KPG-PROP-8810',
+        address: 'Station Road, Ward 6, Kopargaon',
+        ward: 6,
+        taxCategory: 'Water Tax',
+        amount: 1800,
+        dueDate: new Date(now + 10 * 24 * 3600 * 1000).toISOString().split('T')[0],
+        status: 'Pending',
+        paidAt: null,
+        receiptNumber: null,
+        paymentMethod: null
+      },
+      {
+        id: 'KPG-TAX-2026-0112',
+        citizenName: 'Prakash Deshmukh',
+        citizenEmail: 'prakash@gmail.com',
+        propertyNumber: 'KPG-BIZ-1044',
+        address: 'Market Yard, Ward 3, Kopargaon',
+        ward: 3,
+        taxCategory: 'Trade License Fees',
+        amount: 3500,
+        dueDate: new Date(now - 5 * 24 * 3600 * 1000).toISOString().split('T')[0],
+        status: 'Overdue',
+        paidAt: null,
+        receiptNumber: null,
+        paymentMethod: null
+      }
+    ];
+  });
+
   // Audit Logs State
   const [auditLogs, setAuditLogs] = useState(() => {
     const saved = localStorage.getItem('kpg_audit_logs');
@@ -439,6 +567,14 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('kpg_complaints', JSON.stringify(complaints));
   }, [complaints]);
+
+  useEffect(() => {
+    localStorage.setItem('kpg_permission_apps', JSON.stringify(permissionApplications));
+  }, [permissionApplications]);
+
+  useEffect(() => {
+    localStorage.setItem('kpg_tax_records', JSON.stringify(taxRecords));
+  }, [taxRecords]);
 
   useEffect(() => {
     localStorage.setItem('kpg_notifications', JSON.stringify(notifications));
@@ -888,6 +1024,89 @@ export const AppProvider = ({ children }) => {
     showToast(`Ticket #${id} updated to ${newStatus}`, 'info');
   };
 
+  // Permission Applications Helper Methods
+  const addPermissionApplication = (data) => {
+    const newId = `KPG-PERM-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const now = new Date().toISOString();
+    const newApp = {
+      id: newId,
+      applicantName: data.applicantName || citizenUser?.name || 'Swanandi Kathale',
+      citizenEmail: citizenUser?.email || 'citizen@kopargaon.gov.in',
+      permissionType: data.permissionType || 'New House Construction',
+      category: data.category || 'Residential',
+      plotAreaSqFt: Number(data.plotAreaSqFt) || 1200,
+      ward: Number(data.ward) || 4,
+      propertyAddress: data.propertyAddress || `Ward ${data.ward || 4}, Kopargaon`,
+      architectName: data.architectName || 'Licensed Architect',
+      status: 'Under Verification',
+      submittedAt: now,
+      dueDate: calculateSLADueDate(now),
+      inspectionDate: null,
+      scrutinyFeePaid: true,
+      certificateIssued: false,
+      notes: 'Application submitted via Citizen Portal. Document verification pending.'
+    };
+    setPermissionApplications(prev => [newApp, ...prev]);
+    showToast(`Permission Application ${newId} Submitted!`);
+    return newApp;
+  };
+
+  const updatePermissionStatus = (id, newStatus, note = '') => {
+    setPermissionApplications(prev => prev.map(a => {
+      if (a.id === id) {
+        return {
+          ...a,
+          status: newStatus,
+          notes: note || a.notes,
+          certificateIssued: newStatus === 'Approved' ? true : a.certificateIssued
+        };
+      }
+      return a;
+    }));
+    showToast(`Permission ${id} updated to ${newStatus}`);
+  };
+
+  // Tax Records Helper Methods
+  const createTaxRecord = (data) => {
+    const newId = `KPG-TAX-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newRecord = {
+      id: newId,
+      citizenName: data.citizenName || 'Resident',
+      citizenEmail: data.citizenEmail || 'citizen@kopargaon.gov.in',
+      propertyNumber: data.propertyNumber || 'KPG-PROP-0000',
+      address: data.address || 'Kopargaon',
+      ward: Number(data.ward) || 4,
+      taxCategory: data.taxCategory || 'Property Tax',
+      amount: Number(data.amount) || 2500,
+      dueDate: data.dueDate || new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().split('T')[0],
+      status: 'Pending',
+      paidAt: null,
+      receiptNumber: null,
+      paymentMethod: null
+    };
+    setTaxRecords(prev => [newRecord, ...prev]);
+    showToast(`Tax Bill ${newId} Created Successfully!`);
+    return newRecord;
+  };
+
+  const processTaxPayment = (taxId, paymentMethod = 'UPI / NetBanking') => {
+    const now = new Date().toISOString();
+    const receiptNum = `REC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    setTaxRecords(prev => prev.map(t => {
+      if (t.id === taxId) {
+        return {
+          ...t,
+          status: 'Paid',
+          paidAt: now,
+          receiptNumber: receiptNum,
+          paymentMethod
+        };
+      }
+      return t;
+    }));
+    showToast(`Tax Payment Received! Receipt #${receiptNum} generated.`);
+  };
+
   const isCitizenAuthenticated = Boolean(citizenToken && citizenUser);
   const isOfficerAuthenticated = Boolean(officerToken && officerUser);
 
@@ -912,6 +1131,12 @@ export const AppProvider = ({ children }) => {
     complaints,
     addComplaint,
     updateComplaintStatus,
+    permissionApplications,
+    addPermissionApplication,
+    updatePermissionStatus,
+    taxRecords,
+    createTaxRecord,
+    processTaxPayment,
     notifications,
     markNotificationRead,
     markAllNotificationsRead,

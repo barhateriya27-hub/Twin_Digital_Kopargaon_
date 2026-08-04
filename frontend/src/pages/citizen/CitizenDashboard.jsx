@@ -63,6 +63,9 @@ import { WelcomeWidget } from '../../components/dashboard/WelcomeWidget';
 
 import { getKopargaonPOIs } from '../../services/poiService';
 import { getUserLocation } from '../../services/mapService';
+import { useCityIntelligence } from '../../hooks/useCityIntelligence';
+import { CityHealthScore } from '../../components/digitaltwin/CityHealthScore';
+import { CitizenProfileView } from '../../components/profile/CitizenProfileView';
 
 export const CitizenDashboard = ({ activeTab: initialActiveTab = 'dashboard', embedded = true }) => {
   const navigate = useNavigate();
@@ -112,6 +115,7 @@ export const CitizenDashboard = ({ activeTab: initialActiveTab = 'dashboard', em
   const userComplaints = complaints;
   const unreadCount = notifications.filter(n => !n.read && (n.recipientRole === 'citizen' || n.recipientRole === 'all')).length;
   const emergencyNotice = announcements.find(a => a.priority === 'Urgent/Emergency' && a.status === 'Published');
+  const cityIntel = useCityIntelligence({ complaints, notifications, announcements });
 
   useEffect(() => {
     getUserLocation().then(loc => setUserLocation(loc));
@@ -221,6 +225,16 @@ export const CitizenDashboard = ({ activeTab: initialActiveTab = 'dashboard', em
 
               {/* TOP STATISTICS CARDS */}
               <TopStatsCards complaints={complaints} />
+
+              {/* CITY HEALTH SCORE (compact, real data) */}
+              <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <CityHealthScore cityHealth={cityIntel.cityHealth} compact />
+                <div className="text-xs text-slate-500 dark:text-slate-400 sm:text-right space-y-0.5">
+                  <p className="font-bold text-slate-700 dark:text-slate-300">Kopargaon Municipal Services</p>
+                  <p>All service metrics are derived from real complaint data.</p>
+                  <p className="font-mono text-[10px]">{complaints.length} total registered complaints • {cityIntel.metrics.open} open</p>
+                </div>
+              </div>
 
               {/* COMMAND CENTER GRID: GIS MAP (~70%) & RIGHT COMMAND PANEL (~30%) */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -587,73 +601,7 @@ export const CitizenDashboard = ({ activeTab: initialActiveTab = 'dashboard', em
 
           {/* TAB 14 & 15: PROFILE & SETTINGS */}
           {(activeTab === 'profile' || activeTab === 'settings') && (
-            <div className="max-w-2xl mx-auto bg-white rounded-xl p-6 border border-slate-200 shadow-md space-y-6">
-              <div className="border-b border-slate-100 pb-3 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#FF9933] text-[#0B2545] font-black flex items-center justify-center text-base">
-                  {profileName.charAt(0).toUpperCase() || 'C'}
-                </div>
-                <div>
-                  <h2 className="text-base font-extrabold text-[#0B2545]">Citizen Profile & Government Settings</h2>
-                  <p className="text-xs text-slate-500">Kopargaon Resident Verification & Ward Details</p>
-                </div>
-              </div>
-
-              <form onSubmit={handleUpdateProfileSubmit} className="space-y-4 text-xs font-semibold">
-                <div>
-                  <label className="block text-slate-700 mb-1">Full Name</label>
-                  <input
-                    type="text"
-                    value={profileName}
-                    onChange={(e) => setProfileName(e.target.value)}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-slate-700 mb-1">Phone Number</label>
-                    <input
-                      type="text"
-                      value={profilePhone}
-                      onChange={(e) => setProfilePhone(e.target.value)}
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-700 mb-1">Municipal Ward</label>
-                    <select
-                      value={profileWard}
-                      onChange={(e) => setProfileWard(Number(e.target.value))}
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs cursor-pointer"
-                    >
-                      {Array.from({ length: 28 }, (_, i) => i + 1).map((w) => (
-                        <option key={w} value={w}>Ward {w}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-slate-700 mb-1">Residential Address</label>
-                  <input
-                    type="text"
-                    value={profileAddress}
-                    onChange={(e) => setProfileAddress(e.target.value)}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-                    placeholder="Station Road, Kopargaon"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-3 bg-[#0B2545] hover:bg-[#07192E] text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-sm transition-all"
-                >
-                  Save Citizen Profile Settings
-                </button>
-              </form>
-            </div>
+            <CitizenProfileView onSelectTab={setActiveTab} />
           )}
     </div>
   );

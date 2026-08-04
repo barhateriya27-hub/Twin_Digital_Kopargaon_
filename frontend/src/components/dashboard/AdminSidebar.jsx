@@ -16,7 +16,8 @@ import {
   Bot,
   Settings,
   LogOut,
-  X
+  X,
+  BrainCircuit
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -40,6 +41,7 @@ export const AdminSidebar = ({
 
   const menuItems = [
     { id: 'dashboard', path: '/municipality/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'digital_twin', path: '/municipality/dashboard', label: 'Digital Twin Intelligence', icon: BrainCircuit, isSpecial: true },
     { id: 'overview', path: '/municipality/overview', label: 'Municipal Overview', icon: BarChart3 },
     { id: 'complaints', path: '/municipality/complaints', label: 'Complaints', icon: ClipboardList, badge: complaintCount > 0 ? complaintCount : null },
     { id: 'gis', path: '/municipality/gis', label: 'Smart City GIS', icon: Map },
@@ -115,7 +117,11 @@ export const AdminSidebar = ({
                 key={item.id}
                 onClick={() => handleNavClick(item)}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all text-xs font-semibold text-left border-l-4 cursor-pointer ${
-                  isActive
+                  item.isSpecial && isActive
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700 font-bold'
+                    : item.isSpecial
+                    ? 'border-emerald-300 bg-emerald-50/50 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800'
+                    : isActive
                     ? 'border-[#0B2545] bg-[#0B2545]/10 text-[#0B2545] font-bold'
                     : 'border-transparent text-slate-600 hover:bg-slate-50 hover:text-[#0B2545]'
                 }`}
@@ -123,7 +129,7 @@ export const AdminSidebar = ({
                 <div className="flex items-center gap-2.5 truncate">
                   <Icon
                     className={`w-4 h-4 shrink-0 transition-colors ${
-                      isActive ? 'text-[#0B2545]' : 'text-slate-500'
+                      item.isSpecial ? 'text-emerald-600' : isActive ? 'text-[#0B2545]' : 'text-slate-500'
                     }`}
                   />
                   <span className="truncate">{item.label}</span>
