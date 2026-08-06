@@ -2,490 +2,532 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
+
+import { dataStore, ROLES, COMPLAINT_STATUS } from './dataStore.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET || 'kopargaon_smart_city_jwt_secret_key_2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'kpg_enterprise_smart_city_sec_jwt_key_2026_prod';
+const COOKIE_SECRET = process.env.COOKIE_SECRET || 'kpg_secure_http_only_cookie_secret_99421';
+const IS_PROD = process.env.NODE_ENV === 'production';
 
-app.use(cors());
-app.use(express.json());
+// 1. Production Security Headers & Helmet Configuration
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' }
+  })
+);
 
-// In-Memory Enterprise Storage (MongoDB ready schemas)
-let complaintsDB = [
-  {
-    id: 'KPG-2026-1042',
-    citizenId: 'CIT-8821',
-    submittedBy: 'Ramesh Patil',
-    citizenEmail: 'ramesh.p@kopargaon.gov.in',
-    category: 'Sanitation',
-    title: 'Severe Garbage Overflow & Drain Blockage',
-    description: 'Waste heap overflowing near Shivaji Chowk market area blocking main drainage line causing foul odor and health hazard.',
-    address: 'Shivaji Chowk Market, Ward 4',
-    ward: 4,
-    latitude: 19.8855,
-    longitude: 74.4821,
-    imageUrl: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=800&q=80',
-    status: 'Pending',
-    priority: 'High',
-    department: 'Sanitation & Solid Waste Management',
-    assignedOfficer: null,
-    submittedAt: new Date(Date.now() - 36 * 3600 * 1000).toISOString(),
-    dueDate: new Date(Date.now() + 36 * 3600 * 1000).toISOString(),
-    workStartedAt: null,
-    completedAt: null,
-    isEscalated: false,
-    remarks: [],
-    supportingDocuments: [],
-    completionReport: null,
-    timeline: [
-      {
-        id: 'EVT-1001',
-        status: 'Pending',
-        timestamp: new Date(Date.now() - 36 * 3600 * 1000).toISOString(),
-        actor: { name: 'Ramesh Patil', role: 'Citizen', department: 'Resident' },
-        action: 'Complaint Registered',
-        note: 'Submitted complaint with geolocation and site photo.'
+// 2. Cookie Parser
+app.use(cookieParser(COOKIE_SECRET));
+
+// 3. CORS Configuration
+const allowedOrigins = ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5173'];
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://localhost:')) {
+        callback(null, true);
+      } else {
+        callback(null, true);
       }
-    ]
-  },
-  {
-    id: 'KPG-2026-1039',
-    citizenId: 'CIT-7712',
-    submittedBy: 'Priya Sharma',
-    citizenEmail: 'priya.s@kopargaon.gov.in',
-    category: 'Water Supply',
-    title: 'Main Pipeline Burst & Low Pressure',
-    description: 'Underground pipeline leakage near Ward 2 high school causing flooding on road and zero water pressure.',
-    address: 'Near Mahatma Gandhi School, Ward 2',
-    ward: 2,
-    latitude: 19.8912,
-    longitude: 74.4789,
-    imageUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb186a5b7?auto=format&fit=crop&w=800&q=80',
-    status: 'In Progress',
-    priority: 'Emergency',
-    department: 'Water Supply & Sewerage Department',
-    assignedOfficer: 'Er. Suresh Deshmukh',
-    submittedAt: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
-    dueDate: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
-    workStartedAt: new Date(Date.now() - 12 * 3600 * 1000).toISOString(),
-    completedAt: null,
-    isEscalated: false,
-    remarks: ['Repair squad deployed with heavy excavation machinery.'],
-    supportingDocuments: [],
-    completionReport: null,
-    timeline: [
-      {
-        id: 'EVT-1002',
-        status: 'Pending',
-        timestamp: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
-        actor: { name: 'Priya Sharma', role: 'Citizen', department: 'Resident' },
-        action: 'Complaint Registered',
-        note: 'Submitted pipeline leak issue.'
-      },
-      {
-        id: 'EVT-1003',
-        status: 'In Progress',
-        timestamp: new Date(Date.now() - 12 * 3600 * 1000).toISOString(),
-        actor: { name: 'Er. Suresh Deshmukh', role: 'Municipal Officer', department: 'Water Supply' },
-        action: 'Work Started',
-        note: 'Assigned to emergency repair squad. Work in progress.'
-      }
-    ]
-  },
-  {
-    id: 'KPG-2026-0988',
-    citizenId: 'CIT-4410',
-    submittedBy: 'Anil Kulkarni',
-    citizenEmail: 'anil.k@kopargaon.gov.in',
-    category: 'Public Works (PWD)',
-    title: 'Hazardous Pothole on Station Road',
-    description: 'Deep road cave-in and pothole causing severe traffic disruption and accidents.',
-    address: 'Station Road Near Flyover, Ward 6',
-    ward: 6,
-    latitude: 19.8790,
-    longitude: 74.4910,
-    imageUrl: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80',
-    status: 'Escalated',
-    priority: 'High',
-    department: 'Public Works (PWD)',
-    assignedOfficer: 'Rajesh Shinde',
-    submittedAt: new Date(Date.now() - 96 * 3600 * 1000).toISOString(), // > 3 days (Overdue)
-    dueDate: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-    workStartedAt: null,
-    completedAt: null,
-    isEscalated: true,
-    remarks: ['SLA breached (3 days exceeded). Auto-escalated to Municipal Commissioner.'],
-    supportingDocuments: [],
-    completionReport: null,
-    timeline: [
-      {
-        id: 'EVT-1004',
-        status: 'Pending',
-        timestamp: new Date(Date.now() - 96 * 3600 * 1000).toISOString(),
-        actor: { name: 'Anil Kulkarni', role: 'Citizen', department: 'Resident' },
-        action: 'Complaint Registered',
-        note: 'Submitted pothole ticket.'
-      },
-      {
-        id: 'EVT-1005',
-        status: 'Escalated',
-        timestamp: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-        actor: { name: 'SYSTEM_SLA_ENGINE', role: 'System Daemon', department: 'Governance Engine' },
-        action: 'SLA Auto-Escalation',
-        note: 'Complaint unresolved past 3 working days SLA limit. Escalated to Higher Authority.'
-      }
-    ]
-  }
-];
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  })
+);
 
-let notificationsDB = [
-  {
-    id: 'NOTIF-101',
-    recipientRole: 'officer',
-    recipientId: 'KMC-OFFICER-001',
-    title: 'New High Priority Complaint',
-    description: 'Complaint KPG-2026-1042 registered in Sanitation Department (Ward 4).',
-    complaintId: 'KPG-2026-1042',
-    priority: 'High',
-    department: 'Sanitation & Solid Waste Management',
-    timestamp: new Date(Date.now() - 36 * 3600 * 1000).toISOString(),
-    read: false,
-    actionLink: '/municipality/dashboard'
-  },
-  {
-    id: 'NOTIF-102',
-    recipientRole: 'higher_authority',
-    recipientId: 'HA-COMMISSIONER-01',
-    title: 'SLA Breach Auto-Escalation Warning',
-    description: 'Complaint KPG-2026-0988 (PWD Ward 6) breached 3-day SLA limit and requires immediate intervention.',
-    complaintId: 'KPG-2026-0988',
-    priority: 'Escalated',
-    department: 'Public Works (PWD)',
-    timestamp: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-    read: false,
-    actionLink: '/municipality/dashboard?tab=higher_authority'
-  }
-];
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-let announcementsDB = [
-  {
-    id: 'ANN-2026-001',
-    title: 'Scheduled Water Supply Shutdown - Ward 2 & Ward 4',
-    description: 'Water pipeline maintenance and valve replacement work scheduled on Sunday from 08:00 AM to 04:00 PM. Residents are requested to store adequate water.',
-    category: 'Water Supply Shutdown',
-    priority: 'High',
-    targetWards: [2, 4],
-    publishedBy: 'Chief Water Engineer',
-    publishDate: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-    expiryDate: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
-    status: 'Published',
-    attachments: []
-  },
-  {
-    id: 'ANN-2026-002',
-    title: 'Monsoon Heavy Rainfall Advisory & Emergency Toll-Free Number',
-    description: 'High rainfall advisory issued for Kopargaon district. Control room emergency helpline active 24x7: 1800-233-4567.',
-    category: 'Emergency Notice',
-    priority: 'Urgent/Emergency',
-    targetWards: [1, 2, 3, 4, 5, 6, 7, 8],
-    publishedBy: 'Municipal Commissioner Office',
-    publishDate: new Date().toISOString(),
-    expiryDate: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
-    status: 'Published',
-    attachments: []
-  }
-];
+// 4. Rate Limiting Middleware
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many authentication attempts. Please try again after 15 minutes.' }
+});
 
-let auditLogsDB = [
-  {
-    id: 'AUD-9001',
-    timestamp: new Date(Date.now() - 96 * 3600 * 1000).toISOString(),
-    user: { name: 'Anil Kulkarni', role: 'Citizen', department: 'Resident' },
-    ipAddress: '192.168.1.45',
-    action: 'COMPLAINT_SUBMITTED',
-    entityId: 'KPG-2026-0988',
-    entityType: 'Complaint',
-    previousValue: null,
-    newValue: { status: 'Pending', category: 'Public Works (PWD)' }
-  },
-  {
-    id: 'AUD-9002',
-    timestamp: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-    user: { name: 'SYSTEM_SLA_ENGINE', role: 'System Daemon', department: 'Governance Engine' },
-    ipAddress: '127.0.0.1 (System)',
-    action: 'AUTOMATIC_SLA_ESCALATION',
-    entityId: 'KPG-2026-0988',
-    entityType: 'Complaint',
-    previousValue: { status: 'Pending', isEscalated: false },
-    newValue: { status: 'Escalated', isEscalated: true, reason: 'Exceeded 3 working days resolution limit' }
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 500,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Rate limit exceeded. Please slow down.' }
+});
+
+app.use('/api/', apiLimiter);
+
+// Input Sanitization Helper
+const sanitizeString = (str) => {
+  if (typeof str !== 'string') return str;
+  return str.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
+};
+
+const sanitizeInput = (obj) => {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(sanitizeInput);
+  const sanitized = {};
+  for (const key of Object.keys(obj)) {
+    const val = obj[key];
+    if (typeof val === 'string') {
+      sanitized[key] = sanitizeString(val);
+    } else if (typeof val === 'object' && val !== null) {
+      sanitized[key] = sanitizeInput(val);
+    } else {
+      sanitized[key] = val;
+    }
   }
-];
+  return sanitized;
+};
+
+// Memory store for active OTP / MFA challenges
+let otpStore = {};
+let mfaStore = {};
+
+// ─── REAL-TIME SERVER-SENT EVENTS (SSE) ENGINE ────────────────────────────────
+let sseClients = [];
+
+export const broadcastEvent = (eventType, payload) => {
+  const data = JSON.stringify({
+    type: eventType,
+    payload,
+    timestamp: new Date().toISOString()
+  });
+
+  sseClients.forEach(client => {
+    try {
+      client.res.write(`data: ${data}\n\n`);
+    } catch (err) {
+      // Ignore socket write errors
+    }
+  });
+};
+
+app.get('/api/events/stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.flushHeaders();
+
+  const clientId = `CLIENT-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  const newClient = { id: clientId, res };
+  sseClients.push(newClient);
+
+  const connectedMsg = JSON.stringify({
+    type: 'CONNECTED',
+    payload: { clientId, activeClients: sseClients.length },
+    timestamp: new Date().toISOString()
+  });
+  res.write(`data: ${connectedMsg}\n\n`);
+
+  req.on('close', () => {
+    sseClients = sseClients.filter(c => c.id !== clientId);
+  });
+});
+
+// Token & Cookie Helpers
+const setSessionCookie = (res, token) => {
+  res.cookie('kpg_session', token, {
+    httpOnly: true,
+    secure: IS_PROD,
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60 * 1000
+  });
+};
+
+const clearSessionCookie = (res) => {
+  res.cookie('kpg_session', '', {
+    httpOnly: true,
+    secure: IS_PROD,
+    sameSite: 'lax',
+    maxAge: 0
+  });
+};
+
+// Authentication Middleware
+const authenticateToken = (req, res, next) => {
+  let token = req.cookies?.kpg_session;
+
+  if (!token) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    }
+  }
+
+  if (!token) {
+    return res.status(401).json({ success: false, error: 'Authentication required. Please log in to continue.' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ success: false, error: 'Session expired or invalid token. Please log in again.' });
+  }
+};
+
+// RBAC Middleware
+const requireRoles = (...allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ success: false, error: 'Authentication required.' });
+    }
+    if (!allowedRoles.includes(req.user.role)) {
+      dataStore.auditLogs.add(req, 'ROLE_ACCESS_DENIED', 'N/A', 'RBAC', 'DENIED', `User role '${req.user.role}' attempted restricted resource requiring [${allowedRoles.join(', ')}].`);
+      return res.status(403).json({
+        success: false,
+        error: 'Access Denied: You do not have sufficient permissions to perform this operation.',
+        requiredRoles: allowedRoles,
+        userRole: req.user.role
+      });
+    }
+    next();
+  };
+};
+
+// ─── 5. UNIFIED DATA ARCHITECTURE ENDPOINTS ──────────────────────────────────
 
 // Health Check
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
-    message: 'Kopargaon Municipal Governance & Accountability Engine Operational',
-    lastSync: new Date().toISOString()
+    system: 'Kopargaon Enterprise Governance Data Engine',
+    securityMode: 'Bcrypt + HTTP-Only Cookies + Rate Limiting + Real-Time SSE Stream',
+    activeSSEClients: sseClients.length,
+    timestamp: new Date().toISOString()
   });
 });
 
-// Complaints Endpoints
-app.get('/api/complaints', (req, res) => {
-  res.json({ success: true, count: complaintsDB.length, data: complaintsDB });
+// Single Source of Truth Overview Metrics
+app.get('/api/data/overview', (req, res) => {
+  res.json({ success: true, data: dataStore.getCityOverview() });
 });
 
-app.get('/api/complaints/:id', (req, res) => {
-  const item = complaintsDB.find(c => c.id === req.params.id);
-  if (!item) return res.status(404).json({ success: false, message: 'Complaint not found' });
-  res.json({ success: true, data: item });
+// Infrastructure & Assets Endpoint
+app.get('/api/infrastructure/assets', (req, res) => {
+  res.json({ success: true, count: dataStore.assets.getAll().length, data: dataStore.assets.getAll() });
 });
 
-app.post('/api/complaints', (req, res) => {
-  const body = req.body;
-  const now = new Date().toISOString();
-  const dueDate = new Date(Date.now() + 72 * 3600 * 1000).toISOString(); // 3 working days SLA
-
-  const newComplaint = {
-    id: body.id || `KPG-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-    citizenId: body.citizenId || 'CIT-GUEST',
-    submittedBy: body.submittedBy || 'Resident Citizen',
-    citizenEmail: body.citizenEmail || 'citizen@kopargaon.gov.in',
-    category: body.category || 'Sanitation',
-    title: body.title,
-    description: body.description,
-    address: body.address || body.locationName || 'Kopargaon',
-    ward: parseInt(body.ward) || 1,
-    latitude: body.latitude || 19.8833,
-    longitude: body.longitude || 74.4833,
-    imageUrl: body.imageUrl || '',
-    status: 'Pending',
-    priority: body.priority || 'High',
-    department: body.department || 'Public Works (PWD)',
-    assignedOfficer: null,
-    submittedAt: now,
-    dueDate: dueDate,
-    workStartedAt: null,
-    completedAt: null,
-    isEscalated: false,
-    remarks: [],
-    supportingDocuments: [],
-    completionReport: null,
-    timeline: [
-      {
-        id: `EVT-${Date.now()}`,
-        status: 'Pending',
-        timestamp: now,
-        actor: { name: body.submittedBy || 'Citizen', role: 'Citizen', department: 'Resident' },
-        action: 'Complaint Registered',
-        note: `Complaint submitted under ${body.category || 'General'} category.`
-      }
-    ]
-  };
-
-  complaintsDB.unshift(newComplaint);
-
-  // Audit Log
-  const logEntry = {
-    id: `AUD-${Date.now()}`,
-    timestamp: now,
-    user: { name: newComplaint.submittedBy, role: 'Citizen', department: 'Resident' },
-    ipAddress: '192.168.1.104',
-    action: 'COMPLAINT_SUBMITTED',
-    entityId: newComplaint.id,
-    entityType: 'Complaint',
-    previousValue: null,
-    newValue: { status: 'Pending', category: newComplaint.category }
-  };
-  auditLogsDB.unshift(logEntry);
-
-  // Notification for Officer
-  const notif = {
-    id: `NOTIF-${Date.now()}`,
-    recipientRole: 'officer',
-    recipientId: 'KMC-OFFICER-001',
-    title: 'New Complaint Registered',
-    description: `Ticket ${newComplaint.id} (${newComplaint.category}) logged in Ward ${newComplaint.ward}.`,
-    complaintId: newComplaint.id,
-    priority: newComplaint.priority,
-    department: newComplaint.department,
-    timestamp: now,
-    read: false,
-    actionLink: '/municipality/dashboard'
-  };
-  notificationsDB.unshift(notif);
-
-  res.status(201).json({ success: true, data: newComplaint });
+// Sensors & Telemetry Endpoint
+app.get('/api/sensors/live', (req, res) => {
+  res.json({ success: true, count: dataStore.sensors.getAll().length, data: dataStore.sensors.getAll() });
 });
 
-// Notifications Endpoints
-app.get('/api/notifications', (req, res) => {
-  res.json({ success: true, data: notificationsDB });
+// Municipal Response Teams Endpoint
+app.get('/api/teams', (req, res) => {
+  res.json({ success: true, count: dataStore.teams.getAll().length, data: dataStore.teams.getAll() });
 });
 
-app.put('/api/notifications/:id/read', (req, res) => {
-  notificationsDB = notificationsDB.map(n => n.id === req.params.id ? { ...n, read: true } : n);
-  res.json({ success: true, message: 'Notification marked read' });
+// AI Insights & Predictions Endpoint
+app.get('/api/ai/insights', (req, res) => {
+  res.json({ success: true, count: dataStore.aiInsights.getAll().length, data: dataStore.aiInsights.getAll() });
 });
 
-// Announcements Endpoints
-app.get('/api/announcements', (req, res) => {
-  res.json({ success: true, data: announcementsDB });
-});
-
-app.post('/api/announcements', (req, res) => {
-  const body = req.body;
-  const now = new Date().toISOString();
-  const newAnn = {
-    id: `ANN-2026-${Math.floor(100 + Math.random() * 900)}`,
-    title: body.title,
-    description: body.description,
-    category: body.category || 'General Notice',
-    priority: body.priority || 'Normal',
-    targetWards: body.targetWards || [1, 2, 3, 4, 5, 6, 7, 8],
-    publishedBy: body.publishedBy || 'Municipal Administration',
-    publishDate: now,
-    expiryDate: body.expiryDate || new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(),
-    status: 'Published',
-    attachments: body.attachments || []
-  };
-  announcementsDB.unshift(newAnn);
-
-  // Broadcast Notification
-  notificationsDB.unshift({
-    id: `NOTIF-${Date.now()}`,
-    recipientRole: 'citizen',
-    recipientId: 'ALL_CITIZENS',
-    title: `Public Announcement: ${newAnn.title}`,
-    description: newAnn.description.slice(0, 100) + '...',
-    complaintId: null,
-    priority: newAnn.priority,
-    department: 'Municipal Administration',
-    timestamp: now,
-    read: false,
-    actionLink: '/citizen/dashboard'
-  });
-
-  res.status(201).json({ success: true, data: newAnn });
-});
-
-// Audit Logs Endpoints
-app.get('/api/audit-logs', (req, res) => {
-  res.json({ success: true, data: auditLogsDB });
-});
-
-// SLA Auto-Check Endpoint
-app.post('/api/sla-check', (req, res) => {
-  const now = new Date();
-  let escalatedCount = 0;
-
-  complaintsDB = complaintsDB.map(c => {
-    if (c.status !== 'Completed' && c.status !== 'Resolved' && !c.isEscalated) {
-      const dueTime = new Date(c.dueDate);
-      if (now > dueTime) {
-        escalatedCount++;
-        const nowIso = now.toISOString();
-        
-        // Audit log
-        auditLogsDB.unshift({
-          id: `AUD-${Date.now()}-${Math.floor(Math.random()*100)}`,
-          timestamp: nowIso,
-          user: { name: 'SYSTEM_SLA_ENGINE', role: 'System Daemon', department: 'Governance Engine' },
-          ipAddress: '127.0.0.1 (System)',
-          action: 'AUTOMATIC_SLA_ESCALATION',
-          entityId: c.id,
-          entityType: 'Complaint',
-          previousValue: { status: c.status, isEscalated: false },
-          newValue: { status: 'Escalated', isEscalated: true, reason: 'Passed 3-day resolution SLA deadline' }
-        });
-
-        // Escalation Notification to Higher Authority
-        notificationsDB.unshift({
-          id: `NOTIF-${Date.now()}-${Math.floor(Math.random()*100)}`,
-          recipientRole: 'higher_authority',
-          recipientId: 'HA-COMMISSIONER-01',
-          title: `CRITICAL: SLA Breached - Escalated Ticket ${c.id}`,
-          description: `Ticket ${c.id} (${c.department}) unresolved past 3-day SLA limit. Requires intervention.`,
-          complaintId: c.id,
-          priority: 'Escalated',
-          department: c.department,
-          timestamp: nowIso,
-          read: false,
-          actionLink: '/municipality/dashboard?tab=higher_authority'
-        });
-
-        return {
-          ...c,
-          status: 'Escalated',
-          isEscalated: true,
-          timeline: [
-            ...c.timeline,
-            {
-              id: `EVT-${Date.now()}`,
-              status: 'Escalated',
-              timestamp: nowIso,
-              actor: { name: 'SYSTEM_SLA_ENGINE', role: 'System Daemon', department: 'Governance Engine' },
-              action: 'SLA Auto-Escalation',
-              note: 'Overdue 3 working days SLA limit. Automatically escalated to Higher Authority Dashboard.'
-            }
-          ]
-        };
-      }
+// Optional/Flexible Auth middleware for AI Query endpoint
+const optionalAuthenticate = (req, res, next) => {
+  let token = req.cookies?.kpg_session;
+  if (!token) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
     }
-    return c;
+  }
+  if (token) {
+    try {
+      req.user = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      req.user = null;
+    }
+  }
+  next();
+};
+
+// Grounded AI Query & Data Analytics Assistant Endpoint
+app.post('/api/ai/query', optionalAuthenticate, (req, res) => {
+  const { query } = req.body;
+  const user = req.user || { role: ROLES.CITIZEN, id: 'CIT-GUEST', name: 'Citizen Resident' };
+  const userRole = user.role || ROLES.CITIZEN;
+
+  // 1. Fetch Real Data Collections from Single Source of Truth dataStore
+  const allComplaints = dataStore.complaints.getAll();
+  const allAssets = dataStore.assets.getAll();
+  const allSensors = dataStore.sensors.getAll();
+
+  const totalCount = allComplaints.length;
+  const nowMs = Date.now();
+
+  const openComplaints = allComplaints.filter(c => 
+    c.status !== COMPLAINT_STATUS.RESOLVED && 
+    c.status !== COMPLAINT_STATUS.COMPLETED && 
+    c.status !== COMPLAINT_STATUS.CLOSED
+  );
+
+  const resolvedComplaints = allComplaints.filter(c => 
+    c.status === COMPLAINT_STATUS.RESOLVED || 
+    c.status === COMPLAINT_STATUS.COMPLETED || 
+    c.status === COMPLAINT_STATUS.CLOSED
+  );
+
+  const escalatedComplaints = allComplaints.filter(c => c.isEscalated || c.status === 'Escalated');
+
+  const slaBreachedComplaints = openComplaints.filter(c => {
+    if (!c.dueDate) return false;
+    return new Date(c.dueDate).getTime() < nowMs;
   });
 
-  res.json({ success: true, message: `SLA Engine complete. ${escalatedCount} complaints auto-escalated.` });
+  // Ward Analytics (Unresolved complaints per ward)
+  const wardOpenMap = {};
+  const wardTotalMap = {};
+  openComplaints.forEach(c => {
+    const w = c.location?.ward || c.ward || 1;
+    wardOpenMap[w] = (wardOpenMap[w] || 0) + 1;
+  });
+  allComplaints.forEach(c => {
+    const w = c.location?.ward || c.ward || 1;
+    wardTotalMap[w] = (wardTotalMap[w] || 0) + 1;
+  });
+
+  const sortedWards = Object.keys(wardOpenMap).sort((a, b) => wardOpenMap[b] - wardOpenMap[a]);
+  const topHotspotWard = sortedWards[0] || null;
+  const hotspotCount = topHotspotWard ? wardOpenMap[topHotspotWard] : 0;
+
+  // Category Analytics (Most common problems)
+  const categoryOpenMap = {};
+  const categoryTotalMap = {};
+  allComplaints.forEach(c => {
+    const cat = c.category || 'General';
+    categoryTotalMap[cat] = (categoryTotalMap[cat] || 0) + 1;
+    if (c.status !== COMPLAINT_STATUS.RESOLVED && c.status !== COMPLAINT_STATUS.COMPLETED && c.status !== COMPLAINT_STATUS.CLOSED) {
+      categoryOpenMap[cat] = (categoryOpenMap[cat] || 0) + 1;
+    }
+  });
+  const sortedCategories = Object.keys(categoryTotalMap).sort((a, b) => categoryTotalMap[b] - categoryTotalMap[a]);
+
+  // Repeated Complaint Clusters (Ward + Category combination with >1 complaint)
+  const clusterMap = {};
+  allComplaints.forEach(c => {
+    const w = c.location?.ward || c.ward || 1;
+    const cat = c.category || 'General';
+    const key = `Ward ${w} - ${cat}`;
+    clusterMap[key] = (clusterMap[key] || 0) + 1;
+  });
+  const repeatedClusters = Object.entries(clusterMap)
+    .filter(([k, count]) => count > 1)
+    .sort((a, b) => b[1] - a[1]);
+
+  // Urgent & Emergency Incidents
+  const urgentIncidents = openComplaints.filter(c => 
+    c.priority === 'Emergency' || 
+    c.priority === 'High' || 
+    c.isEscalated ||
+    (c.dueDate && new Date(c.dueDate).getTime() < nowMs)
+  );
+
+  // Time Trends (Recent vs Older)
+  const cutoff48h = nowMs - 48 * 3600 * 1000;
+  const recentSubmissions = allComplaints.filter(c => new Date(c.submittedAt || c.createdAt).getTime() >= cutoff48h);
+  const olderSubmissions = allComplaints.filter(c => new Date(c.submittedAt || c.createdAt).getTime() < cutoff48h);
+
+  // Process Query Intent & Build Fact-Grounded Response
+  const qLower = (query || '').toLowerCase();
+  let responseText = '';
+
+  if (totalCount === 0) {
+    responseText = `📊 **REAL DATABASE FACTS:**\nCurrently, there are no registered complaint records in the Kopargaon municipal database.\n\n🤖 **AI RECOMMENDATION:**\nMaintain proactive monitoring across all 28 wards.`;
+  } else if (qLower.includes('unresolved') || qLower.includes('area') || qLower.includes('ward') || qLower.includes('most complaint')) {
+    const wardListStr = sortedWards.slice(0, 5).map(w => `• **Ward ${w}**: ${wardOpenMap[w]} unresolved complaint(s)`).join('\n');
+    
+    responseText = `📊 **REAL DATABASE FACTS (Unresolved Complaints by Area):**\n` +
+      `• Total Unresolved Complaints in Kopargaon: **${openComplaints.length}** out of ${totalCount} total tickets.\n` +
+      `• Top Affected Wards:\n${wardListStr || 'None'}\n\n` +
+      `🤖 **AI GOVERNANCE RECOMMENDATIONS:**\n` +
+      `1. **Priority Deployment**: Reallocate Ward Inspection Officers to **Ward ${topHotspotWard || 1}** which holds the highest concentration of unresolved issues (${hotspotCount} open).\n` +
+      `2. **Resource Alignment**: Coordinate sanitation and PWD teams for a multi-department sweep in Ward ${topHotspotWard || 1}.\n\n` +
+      `🔒 *Data Context: Grounded in live Kopargaon dataStore records. User Role: ${userRole.toUpperCase()}.*`;
+
+  } else if (qLower.includes('common') || qLower.includes('category') || qLower.includes('problem') || qLower.includes('type')) {
+    const catListStr = sortedCategories.map(cat => `• **${cat}**: ${categoryTotalMap[cat]} total (${categoryOpenMap[cat] || 0} unresolved)`).join('\n');
+
+    responseText = `📊 **REAL DATABASE FACTS (Most Common Problems):**\n` +
+      `• Complaint Categories Ranked by Frequency:\n${catListStr}\n\n` +
+      `🤖 **AI GOVERNANCE RECOMMENDATIONS:**\n` +
+      `1. **Capacity Adjustment**: The primary complaint category is **"${sortedCategories[0]}"** (${categoryTotalMap[sortedCategories[0]]} tickets). Increase squad capacity for this sector.\n` +
+      `2. **Preventive Maintenance**: Procure spare materials targeted specifically at ${sortedCategories[0]} infrastructure.\n\n` +
+      `🔒 *Data Context: Grounded in live Kopargaon dataStore records.*`;
+
+  } else if (qLower.includes('urgent') || qLower.includes('emergency') || qLower.includes('attention') || qLower.includes('priority')) {
+    const urgentListStr = urgentIncidents.map(u => 
+      `• **Ticket #${u.id}** (${u.category}): ${u.title} — Ward ${u.location?.ward || u.ward} [Priority: ${u.priority}, Status: ${u.status}]`
+    ).join('\n');
+
+    responseText = `📊 **REAL DATABASE FACTS (Incidents Needing Urgent Attention):**\n` +
+      `• Total Urgent / SLA Breached / Escalated Incidents: **${urgentIncidents.length}**\n` +
+      `${urgentListStr || '• No urgent or SLA breached tickets currently.'}\n\n` +
+      `🤖 **AI GOVERNANCE RECOMMENDATIONS:**\n` +
+      `${urgentIncidents.length > 0 
+        ? `1. **Immediate Field Dispatch**: Assign executive field engineers to Ticket #${urgentIncidents[0].id} (${urgentIncidents[0].category} in Ward ${urgentIncidents[0].location?.ward || urgentIncidents[0].ward}).\n2. **SLA Rescue**: Dispatch emergency teams to clear all ${slaBreachedComplaints.length} SLA-breached tickets.`
+        : '1. Maintain routine monitoring. All active tickets are currently operating within SLA limits.'}\n\n` +
+      `🔒 *Data Context: Grounded in live Kopargaon dataStore records.*`;
+
+  } else if (qLower.includes('repeat') || qLower.includes('recur') || qLower.includes('frequent') || qLower.includes('cluster')) {
+    const clusterStr = repeatedClusters.map(([cluster, count]) => `• **${cluster}**: ${count} repeated incidents`).join('\n');
+
+    responseText = `📊 **REAL DATABASE FACTS (Repeated / Recurring Incidents):**\n` +
+      `${repeatedClusters.length > 0 
+        ? `The following geographic & category clusters have experienced repeated failures:\n${clusterStr}` 
+        : '• No repeated complaint clusters detected across wards.'}\n\n` +
+      `🤖 **AI GOVERNANCE RECOMMENDATIONS:**\n` +
+      `${repeatedClusters.length > 0 
+        ? `1. **Root-Cause Investigation**: Conduct structural engineering audit on **${repeatedClusters[0][0]}** to replace failing infrastructure rather than patching symptoms.\n2. **IoT Telemetry**: Deploy telemetry sensors at ${repeatedClusters[0][0]} for automated failure detection.` 
+        : '1. Continue standard maintenance protocols.'}\n\n` +
+      `🔒 *Data Context: Grounded in live Kopargaon dataStore records.*`;
+
+  } else if (qLower.includes('trend') || qLower.includes('increase') || qLower.includes('decrease') || qLower.includes('rate')) {
+    responseText = `📊 **REAL DATABASE FACTS (Submission & Resolution Trends):**\n` +
+      `• **Recent Submissions (Last 48 Hours)**: ${recentSubmissions.length} new complaint(s)\n` +
+      `• **Older Submissions**: ${olderSubmissions.length} complaint(s)\n` +
+      `• **Overall Resolution Rate**: ${Math.round((resolvedComplaints.length / Math.max(1, totalCount)) * 100)}% (${resolvedComplaints.length} resolved out of ${totalCount})\n` +
+      `• **Active SLA Breaches**: ${slaBreachedComplaints.length} overdue ticket(s)\n\n` +
+      `🤖 **AI GOVERNANCE RECOMMENDATIONS:**\n` +
+      `1. **Trend Analysis**: ${recentSubmissions.length > olderSubmissions.length ? 'Submissions are INCREASING recently — increase triage velocity.' : 'Submission rate is STABLE.'}\n` +
+      `2. **Resolution Target**: Elevate overall resolution rate from ${Math.round((resolvedComplaints.length / Math.max(1, totalCount)) * 100)}% to target 85%+.\n\n` +
+      `🔒 *Data Context: Grounded in live Kopargaon dataStore records.*`;
+
+  } else {
+    const topWardStr = topHotspotWard ? `Ward ${topHotspotWard} (${hotspotCount} open)` : 'None';
+    const topCatStr = sortedCategories[0] ? `"${sortedCategories[0]}" (${categoryOpenMap[sortedCategories[0]] || 0} open)` : 'None';
+
+    responseText = `📊 **REAL DATABASE FACTS (Kopargaon Smart City Overview):**\n` +
+      `• **Total Registered Tickets**: ${totalCount}\n` +
+      `• **Unresolved Complaints**: ${openComplaints.length}\n` +
+      `• **Resolved Complaints**: ${resolvedComplaints.length} (${Math.round((resolvedComplaints.length / Math.max(1, totalCount)) * 100)}% resolution rate)\n` +
+      `• **Highest Unresolved Ward**: ${topWardStr}\n` +
+      `• **Primary Problem Category**: ${topCatStr}\n` +
+      `• **Urgent / SLA Breached Tickets**: ${urgentIncidents.length}\n\n` +
+      `🤖 **AI GOVERNANCE RECOMMENDATIONS:**\n` +
+      `1. **Focus Ward ${topHotspotWard || 1}**: Priority allocation of field teams to clear ${hotspotCount} unresolved issues.\n` +
+      `2. **Target ${sortedCategories[0] || 'Sanitation'}**: Reallocate 2 maintenance units to address category backlog.\n` +
+      `3. **Clear Urgent Tickets**: Address ${urgentIncidents.length} priority ticket(s) immediately.\n\n` +
+      `🔒 *Data Access Level: ${userRole.toUpperCase()} — Fully Grounded in Kopargaon Single Source Database.*`;
+  }
+
+  // Safe Audit Log Execution
+  dataStore.auditLogs.add(
+    req,
+    'AI_QUERY_EXECUTED',
+    'AI_ENGINE',
+    'DataAnalytics',
+    'SUCCESS',
+    `Grounded AI query evaluated for role '${userRole}' on ${totalCount} records.`
+  );
+
+  res.json({
+    success: true,
+    query: query,
+    userRole: userRole,
+    responseText: responseText,
+    dataSummary: {
+      totalComplaints: totalCount,
+      openComplaints: openComplaints.length,
+      resolvedComplaints: resolvedComplaints.length,
+      slaBreachedComplaints: slaBreachedComplaints.length,
+      topHotspotWard: topHotspotWard,
+      topCategory: sortedCategories[0] || null
+    },
+    timestamp: new Date().toISOString()
+  });
 });
 
-// Citizen Registration & Authentication Storage
-let registeredCitizensDB = [
-  {
-    id: 'CIT-8821',
-    name: 'Ramesh Deshmukh',
-    email: 'citizen@kopargaon.gov.in',
-    phone: '+91 98765 43210',
-    aadhaar: '1234-5678-9012',
-    district: 'Ahilyanagar (Ahmednagar)',
-    city: 'Kopargaon',
-    ward: 4,
-    address: 'Shivaji Chowk, Ward 4, Kopargaon - 423601',
-    password: 'citizen123',
-    registeredAt: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()
+// ─── 6. AUTHENTICATION & IDENTITY ENDPOINTS ─────────────────────────────────
+
+// OTP Send
+app.post('/api/auth/otp/send', authLimiter, (req, res) => {
+  const { identifier } = req.body;
+  if (!identifier) {
+    return res.status(400).json({ success: false, error: 'Email or Mobile number is required.' });
   }
-];
 
-// Citizen Registration REST API
-app.post('/api/citizens/register', (req, res) => {
-  const { fullName, email, mobile, aadhaar, district, city, wardNumber, address, password } = req.body;
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = Date.now() + 10 * 60 * 1000;
+  otpStore[identifier.trim().toLowerCase()] = { code, expiresAt, verified: false };
 
-  // Validation 1: District
+  res.json({
+    success: true,
+    message: `6-digit Verification OTP sent to ${identifier}.`,
+    demoOtp: code
+  });
+});
+
+// OTP Verify
+app.post('/api/auth/otp/verify', (req, res) => {
+  const { identifier, otp } = req.body;
+  if (!identifier || !otp) {
+    return res.status(400).json({ success: false, error: 'Identifier and OTP are required.' });
+  }
+
+  const key = identifier.trim().toLowerCase();
+  const record = otpStore[key];
+
+  if (!record || record.code !== otp.trim()) {
+    return res.status(400).json({ success: false, error: 'Invalid Verification OTP.' });
+  }
+
+  if (Date.now() > record.expiresAt) {
+    delete otpStore[key];
+    return res.status(400).json({ success: false, error: 'Verification OTP has expired. Please request a new one.' });
+  }
+
+  record.verified = true;
+  res.json({ success: true, message: 'Identity verified successfully!' });
+});
+
+// Citizen Registration
+app.post('/api/citizens/register', authLimiter, (req, res) => {
+  const sanitized = sanitizeInput(req.body);
+  const { fullName, email, mobile, aadhaar, district, city, wardNumber, address, password } = sanitized;
+
   const normDist = (district || '').trim().toLowerCase();
   if (!normDist.includes('ahilyanagar') && !normDist.includes('ahmednagar')) {
     return res.status(400).json({ success: false, error: 'Registration rejected: District must be Ahilyanagar (Ahmednagar).' });
   }
 
-  // Validation 2: City
   const normCity = (city || '').trim().toLowerCase();
   if (!normCity.includes('kopargaon')) {
     return res.status(400).json({ success: false, error: 'Registration rejected: City must be Kopargaon.' });
   }
 
-  // Validation 3: 12-digit Aadhaar
   const cleanAadhaar = (aadhaar || '').replace(/\D/g, '');
   if (cleanAadhaar.length !== 12) {
-    return res.status(400).json({ success: false, error: 'Invalid Aadhaar: 12 numeric digits required.' });
+    return res.status(400).json({ success: false, error: 'Invalid Aadhaar: Exactly 12 numeric digits required.' });
+  }
+
+  if (!password || password.length < 6) {
+    return res.status(400).json({ success: false, error: 'Password must be at least 6 characters long.' });
   }
 
   const cleanEmail = (email || '').trim().toLowerCase();
-  const exists = registeredCitizensDB.some(c => c.email === cleanEmail || c.aadhaar.replace(/\D/g, '') === cleanAadhaar);
+  const exists = dataStore.users.find(u => u.email === cleanEmail || (u.aadhaar && u.aadhaar.replace(/\D/g, '') === cleanAadhaar));
   if (exists) {
-    return res.status(409).json({ success: false, error: 'Account already exists with provided Email or Aadhaar.' });
+    return res.status(409).json({ success: false, error: 'An account already exists with this Email or Aadhaar Number.' });
   }
 
   const formattedAadhaar = `${cleanAadhaar.slice(0,4)}-${cleanAadhaar.slice(4,8)}-${cleanAadhaar.slice(8,12)}`;
+  const passwordHash = bcrypt.hashSync(password, 10);
+
   const newCitizen = {
     id: `CIT-${Math.floor(1000 + Math.random() * 9000)}`,
     name: fullName || 'Registered Citizen',
@@ -496,29 +538,39 @@ app.post('/api/citizens/register', (req, res) => {
     city: 'Kopargaon',
     ward: parseInt(wardNumber) || 4,
     address: address || 'Kopargaon, Maharashtra',
-    password: password || 'citizen123',
+    passwordHash: passwordHash,
+    role: ROLES.CITIZEN,
+    department: 'Resident',
+    mfaEnabled: false,
     registeredAt: new Date().toISOString()
   };
 
-  registeredCitizensDB.unshift(newCitizen);
+  dataStore.users.add(newCitizen);
+
   const token = jwt.sign(
-    { id: newCitizen.id, email: newCitizen.email, role: 'citizen', name: newCitizen.name },
+    { id: newCitizen.id, email: newCitizen.email, role: ROLES.CITIZEN, name: newCitizen.name },
     JWT_SECRET,
     { expiresIn: '24h' }
   );
-  res.status(201).json({
-    success: true,
-    userId: newCitizen.id,
-    fullName: newCitizen.name,
-    email: newCitizen.email,
-    role: 'citizen',
-    token,
-    citizen: newCitizen
-  });
+
+  setSessionCookie(res, token);
+  dataStore.auditLogs.add(
+    { user: { id: newCitizen.id, name: newCitizen.name, role: ROLES.CITIZEN }, headers: req.headers, socket: req.socket },
+    'CITIZEN_REGISTER_SUCCESS',
+    newCitizen.id,
+    'UserAccount',
+    'SUCCESS',
+    `Registered new citizen ${newCitizen.name} (${newCitizen.email})`
+  );
+
+  const userSafe = { ...newCitizen };
+  delete userSafe.passwordHash;
+
+  res.status(201).json({ success: true, user: userSafe, token });
 });
 
-// Citizen Login REST API with JWT Token
-app.post('/api/citizens/login', (req, res) => {
+// Citizen Login
+app.post('/api/citizens/login', authLimiter, (req, res) => {
   const { identifier, password } = req.body;
   if (!identifier || !password) {
     return res.status(400).json({ success: false, error: 'Email/Aadhaar and password required.' });
@@ -527,278 +579,422 @@ app.post('/api/citizens/login', (req, res) => {
   const cleanInput = identifier.trim().toLowerCase();
   const cleanDigits = identifier.replace(/\D/g, '');
 
-  const user = registeredCitizensDB.find(c => {
-    const matchEmail = c.email && c.email.toLowerCase() === cleanInput;
-    const matchAadhaar = c.aadhaar && c.aadhaar.replace(/\D/g, '') === cleanDigits && cleanDigits.length === 12;
-    return (matchEmail || matchAadhaar) && c.password === password;
+  const user = dataStore.users.find(u => {
+    if (u.role !== ROLES.CITIZEN) return false;
+    const matchEmail = u.email && u.email.toLowerCase() === cleanInput;
+    const matchAadhaar = u.aadhaar && u.aadhaar.replace(/\D/g, '') === cleanDigits && cleanDigits.length === 12;
+    return matchEmail || matchAadhaar;
   });
 
-  if (user) {
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: 'citizen', name: user.name },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-    res.json({
-      success: true,
-      userId: user.id,
-      fullName: user.name,
-      email: user.email,
-      role: 'citizen',
-      token,
-      citizen: user
-    });
-  } else {
-    res.status(401).json({ success: false, error: 'Invalid Email/Aadhaar or password.' });
+  if (!user || !bcrypt.compareSync(password, user.passwordHash)) {
+    dataStore.auditLogs.add(req, 'LOGIN_FAILURE', identifier, 'CitizenAuth', 'FAILURE', 'Invalid credentials provided.');
+    return res.status(401).json({ success: false, error: 'Invalid Email/Aadhaar or password.' });
   }
+
+  const token = jwt.sign(
+    { id: user.id, email: user.email, role: ROLES.CITIZEN, name: user.name },
+    JWT_SECRET,
+    { expiresIn: '24h' }
+  );
+
+  setSessionCookie(res, token);
+  dataStore.auditLogs.add(req, 'LOGIN_SUCCESS', user.id, 'CitizenAuth', 'SUCCESS', `Citizen logged in: ${user.name}`);
+
+  const userSafe = { ...user };
+  delete userSafe.passwordHash;
+
+  res.json({ success: true, user: userSafe, token });
 });
 
-// Citizen Verify Session / Me Endpoint
-app.get('/api/citizens/me', (req, res) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ success: false, error: 'No token provided.' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const user = registeredCitizensDB.find(c => c.id === decoded.id || c.email === decoded.email);
-    if (user) {
-      res.json({
-        success: true,
-        userId: user.id,
-        fullName: user.name,
-        email: user.email,
-        role: 'citizen',
-        token,
-        citizen: user
-      });
-    } else {
-      res.status(404).json({ success: false, error: 'Citizen profile not found.' });
-    }
-  } catch (err) {
-    res.status(401).json({ success: false, error: 'Token expired or invalid.' });
-  }
-});
-
-// Citizen Profile Update Endpoint
-app.put('/api/citizens/profile', (req, res) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ success: false, error: 'No token provided.' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const userIndex = registeredCitizensDB.findIndex(c => c.id === decoded.id || c.email === decoded.email);
-    if (userIndex !== -1) {
-      const { fullName, name, email, phone, ward, address } = req.body;
-      const updatedName = fullName || name || registeredCitizensDB[userIndex].name;
-      registeredCitizensDB[userIndex] = {
-        ...registeredCitizensDB[userIndex],
-        name: updatedName,
-        email: email || registeredCitizensDB[userIndex].email,
-        phone: phone || registeredCitizensDB[userIndex].phone,
-        ward: ward !== undefined ? parseInt(ward) : registeredCitizensDB[userIndex].ward,
-        address: address || registeredCitizensDB[userIndex].address
-      };
-      const updatedUser = registeredCitizensDB[userIndex];
-      res.json({
-        success: true,
-        userId: updatedUser.id,
-        fullName: updatedUser.name,
-        email: updatedUser.email,
-        role: 'citizen',
-        citizen: updatedUser
-      });
-    } else {
-      res.status(404).json({ success: false, error: 'Citizen profile not found.' });
-    }
-  } catch (err) {
-    res.status(401).json({ success: false, error: 'Token expired or invalid.' });
-  }
-});
-
-// Municipal Officer Login REST API with JWT Token
-app.post('/api/officers/login', (req, res) => {
+// Officer & Admin Login (Triggers MFA Challenge)
+app.post('/api/officers/login', authLimiter, (req, res) => {
   const { officerId, password } = req.body;
-  if ((officerId === 'kpg' && password === 'kpg@123') || (officerId === 'admin' && password === 'admin123')) {
-    const officer = {
-      officerId: officerId,
-      name: 'Municipal Administrator',
-      role: 'Smart City Commissioner',
-      department: 'Municipal Headquarters',
-      badge: 'KMC-OFFICER-001'
-    };
-    const token = jwt.sign(
-      { officerId: officer.officerId, role: 'officer', name: officer.name },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-    res.json({
-      success: true,
-      userId: officer.officerId,
-      fullName: officer.name,
-      email: 'officer@kopargaon.gov.in',
-      role: officer.role,
-      token,
-      officer
-    });
-  } else {
-    res.status(401).json({ success: false, error: 'Invalid Officer ID or Access Code.' });
+  if (!officerId || !password) {
+    return res.status(400).json({ success: false, error: 'Officer ID and Password are required.' });
   }
+
+  const cleanId = officerId.trim().toLowerCase();
+  const user = dataStore.users.find(u => (u.role === ROLES.STAFF || u.role === ROLES.ADMIN) && u.officerId && u.officerId.toLowerCase() === cleanId);
+
+  if (!user || !bcrypt.compareSync(password, user.passwordHash)) {
+    dataStore.auditLogs.add(req, 'OFFICER_LOGIN_FAILURE', officerId, 'OfficerAuth', 'FAILURE', 'Invalid officer credentials.');
+    return res.status(401).json({ success: false, error: 'Invalid Officer ID or Access Password.' });
+  }
+
+  const mfaToken = `MFA-TOK-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  const mfaCode = Math.floor(100000 + Math.random() * 900000).toString();
+  mfaStore[mfaToken] = { userId: user.id, code: mfaCode, expiresAt: Date.now() + 5 * 60 * 1000 };
+
+  dataStore.auditLogs.add(req, 'MFA_CHALLENGE_ISSUED', user.id, 'OfficerAuth', 'PENDING', `MFA challenge generated for ${user.role} (${user.name})`);
+
+  res.json({
+    success: true,
+    mfaRequired: true,
+    mfaToken,
+    message: 'Authentication phase 1 successful. Mandatory 2FA OTP code required.',
+    demoMfaCode: mfaCode
+  });
 });
 
-// Officer Verify Session / Me Endpoint
-app.get('/api/officers/me', (req, res) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ success: false, error: 'No token provided.' });
+// MFA Verification
+app.post('/api/auth/mfa/verify', authLimiter, (req, res) => {
+  const { mfaToken, mfaCode } = req.body;
+  if (!mfaToken || !mfaCode) {
+    return res.status(400).json({ success: false, error: 'MFA Token and 6-digit OTP code are required.' });
   }
 
-  const token = authHeader.split(' ')[1];
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    if (decoded.role === 'officer') {
-      const officer = {
-        officerId: decoded.officerId || 'kpg',
-        name: decoded.name || 'Municipal Administrator',
-        role: 'Smart City Commissioner',
-        department: 'Municipal Headquarters',
-        badge: 'KMC-OFFICER-001'
-      };
-      res.json({ success: true, officer, token });
-    } else {
-      res.status(403).json({ success: false, error: 'Invalid officer role token.' });
-    }
-  } catch (err) {
-    res.status(401).json({ success: false, error: 'Token expired or invalid.' });
+  const challenge = mfaStore[mfaToken];
+  if (!challenge || challenge.code !== mfaCode.trim()) {
+    return res.status(400).json({ success: false, error: 'Invalid 2FA Verification Code.' });
   }
+
+  if (Date.now() > challenge.expiresAt) {
+    delete mfaStore[mfaToken];
+    return res.status(400).json({ success: false, error: '2FA Verification Code expired. Please sign in again.' });
+  }
+
+  const user = dataStore.users.find(u => u.id === challenge.userId);
+  delete mfaStore[mfaToken];
+
+  if (!user) {
+    return res.status(404).json({ success: false, error: 'Officer profile not found.' });
+  }
+
+  const token = jwt.sign(
+    { id: user.id, officerId: user.officerId, email: user.email, role: user.role, name: user.name, department: user.department },
+    JWT_SECRET,
+    { expiresIn: '24h' }
+  );
+
+  setSessionCookie(res, token);
+  req.user = jwt.decode(token);
+  dataStore.auditLogs.add(req, 'MFA_VERIFIED_LOGIN_SUCCESS', user.id, 'OfficerAuth', 'SUCCESS', `2FA verified login for ${user.role}: ${user.name}`);
+
+  const userSafe = { ...user };
+  delete userSafe.passwordHash;
+
+  res.json({ success: true, user: userSafe, token });
 });
 
-// Citizen Password Reset REST API
-app.post('/api/citizens/reset-password', (req, res) => {
+// Authenticated User Endpoint
+app.get('/api/auth/me', authenticateToken, (req, res) => {
+  const user = dataStore.users.find(u => u.id === req.user.id);
+  if (!user) return res.status(404).json({ success: false, error: 'User profile not found.' });
+  const userSafe = { ...user };
+  delete userSafe.passwordHash;
+  res.json({ success: true, user: userSafe });
+});
+
+// Citizen Profile Update
+app.put('/api/citizens/profile', authenticateToken, (req, res) => {
+  const sanitized = sanitizeInput(req.body);
+  const updated = dataStore.users.update(req.user.id, {
+    name: sanitized.name || sanitized.fullName,
+    phone: sanitized.phone || sanitized.mobile,
+    ward: sanitized.ward !== undefined ? parseInt(sanitized.ward) : undefined,
+    address: sanitized.address
+  });
+
+  if (!updated) return res.status(404).json({ success: false, error: 'User profile not found.' });
+
+  dataStore.auditLogs.add(req, 'PROFILE_UPDATED', req.user.id, 'UserAccount', 'SUCCESS', `Updated profile for ${req.user.name}`);
+  const userSafe = { ...updated };
+  delete userSafe.passwordHash;
+  res.json({ success: true, user: userSafe });
+});
+
+// Password Reset
+app.post('/api/citizens/reset-password', authLimiter, (req, res) => {
   const { identifier, newPassword } = req.body;
-  if (!identifier || !newPassword) {
-    return res.status(400).json({ success: false, error: 'Identity and new password required.' });
-  }
+  if (!identifier || !newPassword) return res.status(400).json({ success: false, error: 'Identifier and new password required.' });
 
   const cleanInput = identifier.trim().toLowerCase();
   const cleanDigits = identifier.replace(/\D/g, '');
 
-  const userIndex = registeredCitizensDB.findIndex(c => {
-    const matchEmail = c.email && c.email.toLowerCase() === cleanInput;
-    const matchAadhaar = c.aadhaar && c.aadhaar.replace(/\D/g, '') === cleanDigits && cleanDigits.length === 12;
+  const user = dataStore.users.find(u => {
+    const matchEmail = u.email && u.email.toLowerCase() === cleanInput;
+    const matchAadhaar = u.aadhaar && u.aadhaar.replace(/\D/g, '') === cleanDigits && cleanDigits.length === 12;
     return matchEmail || matchAadhaar;
   });
 
-  if (userIndex !== -1) {
-    registeredCitizensDB[userIndex].password = newPassword;
-    res.json({ success: true, message: 'Password updated successfully.' });
-  } else {
-    res.status(404).json({ success: false, error: 'Citizen account not found.' });
-  }
+  if (!user) return res.status(404).json({ success: false, error: 'No citizen account found.' });
+  if (newPassword.length < 6) return res.status(400).json({ success: false, error: 'New password must be at least 6 characters.' });
+
+  dataStore.users.update(user.id, { passwordHash: bcrypt.hashSync(newPassword, 10) });
+  dataStore.auditLogs.add({ user: { id: user.id, name: user.name, role: user.role }, headers: req.headers, socket: req.socket }, 'PASSWORD_RESET_SUCCESS', user.id, 'UserAccount', 'SUCCESS', `Password reset for ${user.email}`);
+
+  res.json({ success: true, message: 'Password updated successfully.' });
 });
 
-// Permissions & Licensing DB Storage
-let permissionsDB = [
-  {
-    id: 'PERM-2026-9041',
-    category: 'Residential',
-    permissionType: 'New House Construction',
-    applicantName: 'Ramesh Deshmukh',
-    applicantEmail: 'citizen@kopargaon.gov.in',
-    propertyNumber: 'KPG-PROP-4218',
-    propertyAddress: 'Shivaji Chowk, Ward 4, Kopargaon',
-    wardNumber: 4,
-    status: 'Approved',
-    certificateNumber: 'KMC-PERM-2026-9041',
-    submittedAt: new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString()
-  }
-];
-
-// Tax & Revenue DB Storage
-let taxesDB = [
-  {
-    id: 'TAX-2026-8812',
-    citizenId: 'CIT-8821',
-    citizenName: 'Ramesh Deshmukh',
-    propertyNumber: 'KPG-PROP-4218',
-    address: 'Shivaji Chowk, Ward 4, Kopargaon',
-    ward: 4,
-    taxCategory: 'Property Tax',
-    amount: 4500,
-    penalty: 0,
-    status: 'Unpaid',
-    billNumber: 'BILL-2026-8812',
-    dueDate: new Date(Date.now() + 20 * 24 * 3600 * 1000).toISOString(),
-    createdAt: new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString()
-  }
-];
-
-// Permissions REST APIs
-app.get('/api/permissions', (req, res) => {
-  res.json({ success: true, count: permissionsDB.length, permissions: permissionsDB });
+// Logout
+app.post('/api/auth/logout', (req, res) => {
+  clearSessionCookie(res);
+  res.json({ success: true, message: 'Logged out successfully.' });
 });
 
-app.post('/api/permissions', (req, res) => {
-  const newApp = {
-    id: `PERM-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-    ...req.body,
-    status: 'Submitted',
-    submittedAt: new Date().toISOString()
+// ─── 7. PROTECTED RESOURCE ENDPOINTS ────────────────────────────────────────
+
+// Complaints Endpoint
+app.get('/api/complaints', authenticateToken, (req, res) => {
+  let list = dataStore.complaints.getAll();
+
+  if (req.user.role === ROLES.CITIZEN) {
+    list = list.filter(c => c.citizenId === req.user.id || c.citizenEmail === req.user.email);
+  } else if (req.user.role === ROLES.STAFF) {
+    if (req.user.department && req.user.department !== 'Municipal Headquarters') {
+      list = list.filter(c => c.department === req.user.department || c.assignedOfficerId === req.user.id);
+    }
+  }
+
+  res.json({ success: true, count: list.length, data: list });
+});
+
+app.get('/api/complaints/:id', authenticateToken, (req, res) => {
+  const item = dataStore.complaints.find(c => c.id === req.params.id);
+  if (!item) return res.status(404).json({ success: false, error: 'Complaint ticket not found.' });
+
+  if (req.user.role === ROLES.CITIZEN && item.citizenId !== req.user.id && item.citizenEmail !== req.user.email) {
+    dataStore.auditLogs.add(req, 'UNAUTHORIZED_COMPLAINT_ACCESS', req.params.id, 'Complaint', 'DENIED', 'Citizen attempted to view another citizen complaint.');
+    return res.status(403).json({ success: false, error: 'Access Denied: You are not authorized to view this ticket.' });
+  }
+
+  res.json({ success: true, data: item });
+});
+
+app.post('/api/complaints', authenticateToken, (req, res) => {
+  const sanitized = sanitizeInput(req.body);
+  const now = new Date().toISOString();
+  const dueDate = new Date(Date.now() + 72 * 3600 * 1000).toISOString();
+
+  const newComplaint = {
+    id: `KPG-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+    citizenId: req.user.id,
+    submittedBy: req.user.name,
+    citizenEmail: req.user.email,
+    category: sanitized.category || 'General',
+    title: sanitized.title,
+    description: sanitized.description,
+    department: sanitized.department || 'Public Works (PWD)',
+    priority: sanitized.priority || COMPLAINT_PRIORITY.HIGH,
+    status: COMPLAINT_STATUS.REPORTED,
+    location: {
+      address: sanitized.address || sanitized.locationName || `Ward ${sanitized.ward || 1}, Kopargaon`,
+      ward: parseInt(sanitized.ward) || 1,
+      latitude: sanitized.latitude || 19.8833,
+      longitude: sanitized.longitude || 74.4833
+    },
+    imageUrl: sanitized.imageUrl || '',
+    supportingDocuments: [],
+    assignedOfficerId: null,
+    assignedTeamId: 'TEAM-SAN-01',
+    submittedAt: now,
+    dueDate: dueDate,
+    workStartedAt: null,
+    completedAt: null,
+    isEscalated: false,
+    remarks: [],
+    timeline: [
+      {
+        id: `EVT-${Date.now()}`,
+        status: COMPLAINT_STATUS.REPORTED,
+        timestamp: now,
+        actor: { name: req.user.name, role: ROLES.CITIZEN, department: 'Resident' },
+        action: 'Complaint Registered',
+        note: `Submitted complaint under ${sanitized.category || 'General'}.`
+      }
+    ]
   };
-  permissionsDB.unshift(newApp);
+
+  dataStore.complaints.add(newComplaint);
+  dataStore.auditLogs.add(req, 'COMPLAINT_CREATED', newComplaint.id, 'Complaint', 'SUCCESS', `Created ticket #${newComplaint.id}`);
+
+  // Broadcast Real-Time Events
+  broadcastEvent('COMPLAINT_CREATED', newComplaint);
+  broadcastEvent('CITY_OVERVIEW_UPDATED', dataStore.getCityOverview());
+
+  res.status(201).json({ success: true, data: newComplaint });
+});
+
+// Assign Maintenance Squad / Officer to Complaint Endpoint
+app.put('/api/complaints/:id/assign', authenticateToken, requireRoles(ROLES.STAFF, ROLES.ADMIN), (req, res) => {
+  const { id } = req.params;
+  const { assignedOfficer, assignedTeamId, note } = req.body;
+
+  const updated = dataStore.complaints.assignOfficer(
+    id,
+    assignedOfficer,
+    assignedTeamId,
+    note,
+    req.user.name,
+    req.user.role,
+    req.user.department
+  );
+
+  if (!updated) return res.status(404).json({ success: false, error: 'Complaint ticket not found.' });
+
+  const notif = dataStore.notifications.add({
+    id: `NOTIF-${Date.now()}`,
+    recipientRole: ROLES.CITIZEN,
+    recipientId: updated.citizenId,
+    title: `Ticket ${id} Assigned`,
+    description: `Maintenance unit (${assignedOfficer || assignedTeamId || 'Field Squad'}) assigned to your ticket #${id}.`,
+    relatedEntityType: 'Complaint',
+    relatedEntityId: id,
+    priority: updated.priority || 'Normal',
+    department: updated.department,
+    timestamp: new Date().toISOString(),
+    read: false,
+    actionLink: '/citizen/track-complaint'
+  });
+
+  dataStore.auditLogs.add(req, 'COMPLAINT_ASSIGNED', id, 'Complaint', 'SUCCESS', `Assigned to ${assignedOfficer || assignedTeamId}`);
+
+  // Broadcast Real-Time Events
+  broadcastEvent('COMPLAINT_ASSIGNED', updated);
+  broadcastEvent('NOTIFICATION_ADDED', notif);
+  broadcastEvent('CITY_OVERVIEW_UPDATED', dataStore.getCityOverview());
+
+  res.json({ success: true, data: updated });
+});
+
+// Update Lifecycle Status Endpoint
+app.put('/api/complaints/:id/status', authenticateToken, requireRoles(ROLES.STAFF, ROLES.ADMIN), (req, res) => {
+  const { id } = req.params;
+  const { status, note, assignedOfficer } = req.body;
+  const updated = dataStore.complaints.updateStatus(id, status, note, req.user.name, req.user.role, req.user.department);
+
+  if (!updated) return res.status(404).json({ success: false, error: 'Complaint ticket not found.' });
+
+  if (assignedOfficer) {
+    updated.assignedOfficer = assignedOfficer;
+  }
+
+  const notif = dataStore.notifications.add({
+    id: `NOTIF-${Date.now()}`,
+    recipientRole: ROLES.CITIZEN,
+    recipientId: updated.citizenId,
+    title: `Ticket ${id} Status Updated to ${status}`,
+    description: `Your complaint #${id} (${updated.title}) status changed to ${status}.`,
+    relatedEntityType: 'Complaint',
+    relatedEntityId: id,
+    priority: updated.priority || 'Normal',
+    department: updated.department,
+    timestamp: new Date().toISOString(),
+    read: false,
+    actionLink: '/citizen/track-complaint'
+  });
+
+  dataStore.auditLogs.add(req, 'COMPLAINT_STATUS_UPDATED', id, 'Complaint', 'SUCCESS', `Status changed to ${status}`);
+
+  // Broadcast Real-Time Events
+  broadcastEvent('COMPLAINT_UPDATED', updated);
+  broadcastEvent('NOTIFICATION_ADDED', notif);
+  broadcastEvent('CITY_OVERVIEW_UPDATED', dataStore.getCityOverview());
+
+  res.json({ success: true, data: updated });
+});
+
+// Permissions Endpoint
+app.get('/api/permissions', authenticateToken, (req, res) => {
+  let list = dataStore.permissions.getAll();
+  if (req.user.role === ROLES.CITIZEN) {
+    list = list.filter(p => p.citizenEmail === req.user.email || p.applicantId === req.user.id);
+  }
+  res.json({ success: true, count: list.length, permissions: list });
+});
+
+app.post('/api/permissions', authenticateToken, (req, res) => {
+  const sanitized = sanitizeInput(req.body);
+  const newApp = {
+    id: `KPG-PERM-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+    applicantId: req.user.id,
+    applicantName: req.user.name,
+    citizenEmail: req.user.email,
+    permissionType: sanitized.permissionType || 'Building Permission',
+    category: sanitized.category || 'Residential',
+    plotAreaSqFt: Number(sanitized.plotAreaSqFt) || 1200,
+    location: {
+      propertyAddress: sanitized.propertyAddress || `Ward ${sanitized.ward || 4}, Kopargaon`,
+      ward: Number(sanitized.ward) || 4,
+      propertyNumber: sanitized.propertyNumber || 'KPG-PROP-0000',
+      latitude: 19.8855,
+      longitude: 74.4821
+    },
+    architectName: sanitized.architectName || 'Licensed Architect',
+    status: 'Under Verification',
+    submittedAt: new Date().toISOString(),
+    certificateIssued: false
+  };
+
+  dataStore.permissions.add(newApp);
+  dataStore.auditLogs.add(req, 'PERMISSION_SUBMITTED', newApp.id, 'Permission', 'SUCCESS', `Permission application ${newApp.id} submitted`);
+
+  broadcastEvent('PERMISSION_CREATED', newApp);
+
   res.status(201).json({ success: true, permission: newApp });
 });
 
-app.put('/api/permissions/:id/status', (req, res) => {
-  const { id } = req.params;
-  const { status, note } = req.body;
-  const app = permissionsDB.find(p => p.id === id);
-  if (app) {
-    app.status = status;
-    if (status === 'Approved') app.certificateNumber = `KMC-PERM-2026-${id.replace(/\D/g, '')}`;
-    res.json({ success: true, permission: app });
-  } else {
-    res.status(404).json({ success: false, error: 'Permission record not found.' });
+// Taxes Endpoint
+app.get('/api/taxes', authenticateToken, (req, res) => {
+  let list = dataStore.taxes.getAll();
+  if (req.user.role === ROLES.CITIZEN) {
+    list = list.filter(t => t.citizenId === req.user.id || t.citizenEmail === req.user.email);
   }
+  res.json({ success: true, count: list.length, taxes: list });
 });
 
-// Tax REST APIs
-app.get('/api/taxes', (req, res) => {
-  res.json({ success: true, count: taxesDB.length, taxes: taxesDB });
+app.post('/api/taxes/:id/pay', authenticateToken, (req, res) => {
+  const paid = dataStore.taxes.processPayment(req.params.id, req.body.paymentMethod);
+  if (!paid) return res.status(404).json({ success: false, error: 'Tax record not found.' });
+
+  dataStore.auditLogs.add(req, 'TAX_PAYMENT_PROCESSED', paid.id, 'TaxBill', 'SUCCESS', `Processed tax payment of Rs. ${paid.amount}`);
+
+  broadcastEvent('TAX_PAID', paid);
+
+  res.json({ success: true, tax: paid });
 });
 
-app.post('/api/taxes', (req, res) => {
-  const newTax = {
-    id: `TAX-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-    billNumber: `BILL-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-    ...req.body,
-    status: 'Unpaid',
-    createdAt: new Date().toISOString()
-  };
-  taxesDB.unshift(newTax);
-  res.status(201).json({ success: true, tax: newTax });
-});
+// Private Documents Endpoint
+app.get('/api/documents/:id', authenticateToken, (req, res) => {
+  const doc = dataStore.documents.find(d => d.id === req.params.id);
+  if (!doc) return res.status(404).json({ success: false, error: 'Document not found.' });
 
-app.post('/api/taxes/:id/pay', (req, res) => {
-  const { id } = req.params;
-  const { paymentMethod } = req.body;
-  const tax = taxesDB.find(t => t.id === id);
-  if (tax) {
-    tax.status = 'Paid';
-    tax.paymentMethod = paymentMethod || 'UPI';
-    tax.receiptNumber = `REC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-    tax.paidAt = new Date().toISOString();
-    res.json({ success: true, tax: tax });
-  } else {
-    res.status(404).json({ success: false, error: 'Tax record not found.' });
+  if (req.user.role === ROLES.CITIZEN && doc.ownerId !== req.user.id && doc.ownerEmail !== req.user.email) {
+    dataStore.auditLogs.add(req, 'UNAUTHORIZED_DOCUMENT_ACCESS', req.params.id, 'PrivateDocument', 'DENIED', 'Access blocked to non-owned document.');
+    return res.status(403).json({ success: false, error: 'Access Denied: You do not have authorization to view this private document.' });
   }
+
+  dataStore.auditLogs.add(req, 'DOCUMENT_VIEWED', doc.id, 'PrivateDocument', 'SUCCESS', `Viewed document ${doc.title}`);
+  res.json({ success: true, document: doc });
+});
+
+// Security Audit Logs Endpoint (Admin Only)
+app.get('/api/audit-logs', authenticateToken, requireRoles(ROLES.ADMIN), (req, res) => {
+  res.json({ success: true, count: dataStore.auditLogs.getAll().length, data: dataStore.auditLogs.getAll() });
+});
+
+// Notifications Endpoint
+app.get('/api/notifications', authenticateToken, (req, res) => {
+  let list = dataStore.notifications.getAll();
+  if (req.user.role === ROLES.CITIZEN) {
+    list = list.filter(n => n.recipientId === req.user.id || n.recipientRole === ROLES.CITIZEN || n.recipientId === 'ALL_CITIZENS');
+  }
+  res.json({ success: true, data: list });
+});
+
+// Error Handling
+app.use((err, req, res, next) => {
+  console.error('Unhandled Server Error:', err);
+  res.status(err.status || 500).json({
+    success: false,
+    error: IS_PROD ? 'An internal error occurred.' : err.message || 'Internal Server Error'
+  });
 });
 
 app.listen(PORT, () => {
-  console.log(`Enterprise Municipal Governance API Server running on http://localhost:${PORT}`);
+  console.log(`=======================================================`);
+  console.log(`Kopargaon Enterprise Data Architecture Backend Active`);
+  console.log(`Listening on http://localhost:${PORT}`);
+  console.log(`Real-Time SSE Stream Active at /api/events/stream`);
+  console.log(`=======================================================`);
 });

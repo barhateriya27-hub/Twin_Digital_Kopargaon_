@@ -29,20 +29,21 @@ export const IncidentSidebar = ({ incident, onClose, onUpdateStatus, onAssignOff
         </div>
 
         {/* Priority & Status Badges */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-            incident.priority === 'Critical' ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300' :
+            incident.priority === 'Critical' || incident.priority === 'Emergency' ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300' :
             incident.priority === 'High' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300' :
             'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
           }`}>
-            {t('incidentSidebar.priorityLabel', 'Priority:')} {incident.priority === 'Critical' ? t('incidentFilters.priorityCritical', 'Critical') : incident.priority === 'High' ? t('incidentFilters.priorityHigh', 'High') : t('incidentFilters.priorityMedium', 'Medium')}
+            {t('incidentSidebar.priorityLabel', 'Priority:')} {incident.priority}
           </span>
           <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-            incident.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' :
+            incident.status === 'Resolved' || incident.status === 'Completed' || incident.status === 'Closed' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' :
             incident.status === 'In Progress' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300' :
-            'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
+            incident.status === 'Assigned' ? 'bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300' :
+            'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
           }`}>
-            {t('incidentSidebar.statusLabel', 'Status:')} {incident.status === 'Resolved' ? t('incidentFilters.statusResolved', 'Resolved') : incident.status === 'In Progress' ? t('incidentFilters.statusInProgress', 'In Progress') : t('incidentFilters.statusPending', 'Pending')}
+            {t('incidentSidebar.statusLabel', 'Status:')} {incident.status}
           </span>
         </div>
 
@@ -51,7 +52,7 @@ export const IncidentSidebar = ({ incident, onClose, onUpdateStatus, onAssignOff
           <GoogleMapsLauncher
             latitude={incident.latitude}
             longitude={incident.longitude}
-            locationName={incident.locationName}
+            locationName={incident.locationName || incident.address}
             title={incident.title}
             className="w-full py-2"
           />
@@ -61,7 +62,7 @@ export const IncidentSidebar = ({ incident, onClose, onUpdateStatus, onAssignOff
         <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
           <div>
             <span className="text-slate-400 block text-[10px] uppercase font-semibold">{t('incidentSidebar.locationWard', 'Location & Ward:')}</span>
-            <span className="font-semibold text-slate-900 dark:text-slate-100">{incident.locationName || `${t('taxPortal.wardPrefix', 'Ward')} ${incident.ward}, Kopargaon`}</span>
+            <span className="font-semibold text-slate-900 dark:text-slate-100">{incident.address || incident.locationName || `Ward ${incident.ward}, Kopargaon`}</span>
             {incident.latitude && incident.longitude && (
               <span className="font-mono text-[10px] text-slate-400 block mt-0.5">
                 Coords: {incident.latitude}, {incident.longitude}
@@ -71,60 +72,62 @@ export const IncidentSidebar = ({ incident, onClose, onUpdateStatus, onAssignOff
 
           <div>
             <span className="text-slate-400 block text-[10px] uppercase font-semibold">{t('incidentSidebar.catDept', 'Category & Department:')}</span>
-            <span className="font-medium text-slate-800 dark:text-slate-200">{incident.category} • {incident.department || t('incidentFilters.catPublicWorks', 'Public Works')}</span>
+            <span className="font-medium text-slate-800 dark:text-slate-200">{incident.category} • {incident.department || 'Public Works'}</span>
           </div>
 
           <div>
             <span className="text-slate-400 block text-[10px] uppercase font-semibold">{t('incidentSidebar.submittedBy', 'Submitted By:')}</span>
-            <span className="font-medium text-slate-800 dark:text-slate-200">{incident.submittedBy || t('incidentSidebar.citizenResident', 'Citizen Resident')}</span>
+            <span className="font-medium text-slate-800 dark:text-slate-200">{incident.submittedBy || 'Citizen Resident'}</span>
           </div>
 
           <div>
             <span className="text-slate-400 block text-[10px] uppercase font-semibold">{t('incidentSidebar.description', 'Complaint Description:')}</span>
             <p className="p-2.5 bg-slate-50 dark:bg-slate-950 rounded-md border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 mt-1">
-              {incident.description || t('incidentSidebar.noNotes', 'No additional notes attached.')}
+              {incident.description || 'No additional notes attached.'}
             </p>
-          </div>
-
-          {/* Lifecycle Status Management */}
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1.5">
-            <span className="text-slate-500 block text-[10px] uppercase font-semibold">{t('incidentSidebar.updateLifecycle', 'Update Lifecycle Status:')}</span>
-            <div className="grid grid-cols-3 gap-1.5">
-              {[
-                { id: 'Pending', label: t('incidentFilters.statusPending', 'Pending') },
-                { id: 'In Progress', label: t('incidentFilters.statusInProgress', 'In Progress') },
-                { id: 'Resolved', label: t('incidentFilters.statusResolved', 'Resolved') }
-              ].map((st) => (
-                <button
-                  key={st.id}
-                  onClick={() => onUpdateStatus(incident.id, st.id)}
-                  className={`py-1.5 text-center text-[10px] font-semibold rounded border transition-all ${
-                    incident.status === st.id
-                      ? 'bg-[#0A2540] text-white border-[#0A2540]'
-                      : 'bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800'
-                  }`}
-                >
-                  {st.label}
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Department Assignment */}
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-            <span className="text-slate-500 block text-[10px] uppercase font-semibold mb-1">{t('incidentSidebar.assignTeam', 'Assign Maintenance Team:')}</span>
+            <span className="text-slate-500 block text-[10px] uppercase font-semibold mb-1">{t('incidentSidebar.assignTeam', 'Assign Maintenance Squad:')}</span>
             <select
               value={incident.assignedOfficer || ''}
-              onChange={(e) => onAssignOfficer(incident.id, e.target.value)}
+              onChange={(e) => onAssignOfficer && onAssignOfficer(incident.id, e.target.value)}
               className="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md text-xs font-medium focus:outline-none"
             >
-              <option value="">{t('incidentSidebar.selectUnit', 'Select Maintenance Unit')}</option>
+              <option value="">Select Maintenance Squad</option>
               <option value="Public Works - Team A">Public Works Maintenance - Team A</option>
               <option value="Sanitation - Fleet B">Sanitation Services - Fleet B</option>
               <option value="Water Dept - Cell 1">Water Supply & Valves - Cell 1</option>
               <option value="Electrical Grid Unit">Electrical Grid Maintenance</option>
               <option value="Traffic Cell">Traffic & Transit Signal Unit</option>
             </select>
+          </div>
+
+          {/* Lifecycle Status Management */}
+          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1.5">
+            <span className="text-slate-500 block text-[10px] uppercase font-semibold">{t('incidentSidebar.updateLifecycle', 'Update Lifecycle Status:')}</span>
+            <div className="grid grid-cols-2 gap-1.5">
+              {[
+                { id: 'Reported', label: 'Reported' },
+                { id: 'Assigned', label: 'Assigned' },
+                { id: 'In Progress', label: 'In Progress' },
+                { id: 'Resolved', label: 'Resolved' },
+                { id: 'Closed', label: 'Closed' }
+              ].map((st) => (
+                <button
+                  key={st.id}
+                  onClick={() => onUpdateStatus && onUpdateStatus(incident.id, st.id)}
+                  className={`py-1.5 text-center text-[10px] font-semibold rounded border transition-all ${
+                    incident.status === st.id
+                      ? 'bg-[#0A2540] text-white border-[#0A2540]'
+                      : 'bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  {st.label}
+                </button>
+              ))}
+            </div>
           </div>
 
         </div>

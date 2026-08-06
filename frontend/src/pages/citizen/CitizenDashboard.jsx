@@ -38,7 +38,7 @@ import {
   Activity,
   HeartPulse
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { SLAIndicator } from '../../components/SLAIndicator';
 import { NotificationDrawer } from '../../components/NotificationDrawer';
@@ -48,51 +48,68 @@ import { CitizenTaxPortalView } from '../../components/tax/CitizenTaxPortalView'
 
 // Government Smart City Command Center Redesign Sub-components
 import { GovHeader } from '../../components/gov/GovHeader';
-import { CitizenSidebar } from '../../components/dashboard/CitizenSidebar';
+import { CitizenSidebar as GovSidebar } from '../../components/dashboard/CitizenSidebar';
+import { WelcomeWidget } from '../../components/dashboard/WelcomeWidget';
 import { TopStatsCards } from '../../components/dashboard/TopStatsCards';
 import { CommandCenterMap } from '../../components/dashboard/CommandCenterMap';
 import { RightCommandPanel } from '../../components/dashboard/RightCommandPanel';
-import { AIInsightsCard } from '../../components/dashboard/AIInsightsCard';
+import { CityHealthScore } from '../../components/digitaltwin/CityHealthScore';
 import { QuickActionsGrid } from '../../components/dashboard/QuickActionsGrid';
 import { RecentActivityTimeline } from '../../components/dashboard/RecentActivityTimeline';
 import { NoticeBoard } from '../../components/dashboard/NoticeBoard';
-import { EmergencyQuickContacts } from '../../components/dashboard/EmergencyQuickContacts';
-import { TrafficWidget } from '../../components/dashboard/TrafficWidget';
 import { WeatherWidget } from '../../components/dashboard/WeatherWidget';
-import { WelcomeWidget } from '../../components/dashboard/WelcomeWidget';
-
-import { getKopargaonPOIs } from '../../services/poiService';
-import { getUserLocation } from '../../services/mapService';
+import { TrafficWidget } from '../../components/dashboard/TrafficWidget';
+import { AIInsightsCard } from '../../components/dashboard/AIInsightsCard';
 import { useCityIntelligence } from '../../hooks/useCityIntelligence';
-import { CityHealthScore } from '../../components/digitaltwin/CityHealthScore';
-import { CitizenProfileView } from '../../components/profile/CitizenProfileView';
+import { getUserLocation } from '../../services/mapService';
 
-export const CitizenDashboard = ({ activeTab: initialActiveTab = 'dashboard', embedded = true }) => {
-  const navigate = useNavigate();
+export const CitizenDashboard = ({ activeTab: propActiveTab, initialActiveTab, embedded = true }) => {
   const { t } = useTranslation();
-  const { 
-    citizenUser, 
-    complaints = [], 
-    notifications = [], 
-    announcements = [], 
-    addComplaint, 
+  const navigate = useNavigate();
+  const location = useLocation();
+  const {
+    citizenUser,
+    complaints,
+    addComplaint,
+    notifications,
+    announcements,
     updateCitizenProfile,
-    logoutCitizen, 
-    showToast 
+    showToast,
+    logoutCitizen
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState(initialActiveTab);
-  const [selectedComplaint, setSelectedComplaint] = useState(null);
-  const [publicReportTarget, setPublicReportTarget] = useState(null);
+  const getTabFromPath = (path) => {
+    if (!path) return 'dashboard';
+    if (path.includes('/citizen/smart-map')) return 'smart_map';
+    if (path.includes('/citizen/register-complaint')) return 'register_complaint';
+    if (path.includes('/citizen/track-complaint')) return 'track_complaint';
+    if (path.includes('/citizen/property-tax')) return 'property_tax';
+    if (path.includes('/citizen/water-tax')) return 'water_tax';
+    if (path.includes('/citizen/water-supply')) return 'water_supply';
+    if (path.includes('/citizen/electricity')) return 'electricity';
+    if (path.includes('/citizen/weather')) return 'weather';
+    if (path.includes('/citizen/emergency')) return 'emergency';
+    if (path.includes('/citizen/announcements')) return 'announcements';
+    if (path.includes('/citizen/nearby-services')) return 'nearby_services';
+    if (path.includes('/citizen/ai-assistant')) return 'ai_assistant';
+    if (path.includes('/citizen/profile')) return 'profile';
+    if (path.includes('/citizen/settings')) return 'profile';
+    return 'dashboard';
+  };
+
+  const initialTab = propActiveTab || initialActiveTab || getTabFromPath(location.pathname);
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
+  const [publicReportTarget, setPublicReportTarget] = useState(null);
+  const [timelineModalTarget, setTimelineModalTarget] = useState(null);
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Synchronize initialActiveTab when changed via props/route
+  // Synchronize activeTab when changed via props or URL route navigation
   useEffect(() => {
-    if (initialActiveTab) {
-      setActiveTab(initialActiveTab);
-    }
-  }, [initialActiveTab]);
+    const currentTab = propActiveTab || initialActiveTab || getTabFromPath(location.pathname);
+    setActiveTab(currentTab);
+  }, [location.pathname, propActiveTab, initialActiveTab]);
 
   // Spatial location state
   const [userLocation, setUserLocation] = useState(null);
@@ -120,7 +137,6 @@ export const CitizenDashboard = ({ activeTab: initialActiveTab = 'dashboard', em
   useEffect(() => {
     getUserLocation().then(loc => setUserLocation(loc));
 
-    // AI Assistant custom event tab switcher listener
     const handleSwitchTab = (e) => {
       if (e.detail) setActiveTab(e.detail);
     };
@@ -142,9 +158,9 @@ export const CitizenDashboard = ({ activeTab: initialActiveTab = 'dashboard', em
         title: reportTitle,
         category: reportCategory,
         ward: reportWard,
-        locationName: reportLocation || `Ward ${reportWard}, Kopargaon`,
+        locationName: reportLocation,
         description: reportDescription,
-        imageUrl: imagePreview || 'https://images.unsplash.com/photo-1584467735871-8e85353a8413?auto=format&fit=crop&w=600&q=80'
+        imageUrl: imagePreview || ''
       });
 
       setIsSubmitting(false);
@@ -190,7 +206,7 @@ export const CitizenDashboard = ({ activeTab: initialActiveTab = 'dashboard', em
                 wardNumber={citizenUser?.ward || 4} 
               />
 
-              {/* QUICK ACTION BAR: REGISTER COMPLAINT | TRACK COMPLAINT | AI ASSISTANT */}
+              {/* QUICK ACTION BAR */}
               <div className="bg-gradient-to-r from-[#0B2545] via-[#103459] to-[#0B2545] p-3 sm:p-4 rounded-2xl border border-sky-900/50 shadow-lg flex flex-wrap items-center justify-between gap-3 text-white">
                 <div className="flex items-center gap-2 font-black text-xs uppercase tracking-wider text-slate-200">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -226,7 +242,7 @@ export const CitizenDashboard = ({ activeTab: initialActiveTab = 'dashboard', em
               {/* TOP STATISTICS CARDS */}
               <TopStatsCards complaints={complaints} />
 
-              {/* CITY HEALTH SCORE (compact, real data) */}
+              {/* CITY HEALTH SCORE */}
               <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <CityHealthScore cityHealth={cityIntel.cityHealth} compact />
                 <div className="text-xs text-slate-500 dark:text-slate-400 sm:text-right space-y-0.5">
@@ -236,10 +252,8 @@ export const CitizenDashboard = ({ activeTab: initialActiveTab = 'dashboard', em
                 </div>
               </div>
 
-              {/* COMMAND CENTER GRID: GIS MAP (~70%) & RIGHT COMMAND PANEL (~30%) */}
+              {/* COMMAND CENTER GRID */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                
-                {/* Center Smart City GIS Map (~70%) */}
                 <div className="lg:col-span-8 space-y-3">
                   <div className="flex items-center justify-between">
                     <h2 className="text-sm font-extrabold uppercase tracking-wider text-[#0B2545] flex items-center gap-2">
@@ -261,7 +275,6 @@ export const CitizenDashboard = ({ activeTab: initialActiveTab = 'dashboard', em
                   />
                 </div>
 
-                {/* Right Command Panel (~30%) */}
                 <div className="lg:col-span-4">
                   <RightCommandPanel
                     complaints={complaints}
@@ -273,19 +286,15 @@ export const CitizenDashboard = ({ activeTab: initialActiveTab = 'dashboard', em
                     onSelectTab={setActiveTab}
                   />
                 </div>
-
               </div>
 
-              {/* AI INSIGHTS CARD */}
               <AIInsightsCard onActionClick={(tab) => setActiveTab(tab)} />
 
-              {/* QUICK ACTIONS GRID */}
               <QuickActionsGrid
                 onSelectTab={setActiveTab}
                 onOpenEmergency={() => setActiveTab('emergency')}
               />
 
-              {/* RECENT ACTIVITY TIMELINE & NOTICE BOARD */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 <div className="lg:col-span-6">
                   <RecentActivityTimeline />
@@ -301,12 +310,12 @@ export const CitizenDashboard = ({ activeTab: initialActiveTab = 'dashboard', em
           {/* TAB 2: SMART CITY MAP FULLSCREEN */}
           {activeTab === 'smart_map' && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+              <div className="flex items-center justify-between bg-[#0B2545] text-white p-4 rounded-xl shadow-xs">
                 <div>
-                  <h2 className="text-base font-extrabold uppercase text-[#0B2545]">
+                  <h2 className="text-base font-extrabold uppercase text-white">
                     Kopargaon GIS Spatial Digital Twin
                   </h2>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-300">
                     ISRO Bhuvan & ArcGIS Layer Engine • 17 Asset Marker Layers
                   </p>
                 </div>
@@ -438,7 +447,7 @@ export const CitizenDashboard = ({ activeTab: initialActiveTab = 'dashboard', em
                   </h3>
                   <button
                     onClick={() => setActiveTab('register_complaint')}
-                    className="px-3 py-1.5 bg-[#0B2545] text-white font-bold text-xs rounded-lg flex items-center gap-1 shadow-xs"
+                    className="px-3 py-1.5 bg-[#0B2545] text-white font-bold text-xs rounded-lg flex items-center gap-1 shadow-xs cursor-pointer"
                   >
                     <PlusCircle className="w-3.5 h-3.5" /> File New Ticket
                   </button>
@@ -451,28 +460,48 @@ export const CitizenDashboard = ({ activeTab: initialActiveTab = 'dashboard', em
                       className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                     >
                       <div>
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="font-mono text-xs font-bold text-[#0B2545]">{item.id}</span>
                           <span className="text-xs font-extrabold text-[#0B2545]">{item.category}</span>
                           <span className="text-xs text-slate-500">• Ward {item.ward}</span>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            item.status === 'Resolved' || item.status === 'Completed' || item.status === 'Closed' ? 'bg-emerald-100 text-emerald-800' :
+                            item.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
+                            item.status === 'Assigned' ? 'bg-purple-100 text-purple-800' :
+                            'bg-amber-100 text-amber-800'
+                          }`}>
+                            {item.status}
+                          </span>
                         </div>
                         <h4 className="font-bold text-xs text-slate-800">{item.title}</h4>
-                        <p className="text-xs text-slate-500 mt-0.5">{item.locationName}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">{item.address || item.locationName}</p>
+                        {item.assignedOfficer && (
+                          <p className="text-[11px] font-semibold text-purple-700 mt-1">
+                            Squad Assigned: {item.assignedOfficer}
+                          </p>
+                        )}
                       </div>
 
-                      <div className="flex items-center gap-3 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                        <button
+                          onClick={() => setTimelineModalTarget(item)}
+                          className="px-3 py-1.5 bg-[#0B2545] hover:bg-[#07192E] text-white font-bold text-xs rounded-lg flex items-center gap-1 shadow-xs cursor-pointer"
+                        >
+                          <Clock className="w-3.5 h-3.5" /> View Live Timeline
+                        </button>
+
                         <SLAIndicator
                           submittedAt={item.createdAt || item.submittedAt}
                           dueDate={item.slaDueDate}
                           currentStatus={item.status}
                         />
 
-                        {(item.status === 'Completed' || item.status === 'Resolved') && (
+                        {(item.status === 'Completed' || item.status === 'Resolved' || item.status === 'Closed') && (
                           <button
                             onClick={() => setPublicReportTarget(item)}
-                            className="px-3 py-1.5 bg-[#138808] hover:bg-emerald-800 text-white font-bold text-xs rounded-lg flex items-center gap-1 shadow-xs"
+                            className="px-3 py-1.5 bg-[#138808] hover:bg-emerald-800 text-white font-bold text-xs rounded-lg flex items-center gap-1 shadow-xs cursor-pointer"
                           >
-                            <Download className="w-3.5 h-3.5" /> Download Certificate
+                            <Download className="w-3.5 h-3.5" /> Certificate
                           </button>
                         )}
                       </div>
@@ -549,70 +578,227 @@ export const CitizenDashboard = ({ activeTab: initialActiveTab = 'dashboard', em
                   CALL 108 AMBULANCE
                 </a>
               </div>
-
-              <EmergencyQuickContacts />
             </div>
           )}
 
-          {/* TAB 11: ANNOUNCEMENTS */}
-          {activeTab === 'announcements' && (
-            <NoticeBoard announcements={announcements} />
+          {/* TAB 11: PERMISSIONS & LICENSES */}
+          {(activeTab === 'permissions' || activeTab === 'applications') && (
+            <PermissionsDashboardView />
           )}
 
-          {/* TAB 12: NEARBY SERVICES */}
-          {activeTab === 'nearby_services' && (
-            <div className="space-y-4">
-              <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-xs">
-                <h2 className="text-base font-extrabold text-[#0B2545] uppercase">
-                  Nearby Municipal & Public Services Directory
-                </h2>
-                <p className="text-xs text-slate-500 mt-1">
-                  Locate hospitals, police stations, banks, schools, and fire stations in Kopargaon.
-                </p>
-              </div>
-              <CommandCenterMap userLocation={userLocation} complaints={complaints} />
-            </div>
-          )}
-
-          {/* TAB 13: AI ASSISTANT */}
-          {activeTab === 'ai_assistant' && (
-            <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-xs max-w-3xl mx-auto space-y-4">
-              <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
-                <div className="p-2 rounded-lg bg-[#0B2545] text-[#FF9933]">
-                  <Bot className="w-6 h-6" />
-                </div>
+          {/* TAB 12: PROFILE MANAGEMENT */}
+          {activeTab === 'profile' && (
+            <div className="max-w-2xl mx-auto bg-white p-6 sm:p-8 rounded-xl border border-slate-200 shadow-md space-y-6">
+              <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
                 <div>
-                  <h2 className="text-base font-extrabold text-[#0B2545]">
-                    NIC Smart City AI Assistant (Gemini AI Powered)
+                  <h2 className="text-base font-black text-[#0B2545]">
+                    Citizen Digital Profile Settings (नागरिक माहिती)
                   </h2>
-                  <p className="text-xs text-slate-500">Ask questions about tax payments, grievances, ward maps, and municipal schemes.</p>
+                  <p className="text-xs text-slate-500">Verified Aadhaar & Resident Record</p>
                 </div>
+                <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold">
+                  Aadhaar Verified
+                </span>
               </div>
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700 space-y-2">
-                <p className="font-bold text-[#0B2545]">💡 Try asking:</p>
-                <ul className="list-disc pl-4 space-y-1">
-                  <li>"How do I pay my Property Tax online?"</li>
-                  <li>"Where is the nearest Civil Hospital in Kopargaon?"</li>
-                  <li>"What is the status of my water supply ticket?"</li>
-                </ul>
-              </div>
+
+              <form onSubmit={handleUpdateProfileSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#0B2545] uppercase tracking-wider mb-1">
+                    Full Legal Name
+                  </label>
+                  <input
+                    type="text"
+                    value={profileName}
+                    onChange={(e) => setProfileName(e.target.value)}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-[#0B2545] uppercase tracking-wider mb-1">
+                      Mobile Number
+                    </label>
+                    <input
+                      type="text"
+                      value={profilePhone}
+                      onChange={(e) => setProfilePhone(e.target.value)}
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[#0B2545] uppercase tracking-wider mb-1">
+                      Municipal Ward Number
+                    </label>
+                    <select
+                      value={profileWard}
+                      onChange={(e) => setProfileWard(Number(e.target.value))}
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
+                    >
+                      {Array.from({ length: 28 }, (_, i) => i + 1).map((w) => (
+                        <option key={w} value={w}>Ward {w}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#0B2545] uppercase tracking-wider mb-1">
+                    Residential Address
+                  </label>
+                  <input
+                    type="text"
+                    value={profileAddress}
+                    onChange={(e) => setProfileAddress(e.target.value)}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-3 bg-[#0B2545] text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-md hover:bg-[#07192E] cursor-pointer"
+                >
+                  Save Updated Profile Record
+                </button>
+              </form>
             </div>
           )}
 
-          {/* TAB 14 & 15: PROFILE & SETTINGS */}
-          {(activeTab === 'profile' || activeTab === 'settings') && (
-            <CitizenProfileView onSelectTab={setActiveTab} />
-          )}
     </div>
   );
 
+  // When embedded in CitizenLayout shell, return content & modals without duplicate layout shell
   if (embedded) {
-    return mainContent;
+    return (
+      <div className="space-y-6 flex-1 max-w-7xl w-full mx-auto">
+        {mainContent}
+
+        <NotificationDrawer
+          isOpen={isNotifDrawerOpen}
+          onClose={() => setIsNotifDrawerOpen(false)}
+          userRole="citizen"
+        />
+
+        {publicReportTarget && (
+          <PublicReportModal
+            isOpen={!!publicReportTarget}
+            onClose={() => setPublicReportTarget(null)}
+            complaint={publicReportTarget}
+          />
+        )}
+
+        {/* LIVE TIMELINE & WORKFLOW MODAL */}
+        {timelineModalTarget && (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-white dark:bg-slate-900 rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto space-y-5"
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div>
+                  <span className="font-mono text-xs font-bold text-[#0B2545] dark:text-sky-400 block">
+                    Ticket #{timelineModalTarget.id}
+                  </span>
+                  <h3 className="font-black text-slate-900 dark:text-slate-100 text-sm">
+                    {timelineModalTarget.title}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setTimelineModalTarget(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Status Pipeline Badges */}
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Lifecycle Pipeline Stage
+                </span>
+                <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                  {['Reported', 'Assigned', 'In Progress', 'Resolved', 'Closed'].map((st, idx) => {
+                    const isCurrent = timelineModalTarget.status === st;
+                    return (
+                      <span
+                        key={st}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-extrabold transition-all border ${
+                          isCurrent
+                            ? 'bg-[#0B2545] text-white border-[#0B2545] shadow-xs'
+                            : 'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
+                        }`}
+                      >
+                        {idx + 1}. {st}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Maintenance Squad Assigned */}
+              <div className="p-3 bg-purple-50 dark:bg-purple-950/40 rounded-xl border border-purple-200 dark:border-purple-900/50 flex items-center justify-between text-xs">
+                <span className="font-bold text-purple-900 dark:text-purple-300">Assigned Squad / Officer:</span>
+                <span className="font-extrabold text-purple-700 dark:text-purple-400">
+                  {timelineModalTarget.assignedOfficer || timelineModalTarget.assignedTeamId || 'Awaiting Assignment'}
+                </span>
+              </div>
+
+              {/* Audit Timeline */}
+              <div className="space-y-3 pt-2">
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-sky-600" /> Complete Audit Timeline & Lifecycle History
+                </h4>
+
+                <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
+                  {timelineModalTarget.timeline && timelineModalTarget.timeline.length > 0 ? (
+                    timelineModalTarget.timeline.map((evt, index) => (
+                      <div key={evt.id || index} className="relative">
+                        <span className="absolute -left-6 top-1.5 w-3 h-3 rounded-full bg-[#0B2545] ring-4 ring-[#F8FAFC]"></span>
+                        <div className="bg-slate-50 dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-extrabold text-slate-900 dark:text-slate-100">{evt.action || evt.status}</span>
+                            <span className="text-[10px] font-mono text-slate-400">
+                              {evt.timestamp ? new Date(evt.timestamp).toLocaleString() : 'Just now'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-600 dark:text-slate-300">{evt.note}</p>
+                          {evt.actor && (
+                            <span className="text-[10px] font-semibold text-sky-700 dark:text-sky-400 block pt-0.5">
+                              Actor: {evt.actor.name} ({evt.actor.role || 'Officer'})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs text-slate-500">
+                      Ticket registered under 72-Hour SLA monitoring. Awaiting field officer response.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                <button
+                  onClick={() => setTimelineModalTarget(null)}
+                  className="px-4 py-2 bg-[#0B2545] text-white font-bold rounded-xl text-xs cursor-pointer"
+                >
+                  Close Timeline
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </div>
+    );
   }
 
+  // Standalone fallback layout
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex text-slate-800 font-sans selection:bg-[#0B2545] selection:text-white">
-      <CitizenSidebar
+    <div className="min-h-screen bg-slate-100 text-slate-800 flex flex-col font-sans">
+      <GovSidebar
         activeTab={activeTab}
         onSelectTab={(tab) => {
           setActiveTab(tab);
@@ -650,6 +836,110 @@ export const CitizenDashboard = ({ activeTab: initialActiveTab = 'dashboard', em
             onClose={() => setPublicReportTarget(null)}
             complaint={publicReportTarget}
           />
+        )}
+
+        {/* LIVE TIMELINE & WORKFLOW MODAL */}
+        {timelineModalTarget && (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-white dark:bg-slate-900 rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto space-y-5"
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div>
+                  <span className="font-mono text-xs font-bold text-[#0B2545] dark:text-sky-400 block">
+                    Ticket #{timelineModalTarget.id}
+                  </span>
+                  <h3 className="font-black text-slate-900 dark:text-slate-100 text-sm">
+                    {timelineModalTarget.title}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setTimelineModalTarget(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Status Pipeline Badges */}
+              <div className="space-y-1">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Lifecycle Pipeline Stage
+                </span>
+                <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                  {['Reported', 'Assigned', 'In Progress', 'Resolved', 'Closed'].map((st, idx) => {
+                    const isCurrent = timelineModalTarget.status === st;
+                    return (
+                      <span
+                        key={st}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-extrabold transition-all border ${
+                          isCurrent
+                            ? 'bg-[#0B2545] text-white border-[#0B2545] shadow-xs'
+                            : 'bg-slate-50 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'
+                        }`}
+                      >
+                        {idx + 1}. {st}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Maintenance Squad Assigned */}
+              <div className="p-3 bg-purple-50 dark:bg-purple-950/40 rounded-xl border border-purple-200 dark:border-purple-900/50 flex items-center justify-between text-xs">
+                <span className="font-bold text-purple-900 dark:text-purple-300">Assigned Squad / Officer:</span>
+                <span className="font-extrabold text-purple-700 dark:text-purple-400">
+                  {timelineModalTarget.assignedOfficer || timelineModalTarget.assignedTeamId || 'Awaiting Assignment'}
+                </span>
+              </div>
+
+              {/* Audit Timeline */}
+              <div className="space-y-3 pt-2">
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-sky-600" /> Complete Audit Timeline & Lifecycle History
+                </h4>
+
+                <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
+                  {timelineModalTarget.timeline && timelineModalTarget.timeline.length > 0 ? (
+                    timelineModalTarget.timeline.map((evt, index) => (
+                      <div key={evt.id || index} className="relative">
+                        <span className="absolute -left-6 top-1.5 w-3 h-3 rounded-full bg-[#0B2545] ring-4 ring-white dark:ring-slate-900"></span>
+                        <div className="bg-slate-50 dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-extrabold text-slate-900 dark:text-slate-100">{evt.action || evt.status}</span>
+                            <span className="text-[10px] font-mono text-slate-400">
+                              {evt.timestamp ? new Date(evt.timestamp).toLocaleString() : 'Just now'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-600 dark:text-slate-300">{evt.note}</p>
+                          {evt.actor && (
+                            <span className="text-[10px] font-semibold text-sky-700 dark:text-sky-400 block pt-0.5">
+                              Actor: {evt.actor.name} ({evt.actor.role || 'Officer'})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs text-slate-500">
+                      Ticket registered under 72-Hour SLA monitoring. Awaiting field officer response.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                <button
+                  onClick={() => setTimelineModalTarget(null)}
+                  className="px-4 py-2 bg-[#0B2545] text-white font-bold rounded-xl text-xs cursor-pointer"
+                >
+                  Close Timeline
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
 
         <footer className="py-4 px-6 text-center text-xs text-slate-600 border-t border-slate-200 bg-white shrink-0">

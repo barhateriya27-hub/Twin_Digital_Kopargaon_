@@ -59,6 +59,7 @@ import { PublicReportModal } from '../../components/PublicReportModal';
 import { AnnouncementManager } from '../../components/AnnouncementManager';
 import { IncidentArchive } from '../../components/IncidentArchive';
 import { HigherAuthorityDashboard } from './HigherAuthorityDashboard';
+import { WhatIfSimulationStudio } from '../../components/digitaltwin/WhatIfSimulationStudio';
 import { PermissionsDashboardView } from '../../components/permissions/PermissionsDashboardView';
 import { OfficerTaxManagementView } from '../../components/tax/OfficerTaxManagementView';
 import { DigitalTwinCommandCenter } from '../../components/digitaltwin/DigitalTwinCommandCenter';
@@ -85,14 +86,32 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
     showToast 
   } = useApp();
 
+  const getTabFromPath = (path) => {
+    if (!path) return 'dashboard';
+    if (path.includes('/municipality/overview')) return 'overview';
+    if (path.includes('/municipality/complaints')) return 'complaints';
+    if (path.includes('/municipality/gis')) return 'gis';
+    if (path.includes('/municipality/wards')) return 'ward_mgmt';
+    if (path.includes('/municipality/water')) return 'water_supply';
+    if (path.includes('/municipality/waste')) return 'waste_mgmt';
+    if (path.includes('/municipality/roads')) return 'traffic_roads';
+    if (path.includes('/municipality/permissions')) return 'permissions';
+    if (path.includes('/municipality/revenue')) return 'revenue';
+    if (path.includes('/municipality/notices')) return 'notices';
+    if (path.includes('/municipality/emergency')) return 'emergency';
+    if (path.includes('/municipality/reports')) return 'reports_analytics';
+    if (path.includes('/municipality/ai-assistant')) return 'ai_assistant';
+    if (path.includes('/municipality/settings')) return 'settings';
+    return 'dashboard';
+  };
+
   // Route/Tab State
-  const [activeTab, setActiveTab] = useState(defaultTab);
+  const [activeTab, setActiveTab] = useState(() => defaultTab || getTabFromPath(location.pathname));
 
   useEffect(() => {
-    if (defaultTab) {
-      setActiveTab(defaultTab);
-    }
-  }, [defaultTab]);
+    const currentTab = defaultTab || getTabFromPath(location.pathname);
+    setActiveTab(currentTab);
+  }, [defaultTab, location.pathname]);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState('Just now');
@@ -233,6 +252,22 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
           announcements={announcements}
           auditLogs={auditLogs}
           onTabChange={setActiveTab}
+          onSelectComplaint={(complaint) => {
+            setSelectedComplaint(complaint);
+            setActiveTab('complaints');
+          }}
+        />
+      )}
+
+      {/* ============================================================ */}
+      {/* WHAT-IF SIMULATION & DECISION SUPPORT STUDIO */}
+      {/* ============================================================ */}
+      {(activeTab === 'simulations' || activeTab === 'whatif') && (
+        <WhatIfSimulationStudio
+          complaints={complaints}
+          notifications={notifications}
+          announcements={announcements}
+          auditLogs={auditLogs}
           onSelectComplaint={(complaint) => {
             setSelectedComplaint(complaint);
             setActiveTab('complaints');
@@ -1328,17 +1363,19 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
         />
       </div>
 
-      <footer className="py-4 px-6 text-center text-xs text-slate-600 border-t border-slate-200 bg-white shrink-0">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="font-extrabold text-[#0B2545]">कोपरगाव नगर परिषद</span>
-            <span>• Kopargaon Municipal Council Administration</span>
+      {!embedded && (
+        <footer className="py-4 px-6 text-center text-xs text-slate-600 border-t border-slate-200 bg-white shrink-0">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold text-[#0B2545]">कोपरगाव नगर परिषद</span>
+              <span>• Kopargaon Municipal Council Administration</span>
+            </div>
+            <div className="text-slate-500 font-mono text-[11px]">
+              NIC Integrated Smart City Administrative Portal • Govt. of Maharashtra
+            </div>
           </div>
-          <div className="text-slate-500 font-mono text-[11px]">
-            NIC Integrated Smart City Administrative Portal • Govt. of Maharashtra
-          </div>
-        </div>
-      </footer>
+        </footer>
+      )}
     </div>
   );
 };

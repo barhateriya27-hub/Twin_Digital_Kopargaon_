@@ -7,6 +7,47 @@
 // Kopargaon Spatial Anchor Coordinates
 export const KOPARGAON_CENTER = { lng: 74.4784, lat: 19.8923 };
 
+// Unified Single Source of Truth API Fetch Helpers
+export const fetchInfrastructureAssets = async () => {
+  try {
+    const res = await fetch('/api/infrastructure/assets', { credentials: 'include' });
+    const json = await res.json();
+    return json.success ? json.data : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+export const fetchLiveSensors = async () => {
+  try {
+    const res = await fetch('/api/sensors/live', { credentials: 'include' });
+    const json = await res.json();
+    return json.success ? json.data : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+export const fetchMunicipalTeams = async () => {
+  try {
+    const res = await fetch('/api/teams', { credentials: 'include' });
+    const json = await res.json();
+    return json.success ? json.data : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+export const fetchCityOverview = async () => {
+  try {
+    const res = await fetch('/api/data/overview', { credentials: 'include' });
+    const json = await res.json();
+    return json.success ? json.data : null;
+  } catch (e) {
+    return null;
+  }
+};
+
 /**
  * GeoJSON Features Generator for Kopargaon City Wards
  */

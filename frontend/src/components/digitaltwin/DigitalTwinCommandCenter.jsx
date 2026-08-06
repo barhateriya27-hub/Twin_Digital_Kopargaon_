@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import {
   Activity, BarChart3, Map, AlertTriangle, CheckCircle2, ChevronRight,
-  MapPin, Users, FileText, Clock, TrendingUp, Eye
+  MapPin, Users, FileText, Clock, TrendingUp, Eye, Sparkles, AlertCircle, ShieldAlert, X
 } from 'lucide-react';
-import { useCityIntelligence, formatRelativeTime } from '../../hooks/useCityIntelligence';
+import { useCityIntelligence } from '../../hooks/useCityIntelligence';
+import { useAIEngine } from '../../hooks/useAIEngine';
 import { CityHealthScore } from '../digitaltwin/CityHealthScore';
 import { LiveActivityFeed } from '../digitaltwin/LiveActivityFeed';
 import { SmartAlertsPanel } from '../digitaltwin/SmartAlertsPanel';
@@ -11,8 +12,8 @@ import { DigitalTwinKPICards } from '../digitaltwin/DigitalTwinKPICards';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 /**
- * DigitalTwinCommandCenter — the central intelligence view for Municipality Dashboard
- * Shows real data only: city health, activity feed, alerts, KPIs, analytics
+ * Stage 6 Data-Driven Digital Twin Command Center
+ * Grounded in single source of truth database with prediction & explainable risk intelligence.
  */
 export const DigitalTwinCommandCenter = ({
   complaints = [],
@@ -23,7 +24,10 @@ export const DigitalTwinCommandCenter = ({
   onSelectComplaint,
 }) => {
   const intel = useCityIntelligence({ complaints, notifications, announcements, auditLogs });
+  const aiEngine = useAIEngine(intel);
+
   const [acknowledgedAlerts, setAcknowledgedAlerts] = useState(new Set());
+  const [selectedRiskWard, setSelectedRiskWard] = useState(null);
 
   const handleAcknowledge = (alertId) => {
     setAcknowledgedAlerts(prev => new Set([...prev, alertId]));
@@ -31,52 +35,93 @@ export const DigitalTwinCommandCenter = ({
 
   const activeAlerts = intel.alerts.filter(a => !acknowledgedAlerts.has(a.id));
 
-  // Ward comparison chart data (from real data)
-  const wardChartData = Object.entries(intel.metrics.byWard)
-    .map(([ward, data]) => ({
-      ward: `W${ward}`,
-      open: data.open,
-      resolved: data.resolved,
-      total: data.total,
-    }))
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 8);
+  // Compute Explainable Ward Risk Intelligence (0-100) from Real Database
+  const wardRiskScores = Object.entries(intel.metrics.byWard).map(([ward, data]) => {
+    const open = data.open || 0;
+    const total = data.total || 0;
+    
+    // SLA Breaches in this ward
+    const wardTickets = complaints.filter(c => (c.location?.ward || c.ward) === Number(ward));
+    const slaBreaches = wardTickets.filter(c => c.dueDate && new Date(c.dueDate).getTime() < Date.now() && c.status !== 'Resolved' && c.status !== 'Completed').length;
+    const emergencyCount = wardTickets.filter(c => c.priority === 'Emergency' || c.priority === 'High').length;
 
-  // Category breakdown (from real data)
+    // Calculate Explainable Risk Score
+    let riskScore = Math.min(100, (open * 18) + (slaBreaches * 25) + (emergencyCount * 15));
+    let riskLevel = 'Low';
+    let riskColor = 'emerald';
+    let riskBadge = 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300';
+
+    if (riskScore >= 60) {
+      riskLevel = 'High';
+      riskColor = 'red';
+      riskBadge = 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300';
+    } else if (riskScore >= 30) {
+      riskLevel = 'Medium';
+      riskColor = 'amber';
+      riskBadge = 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300';
+    }
+
+    // Explainable Rationale ("WHY")
+    let rationale = `Ward ${ward} is marked ${riskLevel.toUpperCase()} RISK (${riskScore}/100) because it contains ${open} unresolved ticket(s)`;
+    if (slaBreaches > 0) rationale += `, ${slaBreaches} SLA breach(es)`;
+    if (emergencyCount > 0) rationale += `, and ${emergencyCount} high/emergency priority incident(s)`;
+    rationale += '.';
+
+    return {
+      ward: Number(ward),
+      wardLabel: `Ward ${ward}`,
+      open,
+      total,
+      slaBreaches,
+      emergencyCount,
+      riskScore,
+      riskLevel,
+      riskBadge,
+      rationale,
+      tickets: wardTickets
+    };
+  }).sort((a, b) => b.riskScore - a.riskScore);
+
+  // Ward chart data
+  const wardChartData = wardRiskScores.slice(0, 8).map(w => ({
+    ward: `W${w.ward}`,
+    open: w.open,
+    resolved: w.total - w.open,
+    total: w.total,
+  }));
+
+  // Category breakdown
   const categoryData = intel.metrics.topCategories.slice(0, 5).map(c => ({
     name: c.category.length > 12 ? c.category.slice(0, 12) + '…' : c.category,
     open: c.open,
     resolved: c.resolved,
   }));
 
+  const activeDrilldownWard = selectedRiskWard ? wardRiskScores.find(w => w.ward === selectedRiskWard) : null;
+
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-5 rounded-2xl border border-slate-700 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500 rounded-full -translate-y-32 translate-x-32" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500 rounded-full translate-y-24 -translate-x-24" />
-        </div>
+      <div className="bg-gradient-to-r from-[#0B2545] via-[#103459] to-[#0B2545] p-5 rounded-2xl border border-sky-900/50 shadow-lg relative overflow-hidden text-white">
         <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-500 text-white">
-                DIGITAL TWIN
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#138808] text-white">
+                STAGE 6 DIGITAL TWIN
               </span>
-              <span className="text-xs text-slate-400 font-mono">
-                Kopargaon Municipal Council
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-sky-900/80 text-sky-200 border border-sky-700">
+                Live DB Grounded
               </span>
             </div>
             <h2 className="text-xl font-black text-white tracking-tight">
-              City Intelligence Command Center
+              Kopargaon Digital Twin & Risk Intelligence Platform
             </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              All metrics derived from real operational data. No simulated values.
+            <p className="text-xs text-slate-300 mt-1">
+              Real-time spatial hotspot detection, explainable risk scoring, and predictive governance analytics.
             </p>
           </div>
 
-          {/* Live health score compact */}
-          <div className="bg-slate-800/80 rounded-xl p-4 border border-slate-700 shrink-0">
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-3.5 border border-white/15 shrink-0">
             <CityHealthScore cityHealth={intel.cityHealth} compact />
           </div>
         </div>
@@ -89,217 +134,184 @@ export const DigitalTwinCommandCenter = ({
         onTabChange={onTabChange}
       />
 
-      {/* Main Grid */}
+      {/* STAGE 6 PREDICTION CARDS (WITH DATA AVAILABILITY & MODEL CONFIDENCE) */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-black uppercase tracking-wider text-[#0B2545] dark:text-sky-300 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-500" />
+            Stage 6 Predictive Intelligence Forecasts
+          </h3>
+          <span className="px-2.5 py-0.5 bg-amber-500/10 text-amber-700 dark:text-amber-300 rounded-md text-[10px] font-mono font-bold border border-amber-500/30">
+            SIMULATED MODEL ESTIMATE
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {aiEngine.predictions.slice(0, 4).map((pred) => (
+            <div
+              key={pred.id}
+              className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700 shadow-xs space-y-2 flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-base">{pred.icon}</span>
+                  <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded text-[10px] font-mono font-bold">
+                    {pred.confidence}% Confidence
+                  </span>
+                </div>
+                <h4 className="font-extrabold text-xs text-slate-900 dark:text-slate-100">{pred.title}</h4>
+                <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 line-clamp-2">{pred.summary}</p>
+              </div>
+
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Data Basis:</span>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-mono truncate">{pred.basis}</p>
+                <span className="inline-block px-1.5 py-0.5 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[9px] font-bold rounded border border-amber-200 dark:border-amber-900/50">
+                  ESTIMATED
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* MAIN GRID: EXPLAINABLE RISK INTELLIGENCE & WARD DRILLDOWN */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-        {/* Left: City Health + Ward Analysis */}
-        <div className="lg:col-span-4 space-y-6">
-          <CityHealthScore cityHealth={intel.cityHealth} />
-
-          {/* Ward Hotspot Card */}
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
-              <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+        {/* Left 6 Cols: Explainable Ward Risk Hotspot Detector */}
+        <div className="lg:col-span-6 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+            <div>
+              <h3 className="text-sm font-black uppercase tracking-wider text-[#0B2545] dark:text-white flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-red-500" />
-                Ward Analysis
+                Explainable Spatial Risk Intelligence
               </h3>
-              <button
-                onClick={() => onTabChange && onTabChange('complaints')}
-                className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center gap-0.5"
-              >
-                View All <ChevronRight className="w-3.5 h-3.5" />
-              </button>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">Calculated from complaint volume, SLA breaches & telemetry</p>
             </div>
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded">
+              REAL DB DATA
+            </span>
+          </div>
 
-            {wardChartData.length === 0 ? (
-              <div className="py-6 text-center">
-                <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-                <p className="text-xs text-slate-400 dark:text-slate-500">No complaints in the system yet.</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {wardChartData.map(ward => (
-                  <div key={ward.ward} className="flex items-center gap-3">
-                    <span className="text-xs font-black text-slate-700 dark:text-slate-300 w-8 shrink-0">{ward.ward}</span>
-                    <div className="flex-1 flex items-center gap-1">
-                      {ward.open > 0 && (
-                        <div
-                          className="h-5 bg-red-200 dark:bg-red-900/60 rounded flex items-center justify-center"
-                          style={{ width: `${Math.min(80, (ward.open / (wardChartData[0]?.total || 1)) * 80)}%`, minWidth: ward.open > 0 ? '20px' : '0' }}
-                        >
-                          <span className="text-[9px] font-black text-red-700 dark:text-red-300 px-1">{ward.open}</span>
-                        </div>
-                      )}
-                      {ward.resolved > 0 && (
-                        <div
-                          className="h-5 bg-emerald-200 dark:bg-emerald-900/60 rounded flex items-center justify-center"
-                          style={{ width: `${Math.min(80, (ward.resolved / (wardChartData[0]?.total || 1)) * 80)}%`, minWidth: ward.resolved > 0 ? '20px' : '0' }}
-                        >
-                          <span className="text-[9px] font-black text-emerald-700 dark:text-emerald-300 px-1">{ward.resolved}</span>
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono w-12 shrink-0 text-right">
-                      {ward.total} total
+          <div className="space-y-3 max-h-[420px] overflow-y-auto custom-scrollbar pr-1">
+            {wardRiskScores.map((w) => (
+              <div
+                key={w.ward}
+                onClick={() => setSelectedRiskWard(w.ward)}
+                className={`p-3.5 rounded-xl border transition-all cursor-pointer space-y-2 ${
+                  selectedRiskWard === w.ward
+                    ? 'border-[#0B2545] bg-[#0B2545]/5 dark:bg-sky-950/40 ring-2 ring-[#0B2545]'
+                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 bg-slate-50/50 dark:bg-slate-800'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-black text-xs text-[#0B2545] dark:text-sky-300">{w.wardLabel}</span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${w.riskBadge}`}>
+                      {w.riskLevel} RISK ({w.riskScore}/100)
                     </span>
                   </div>
-                ))}
-                <div className="flex items-center gap-3 pt-1 text-[10px] text-slate-400 dark:text-slate-500 font-mono">
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-red-300 dark:bg-red-700 inline-block" /> Open</span>
-                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-emerald-300 dark:bg-emerald-700 inline-block" /> Resolved</span>
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                    {w.open} Open Ticket(s) <ChevronRight className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+
+                {/* Explainable Rationale ("WHY") */}
+                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-sans">
+                  <strong className="text-slate-900 dark:text-slate-100">WHY:</strong> {w.rationale}
+                </p>
+
+                <div className="flex items-center gap-3 text-[10px] font-mono text-slate-400 pt-0.5">
+                  <span>Total: {w.total}</span>
+                  <span>SLA Breaches: {w.slaBreaches}</span>
+                  <span>Emergency: {w.emergencyCount}</span>
                 </div>
               </div>
-            )}
+            ))}
           </div>
         </div>
 
-        {/* Center: Live Activity Feed */}
-        <div className="lg:col-span-4">
+        {/* Right 6 Cols: Interactive Risk Area Drilldown Panel */}
+        <div className="lg:col-span-6 space-y-6">
+          {activeDrilldownWard ? (
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+                <div>
+                  <span className="text-[10px] font-extrabold uppercase text-slate-400">Risk Drilldown View</span>
+                  <h3 className="text-base font-black text-[#0B2545] dark:text-white flex items-center gap-2">
+                    {activeDrilldownWard.wardLabel} Underlying Incidents
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setSelectedRiskWard(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Rationale Banner */}
+              <div className="p-3 bg-red-50 dark:bg-red-950/40 rounded-xl border border-red-200 dark:border-red-900/50 text-xs text-red-900 dark:text-red-300 space-y-1">
+                <span className="font-bold block">Explainable Risk Rationale:</span>
+                <p>{activeDrilldownWard.rationale}</p>
+              </div>
+
+              {/* Underlying Tickets List */}
+              <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
+                {activeDrilldownWard.tickets.length > 0 ? (
+                  activeDrilldownWard.tickets.map((t) => (
+                    <div
+                      key={t.id}
+                      onClick={() => onSelectComplaint && onSelectComplaint(t)}
+                      className="p-3 bg-slate-50 dark:bg-slate-900/80 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3 hover:border-[#0B2545] transition-all cursor-pointer"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="font-mono text-xs font-bold text-[#0B2545] dark:text-sky-400">#{t.id}</span>
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{t.category}</span>
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold line-clamp-1">{t.title}</p>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">Assigned: {t.assignedOfficer || 'Unassigned'}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          t.status === 'Resolved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                        }`}>
+                          {t.status}
+                        </span>
+                        <Eye className="w-4 h-4 text-slate-400" />
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-400 text-center py-4">No individual tickets in this ward.</p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 text-center space-y-3">
+              <Map className="w-8 h-8 text-[#0B2545] dark:text-sky-400 mx-auto" />
+              <h4 className="font-black text-sm text-slate-900 dark:text-white">Interactive Ward Risk Drilldown</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                Click any Ward Risk card on the left to drill down into underlying complaint tickets, explainable risk rationale, and active squad assignments.
+              </p>
+            </div>
+          )}
+
+          {/* Live Activity Feed */}
           <LiveActivityFeed
             feed={intel.activityFeed}
-            maxItems={12}
+            maxItems={8}
             onComplaintClick={(cmpId) => {
               const complaint = complaints.find(c => c.id === cmpId);
               if (complaint && onSelectComplaint) onSelectComplaint(complaint);
             }}
           />
         </div>
-
-        {/* Right: Smart Alerts */}
-        <div className="lg:col-span-4">
-          <SmartAlertsPanel alerts={activeAlerts} onAcknowledge={handleAcknowledge} />
-        </div>
-      </div>
-
-      {/* Bottom: Category Analytics + AI Summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-
-        {/* Category Chart */}
-        <div className="lg:col-span-6 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
-            <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-blue-500" />
-              Complaints by Category
-            </h3>
-            <span className="text-xs text-slate-400 dark:text-slate-500 font-mono">REAL DATA</span>
-          </div>
-
-          {categoryData.length === 0 ? (
-            <div className="py-8 text-center">
-              <BarChart3 className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-              <p className="text-xs text-slate-400 dark:text-slate-500">No complaint data to chart yet.</p>
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={categoryData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" className="dark:stroke-slate-700" />
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                <Tooltip
-                  contentStyle={{
-                    fontSize: 11,
-                    borderRadius: 8,
-                    border: '1px solid #e2e8f0',
-                    backgroundColor: 'white',
-                  }}
-                />
-                <Bar dataKey="open" name="Open" radius={[4, 4, 0, 0]}>
-                  {categoryData.map((entry, index) => (
-                    <Cell key={`open-${index}`} fill="#ef4444" />
-                  ))}
-                </Bar>
-                <Bar dataKey="resolved" name="Resolved" radius={[4, 4, 0, 0]}>
-                  {categoryData.map((entry, index) => (
-                    <Cell key={`resolved-${index}`} fill="#10b981" />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-
-          {categoryData.length > 0 && (
-            <div className="flex items-center gap-4 text-[10px] text-slate-400 dark:text-slate-500 font-mono pt-1">
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-red-400 inline-block" /> Open</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-emerald-400 inline-block" /> Resolved</span>
-            </div>
-          )}
-        </div>
-
-        {/* AI Context Summary */}
-        <div className="lg:col-span-6 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
-            <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
-              <Activity className="w-4 h-4 text-purple-500" />
-              Data-Aware Situation Summary
-            </h3>
-            <span className="text-xs text-slate-400 dark:text-slate-500 font-mono">COMPUTED</span>
-          </div>
-
-          <div className="space-y-3 text-xs">
-            {/* Overall Status */}
-            <div className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600 space-y-1">
-              <p className="font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider text-[10px]">Overall Status</p>
-              <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                City health is <span className={`font-black ${intel.cityHealth.gradeColor}`}>{intel.cityHealth.grade}</span> at{' '}
-                <span className="font-black">{intel.cityHealth.overall}/100</span>.{' '}
-                {intel.metrics.open > 0
-                  ? `There are ${intel.metrics.open} open complaints requiring resolution.`
-                  : 'All filed complaints have been resolved.'}
-              </p>
-            </div>
-
-            {/* Hotspot Ward */}
-            {intel.metrics.hotspotWard && intel.metrics.hotspotWardOpen > 0 && (
-              <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-700 space-y-1">
-                <p className="font-black text-amber-700 dark:text-amber-300 uppercase tracking-wider text-[10px]">⚠ Hotspot Ward</p>
-                <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Ward {intel.metrics.hotspotWard} has the highest concentration with{' '}
-                  <span className="font-black">{intel.metrics.hotspotWardOpen} open complaints</span>.
-                  Priority dispatch recommended.
-                </p>
-              </div>
-            )}
-
-            {/* SLA Status */}
-            {intel.metrics.slaBreached > 0 && (
-              <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-700 space-y-1">
-                <p className="font-black text-red-700 dark:text-red-300 uppercase tracking-wider text-[10px]">🔴 SLA Breach</p>
-                <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                  <span className="font-black text-red-600 dark:text-red-400">{intel.metrics.slaBreached} ticket(s)</span> have exceeded the 72-hour SLA.
-                  Immediate officer assignment or Higher Authority escalation required.
-                </p>
-              </div>
-            )}
-
-            {/* Resolution Performance */}
-            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-700 space-y-1">
-              <p className="font-black text-emerald-700 dark:text-emerald-300 uppercase tracking-wider text-[10px]">✅ Resolution Performance</p>
-              <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                <span className="font-black">{intel.metrics.resolved}</span> of{' '}
-                <span className="font-black">{intel.metrics.total}</span> complaints resolved
-                ({intel.metrics.resolutionRate}% rate).
-                {intel.metrics.resolutionRate >= 80 ? ' Performance is above target.' : ' Improvement needed.'}
-              </p>
-            </div>
-
-            {/* Top category */}
-            {intel.metrics.topCategories.length > 0 && intel.metrics.topCategories[0].open > 0 && (
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-700 space-y-1">
-                <p className="font-black text-blue-700 dark:text-blue-300 uppercase tracking-wider text-[10px]">📋 Top Issue Category</p>
-                <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                  <span className="font-black">{intel.metrics.topCategories[0].category}</span> has the most open complaints
-                  ({intel.metrics.topCategories[0].open} open).
-                  {' '}{intel.metrics.topCategories[0].category === 'Water Supply' || intel.metrics.topCategories[0].category === 'Water Leakage'
-                    ? 'Water Supply department should prioritize these.'
-                    : intel.metrics.topCategories[0].category === 'Garbage' || intel.metrics.topCategories[0].category === 'Sanitation'
-                    ? 'Sanitation fleet should be redirected.'
-                    : 'Relevant department should increase capacity.'}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
       </div>
     </div>
   );
 };
+
+export default DigitalTwinCommandCenter;

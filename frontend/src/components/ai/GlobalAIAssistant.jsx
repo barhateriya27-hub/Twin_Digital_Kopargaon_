@@ -64,9 +64,9 @@ export const GlobalAIAssistant = () => {
   const currentLang = i18n.language || 'en';
 
   const greetings = {
-    en: "Hello 👋\nI am the AI Smart Assistant for Kopargaon Digital Twin Platform.\nI monitor live city telemetry, complaints, SLAs, and service status in real-time. How can I assist you?",
-    mr: "नमस्कार 👋\nमी कोपरगाव डिजिटल ट्विन प्लॅटफॉर्मचा एआय स्मार्ट सहाय्यक आहे.\nमी प्रत्यक्ष शहर माहिती, तक्रारी व सेवांचा रिअल-टाईम अंदाज घेतो. आज मी कशी मदत करू?",
-    hi: "नमस्ते 👋\nमैं कोपरगांव डिजिटल ट्विन प्लेटफॉर्म का एआई स्मार्ट सहायक हूँ।\nमैं वास्तविक समय शहर टेलीमेट्री और शिकायतों की निगरानी करता हूँ। मैं आपकी क्या सहायता कर सकता हूँ?"
+    en: "Hello 👋\nI am the Data-Grounded AI Governance Assistant for Kopargaon Digital Twin Platform.\nI analyze live city telemetry, database complaints, SLA trends, and ward priorities in real-time. Ask me any analytical question below:",
+    mr: "नमस्कार 👋\nमी कोपरगाव डिजिटल ट्विन प्लॅटफॉर्मचा डेटा-आधारित एआय गव्हर्नन्स असिस्टंट आहे.\nमी कोपरगाव नगर परिषदेच्या मूळ डेटाबेसवर आधारित माहिती आणि विश्लेषणात्मक उत्तरे देतो. खालील प्रश्न विचारा:",
+    hi: "नमस्ते 👋\nमैं कोपरगांव डिजिटल ट्विन प्लेटफॉर्म का डेटा-गrounded एआई गवर्नेंस सहायक हूँ।\nमैं लाइव डेटाबेस और शिकायतों का विश्लेषण करता हूँ। मुझसे नीचे कोई भी प्रश्न पूछें:"
   };
 
   const [messages, setMessages] = useState([
@@ -76,9 +76,10 @@ export const GlobalAIAssistant = () => {
       text: greetings[currentLang] || greetings.en,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       actions: [
-        { label: "📊 City Health Status", query: "What is the current city health status?" },
-        { label: "🚦 Traffic Forecast", query: "Traffic hotspots and forecast?" },
-        { label: "🚨 Active Alerts", query: "Show active critical alerts" }
+        { label: "📍 Which areas have most unresolved complaints?", query: "Which areas have the most unresolved complaints?" },
+        { label: "📊 What are the most common problems?", query: "What are the most common problems?" },
+        { label: "🚨 Which incidents need urgent attention?", query: "Which incidents need urgent attention?" },
+        { label: "🎯 What actions should municipality prioritize?", query: "What actions should the municipality prioritize?" }
       ]
     }
   ]);
@@ -176,7 +177,7 @@ export const GlobalAIAssistant = () => {
     }
   };
 
-  // Async Live AI Query Processor
+  // Async Live Grounded AI Query Processor
   const processAIQueryAsync = async (queryText, attachedImg = null) => {
     const q = queryText.toLowerCase().trim();
 
@@ -189,11 +190,34 @@ export const GlobalAIAssistant = () => {
       };
     }
 
-    // 2. Real City Data Context Response
+    // 2. Call Grounded Backend REST API Endpoint (/api/ai/query)
+    try {
+      const response = await fetch('/api/ai/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ query: queryText })
+      });
+      const data = await response.json();
+      if (response.ok && data.success && data.responseText) {
+        return {
+          text: data.responseText,
+          actions: [
+            { label: "📍 Unresolved Areas", query: "Which areas have the most unresolved complaints?" },
+            { label: "🚨 Urgent Incidents", query: "Which incidents need urgent attention?" },
+            { label: "📊 Common Problems", query: "What are the most common problems?" }
+          ]
+        };
+      }
+    } catch (e) {
+      // Fall through to local engine
+    }
+
+    // 3. Real City Data Context Response Fallback
     const cityContextResp = aiEngine.buildCityContextResponse(q, cityIntel.aiContext);
     if (cityContextResp) return cityContextResp;
 
-    // 3. Live Weather Query
+    // 4. Live Weather Query
     if (q.includes('weather') || q.includes('rain') || q.includes('temperature') || q.includes('temp')) {
       const weatherRes = await fetchKopargaonWeather();
       if (weatherRes.success) {
@@ -204,40 +228,7 @@ export const GlobalAIAssistant = () => {
       }
     }
 
-    // 4. Live Hospital Query
-    if (q.includes('hospital') || q.includes('clinic') || q.includes('doctor') || q.includes('medical')) {
-      const poiRes = await fetchLiveKopargaonPOIs();
-      const hospitals = (poiRes.pois || []).filter(p => p.category === 'hospital' || p.name.toLowerCase().includes('hospital'));
-      if (hospitals.length > 0) {
-        let text = `🏥 **Nearest Hospitals in Kopargaon (OpenStreetMap Live)**:\n\n`;
-        hospitals.slice(0, 3).forEach((h, idx) => {
-          text += `${idx + 1}. **${h.name}**\n   • Ward ${h.ward} | Details: ${h.details}\n`;
-        });
-        return {
-          text,
-          actions: [{ label: "🗺 Locate Hospitals on GIS Map", tab: "smart_map" }, { label: "📞 Emergency Services", tab: "emergency" }]
-        };
-      }
-    }
-
-    // 5. Live Police Query
-    if (q.includes('police') || q.includes('cop') || q.includes('station')) {
-      const poiRes = await fetchLiveKopargaonPOIs();
-      const police = (poiRes.pois || []).filter(p => p.category === 'police' || p.name.toLowerCase().includes('police'));
-      if (police.length > 0) {
-        let text = `🚓 **Nearest Police Stations in Kopargaon (OpenStreetMap Live)**:\n\n`;
-        police.slice(0, 2).forEach((p, idx) => {
-          text += `${idx + 1}. **${p.name}**\n   • Ward ${p.ward} | Details: ${p.details}\n`;
-        });
-        text += `\n**Emergency Helpline**: Dial 112 / 100`;
-        return {
-          text,
-          actions: [{ label: "🚨 Emergency Directory", tab: "emergency" }, { label: "🗺 View on GIS Map", tab: "smart_map" }]
-        };
-      }
-    }
-
-    // 6. Standard Knowledge Base Intent classifier
+    // 5. Standard Knowledge Base Intent classifier
     const { intent, isFollowUp } = detectUserIntent(queryText, activeContext);
     if (intent !== INTENTS.UNKNOWN) {
       setActiveContext(intent);
@@ -247,7 +238,7 @@ export const GlobalAIAssistant = () => {
 
     // Fallback response with live system stats
     return {
-      text: `🤖 **Kopargaon Digital Twin AI Engine**\n\nI monitored the current city status:\n• City Health Score: **${cityIntel.cityHealth.overall}/100** (${cityIntel.cityHealth.grade})\n• Open Complaints: **${cityIntel.metrics.open}**\n• Active Critical Alerts: **${cityIntel.metrics.slaBreached}**\n\nHow can I help you today?`,
+      text: `🤖 **Kopargaon Digital Twin AI Engine**\n\nLive Database Context:\n• City Health Score: **${cityIntel.cityHealth.overall}/100** (${cityIntel.cityHealth.grade})\n• Open Complaints: **${cityIntel.metrics.open}**\n• Active Critical Alerts: **${cityIntel.metrics.slaBreached}**\n\nHow can I help you today?`,
       actions: [
         { label: "🏛 Building Permits", tab: "permissions" },
         { label: "💳 Property Tax", tab: "property_tax" },
@@ -282,525 +273,393 @@ export const GlobalAIAssistant = () => {
         actions: actions || [],
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
-
       setMessages(prev => [...prev, aiMsg]);
       setIsTyping(false);
+
+      if (isSpeaking) {
+        speakText(text);
+      }
     });
   };
 
-  const handleCopyMessage = (text, index) => {
+  const handleCopyText = (text, index) => {
     navigator.clipboard.writeText(text);
     setCopiedIndex(index);
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
-  const handleClearChat = () => {
-    setActiveContext(null);
-    setMessages([
-      {
-        id: Date.now(),
-        sender: 'ai',
-        text: greetings[currentLang] || greetings.en,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        actions: []
-      }
-    ]);
-  };
-
-  const selectedScenario = aiEngine.WHATIF_SCENARIOS.find(s => s.id === selectedScenarioId) || aiEngine.WHATIF_SCENARIOS[0];
-  const simulationResult = selectedScenario ? selectedScenario.simulate(cityIntel.metrics) : null;
+  const currentScenario = aiEngine.WHATIF_SCENARIOS.find(s => s.id === selectedScenarioId) || aiEngine.WHATIF_SCENARIOS[0];
+  const scenarioResult = currentScenario ? currentScenario.simulate(cityIntel.metrics) : null;
 
   return (
     <>
+      {/* Floating Launcher Button */}
       {!isOpen && (
-        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999] flex flex-col items-end">
-          <div className="group relative flex items-center">
-            <div className="hidden sm:block absolute right-16 opacity-0 group-hover:opacity-100 transition-opacity bg-[#0B1F3A] text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-lg whitespace-nowrap border border-[#FF9933] pointer-events-none">
-              🤖 AI Smart Assistant & Digital Twin
-            </div>
-            <div className="absolute inset-0 rounded-full bg-[#FF9933] opacity-40 animate-ping"></div>
-
-            <button
-              onClick={() => {
-                setIsOpen(true);
-                setIsMinimized(false);
-              }}
-              className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#0B1F3A] text-white flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-transform duration-300 border-2 border-[#FF9933] cursor-pointer"
-              title="Kopargaon AI Smart Assistant"
-            >
-              <Bot className="w-6 h-6 sm:w-7 sm:h-7 text-[#FF9933]" />
-              {cityIntel.metrics.slaBreached > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-600 text-white text-[9px] font-black flex items-center justify-center border border-white animate-pulse">
-                  !
-                </span>
-              )}
-            </button>
+        <motion.button
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => {
+            setIsOpen(true);
+            setIsMinimized(false);
+          }}
+          className="fixed bottom-6 right-6 z-[999] bg-gradient-to-r from-[#0B2545] via-[#103459] to-[#0B2545] text-white p-3.5 sm:p-4 rounded-full shadow-2xl border-2 border-sky-400/40 flex items-center gap-3 cursor-pointer group hover:shadow-sky-900/30"
+          title="Open AI Smart City Assistant"
+        >
+          <div className="relative">
+            <Bot className="w-6 h-6 text-[#FF9933] group-hover:rotate-12 transition-transform duration-300" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full animate-ping"></span>
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full"></span>
           </div>
-        </div>
+          <span className="hidden sm:inline text-xs font-black uppercase tracking-wider text-slate-100 pr-1">
+            Grounded AI Assistant
+          </span>
+        </motion.button>
       )}
 
+      {/* Main Drawer Overlay / Panel */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ y: 30, opacity: 0, scale: 0.95 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 30, opacity: 0, scale: 0.95 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 260 }}
-            className={`fixed bottom-4 right-4 sm:bottom-5 sm:right-5 z-[10000] bg-white dark:bg-slate-900 border border-[#0B2545]/20 dark:border-slate-700 shadow-2xl flex flex-col overflow-hidden transition-all duration-300 ${
-              isMinimized
-                ? 'w-[calc(100vw-32px)] sm:w-[420px] max-w-[420px] h-13 rounded-2xl'
-                : 'w-[calc(100vw-32px)] sm:w-[420px] max-w-[420px] h-[560px] max-h-[calc(100vh-80px)] rounded-2xl'
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999] w-[calc(100vw-2rem)] sm:w-[460px] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden ${
+              isMinimized ? 'h-[64px]' : 'h-[620px] max-h-[85vh]'
             }`}
           >
             {/* Header */}
-            <div className="bg-[#0B2545] text-white p-3 border-b-2 border-[#FF9933] flex items-center justify-between shrink-0 shadow-sm">
+            <div className="bg-[#0B2545] text-white p-3.5 flex items-center justify-between border-b border-sky-900/40 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center p-1 relative">
-                  <Bot className="w-5 h-5 text-[#FF9933]" />
-                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#0B1F3A]"></span>
+                <div className="p-2 rounded-xl bg-white/10 text-[#FF9933] border border-white/10">
+                  <Bot className="w-5 h-5" />
                 </div>
-
                 <div>
-                  <h3 className="text-xs font-black uppercase tracking-wider text-white leading-tight">
-                    Kopargaon AI Intelligence
-                  </h3>
-                  <div className="flex items-center gap-1.5 text-[9px] text-[#FF9933] font-mono">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span>Digital Twin Live Connected</span>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-extrabold text-xs uppercase tracking-wider text-white">
+                      Data-Grounded AI Assistant
+                    </h3>
+                    <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-[9px] font-bold rounded uppercase tracking-wider border border-emerald-400/30">
+                      DB Live
+                    </span>
                   </div>
+                  <p className="text-[10px] text-sky-200 font-mono">Kopargaon Single Source Database Connected</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-1">
-                <button onClick={handleClearChat} className="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors" title="Clear Chat">
-                  <Trash2 className="w-3.5 h-3.5" />
+                <button
+                  onClick={() => setIsMinimized(!isMinimized)}
+                  className="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                  title={isMinimized ? "Expand" : "Minimize"}
+                >
+                  <Minus className="w-4 h-4" />
                 </button>
-                <button onClick={() => setIsMinimized(!isMinimized)} className="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors" title={isMinimized ? 'Expand' : 'Minimize'}>
-                  <Minus className="w-3.5 h-3.5" />
-                </button>
-                <button onClick={() => setIsOpen(false)} className="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-rose-400 transition-colors" title="Close">
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                  title="Close Assistant"
+                >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
+            {/* Content body if not minimized */}
             {!isMinimized && (
               <>
-                {/* Navigation Bar for AI Assistant Modes */}
-                <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold overflow-x-auto shrink-0 custom-scrollbar">
+                {/* Navigation Tabs */}
+                <div className="bg-slate-50 dark:bg-slate-800/80 px-2 py-1.5 border-b border-slate-200 dark:border-slate-800 flex items-center gap-1 overflow-x-auto custom-scrollbar shrink-0 text-xs font-bold">
                   <button
                     onClick={() => setActiveTab('chat')}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer ${
                       activeTab === 'chat'
-                        ? 'bg-white dark:bg-slate-700 text-[#0B2545] dark:text-white shadow-xs'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                        ? 'bg-[#0B2545] text-white shadow-xs'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                     }`}
                   >
-                    <MessageSquare className="w-3.5 h-3.5 text-blue-500" />
-                    <span>Chat</span>
+                    <MessageSquare className="w-3.5 h-3.5 text-[#FF9933]" />
+                    AI Grounded Chat
                   </button>
-
                   <button
                     onClick={() => setActiveTab('predictions')}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer ${
                       activeTab === 'predictions'
-                        ? 'bg-white dark:bg-slate-700 text-[#0B2545] dark:text-white shadow-xs'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                        ? 'bg-[#0B2545] text-white shadow-xs'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                     }`}
                   >
-                    <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-                    <span>Predictions</span>
-                    <span className="text-[8px] bg-amber-100 text-amber-800 px-1 rounded font-mono">EST</span>
+                    <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                    Forecasts
                   </button>
-
-                  <button
-                    onClick={() => setActiveTab('alerts')}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-all whitespace-nowrap cursor-pointer relative ${
-                      activeTab === 'alerts'
-                        ? 'bg-white dark:bg-slate-700 text-[#0B2545] dark:text-white shadow-xs'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                    }`}
-                  >
-                    <ShieldAlert className="w-3.5 h-3.5 text-red-500" />
-                    <span>Alerts</span>
-                    {aiEngine.smartAlerts.length > 0 && (
-                      <span className="px-1 py-0.2 rounded-full bg-red-600 text-white text-[9px] font-black">
-                        {aiEngine.smartAlerts.length}
-                      </span>
-                    )}
-                  </button>
-
                   <button
                     onClick={() => setActiveTab('decisions')}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer ${
                       activeTab === 'decisions'
-                        ? 'bg-white dark:bg-slate-700 text-[#0B2545] dark:text-white shadow-xs'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                        ? 'bg-[#0B2545] text-white shadow-xs'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                     }`}
                   >
-                    <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Decisions</span>
+                    <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+                    Priorities
                   </button>
-
                   <button
                     onClick={() => setActiveTab('whatif')}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer ${
                       activeTab === 'whatif'
-                        ? 'bg-white dark:bg-slate-700 text-[#0B2545] dark:text-white shadow-xs'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                        ? 'bg-[#0B2545] text-white shadow-xs'
+                        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                     }`}
                   >
-                    <Sliders className="w-3.5 h-3.5 text-purple-500" />
-                    <span>What-If</span>
-                    <span className="text-[8px] bg-purple-100 text-purple-800 px-1 rounded font-mono">SIM</span>
+                    <Sliders className="w-3.5 h-3.5 text-sky-400" />
+                    Simulations
                   </button>
                 </div>
 
-                {/* TAB CONTENT AREA */}
-                <div className="flex-1 overflow-y-auto p-4 bg-[#F8FAFC] dark:bg-slate-900 custom-scrollbar">
-
-                  {/* TAB 1: CONVERSATIONAL CHAT */}
-                  {activeTab === 'chat' && (
-                    <div className="space-y-4">
-                      {messages.map((msg, idx) => {
-                        const isAi = msg.sender === 'ai';
-
-                        return (
-                          <div key={msg.id || idx} className={`flex flex-col ${isAi ? 'items-start' : 'items-end'}`}>
-                            <div className="flex items-end gap-1.5 max-w-[92%]">
-                              {isAi && (
-                                <div className="w-6 h-6 rounded-full bg-[#0B1F3A] text-[#FF9933] flex items-center justify-center text-[10px] shrink-0 mb-1">
-                                  🤖
-                                </div>
-                              )}
-
-                              <div className={`p-3.5 rounded-2xl text-xs leading-relaxed font-medium shadow-sm relative group ${isAi ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-bl-none' : 'bg-[#0B1F3A] text-white rounded-br-none'}`}>
-                                {msg.file && (
-                                  <div className="mb-2 p-1.5 bg-slate-100 dark:bg-slate-700 rounded-lg text-[10px] font-mono text-sky-600 dark:text-sky-300 flex items-center gap-1">
-                                    <ImageIcon className="w-3.5 h-3.5" /> Attached: {msg.file}
-                                  </div>
-                                )}
-
-                                <div className="whitespace-pre-line leading-relaxed">{msg.text}</div>
-
-                                {isAi && msg.actions && msg.actions.length > 0 && (
-                                  <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-700 flex flex-wrap gap-2">
-                                    {msg.actions.map((act, actIdx) => (
-                                      <button
-                                        key={actIdx}
-                                        onClick={() => handleActionButtonClick(act)}
-                                        className="px-3 py-1.5 bg-[#0B1F3A] hover:bg-[#071426] text-white font-bold text-[11px] rounded-xl flex items-center gap-1.5 shadow-sm transition-colors border border-[#0B1F3A] cursor-pointer"
-                                      >
-                                        <span>{act.label}</span>
-                                        <ArrowRight className="w-3 h-3 text-[#FF9933]" />
-                                      </button>
-                                    ))}
-                                  </div>
-                                )}
-
-                                <div className="flex items-center justify-between gap-3 mt-2 pt-1 border-t border-slate-100 dark:border-slate-700 text-[9px] text-slate-400">
-                                  <span>{msg.timestamp}</span>
-                                  {isAi && (
-                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <button onClick={() => speakText(msg.text)} className="hover:text-[#0B1F3A] dark:hover:text-white p-0.5" title="Read Aloud">
-                                        <Volume2 className="w-3 h-3" />
-                                      </button>
-                                      <button onClick={() => handleCopyMessage(msg.text, idx)} className="hover:text-[#0B1F3A] dark:hover:text-white p-0.5" title="Copy">
-                                        {copiedIndex === idx ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-
-                      {isTyping && (
-                        <div className="flex items-center gap-2 p-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 max-w-[120px]">
-                          <div className="w-2 h-2 rounded-full bg-[#0B1F3A] dark:bg-sky-400 animate-bounce"></div>
-                          <div className="w-2 h-2 rounded-full bg-[#FF9933] animate-bounce [animation-delay:0.2s]"></div>
-                          <div className="w-2 h-2 rounded-full bg-[#138808] animate-bounce [animation-delay:0.4s]"></div>
-                        </div>
-                      )}
-
-                      <div ref={messagesEndRef} />
-                    </div>
-                  )}
-
-                  {/* TAB 2: AI PREDICTIONS */}
-                  {activeTab === 'predictions' && (
-                    <div className="space-y-4">
-                      <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl text-xs space-y-1">
-                        <div className="flex items-center justify-between font-black text-amber-800 dark:text-amber-300">
-                          <span className="flex items-center gap-1 uppercase tracking-wider text-[10px]">
-                            <Sparkles className="w-3.5 h-3.5" /> AI Predictive Telemetry
-                          </span>
-                          <span className="px-2 py-0.5 bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-100 rounded text-[9px] font-mono font-bold">
-                            ESTIMATED
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed">
-                          Forecasts combine live complaint trends, time-of-day patterns & historical SLAs. All predictions are <strong>clearly labeled as estimated</strong>.
-                        </p>
-                      </div>
-
-                      <div className="space-y-3">
-                        {aiEngine.predictions.map(pred => (
-                          <div key={pred.id} className="p-3.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-2">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <span className="text-base">{pred.icon}</span>
-                                <h4 className="font-extrabold text-xs text-slate-900 dark:text-white">{pred.title}</h4>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[10px] font-mono font-bold text-slate-500">{pred.confidence}% confidence</span>
-                                <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 rounded text-[9px] font-black font-mono">
-                                  ESTIMATED
-                                </span>
-                              </div>
-                            </div>
-
-                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{pred.summary}</p>
-                            <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">{pred.detail}</p>
-
-                            <div className="p-2 bg-slate-50 dark:bg-slate-700/50 rounded-lg text-[11px] space-y-1">
-                              <span className="font-extrabold text-emerald-600 dark:text-emerald-400 uppercase text-[9px] block">
-                                Recommended Action:
-                              </span>
-                              <p className="text-slate-700 dark:text-slate-300 font-semibold">{pred.recommendation}</p>
-                            </div>
-
-                            <p className="text-[9px] text-slate-400 font-mono pt-1 border-t border-slate-100 dark:border-slate-700">
-                              {pred.basis}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB 3: SMART ALERTS */}
-                  {activeTab === 'alerts' && (
-                    <div className="space-y-4">
-                      <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-xl text-xs space-y-1">
-                        <div className="flex items-center justify-between font-black text-red-800 dark:text-red-300">
-                          <span className="flex items-center gap-1 uppercase tracking-wider text-[10px]">
-                            <ShieldAlert className="w-3.5 h-3.5" /> Real System Alerts
-                          </span>
-                          <span className="px-2 py-0.5 bg-red-200 dark:bg-red-800 text-red-900 dark:text-red-100 rounded text-[9px] font-mono font-bold">
-                            REAL-TIME
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-red-700 dark:text-red-300 leading-relaxed">
-                          Auto-generated from active SLA breaches, escalations & complaint density.
-                        </p>
-                      </div>
-
-                      {aiEngine.smartAlerts.length === 0 ? (
-                        <div className="p-6 text-center text-slate-400 text-xs font-medium">
-                          No active critical alerts. All SLAs compliant.
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {aiEngine.smartAlerts.map(alert => (
-                            <div key={alert.id} className="p-3.5 bg-white dark:bg-slate-800 rounded-xl border border-l-4 border-red-500 border-slate-200 dark:border-slate-700 shadow-xs space-y-2">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex items-center gap-1.5">
-                                  <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
-                                  <h4 className="font-extrabold text-xs text-slate-900 dark:text-white leading-tight">{alert.title}</h4>
-                                </div>
-                                <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300 rounded text-[9px] font-black uppercase">
-                                  {alert.severity}
-                                </span>
-                              </div>
-
-                              <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">{alert.description}</p>
-
-                              <div className="p-2 bg-red-50/50 dark:bg-red-900/10 rounded-lg text-[11px] space-y-0.5">
-                                <span className="font-bold text-red-800 dark:text-red-300 uppercase text-[9px] block">Recommended Municipal Action:</span>
-                                <p className="text-slate-700 dark:text-slate-300 font-semibold">{alert.action}</p>
-                              </div>
-
-                              <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-1">
-                                <span>Location: {alert.location}</span>
-                                <span>Dept: {alert.department}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* TAB 4: DECISION SUPPORT */}
-                  {activeTab === 'decisions' && (
-                    <div className="space-y-4">
-                      <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl text-xs space-y-1">
-                        <div className="flex items-center justify-between font-black text-amber-800 dark:text-amber-300">
-                          <span className="flex items-center gap-1 uppercase tracking-wider text-[10px]">
-                            <Lightbulb className="w-3.5 h-3.5" /> Smart Decision Support
-                          </span>
-                          <span className="px-2 py-0.5 bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-100 rounded text-[9px] font-mono font-bold">
-                            RECOMMENDATIONS
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed">
-                          AI recommendations based on current live data to optimize municipal response & resource dispatch.
-                        </p>
-                      </div>
-
-                      <div className="space-y-3">
-                        {aiEngine.decisionSupport.map(dec => (
-                          <div key={dec.id} className="p-3.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${dec.priorityColor}`}>
-                                {dec.priority} PRIORITY
-                              </span>
-                              <span className="text-[10px] font-mono font-bold text-slate-400">{dec.department}</span>
-                            </div>
-
-                            <h4 className="font-extrabold text-xs text-slate-900 dark:text-white">{dec.title}</h4>
-                            <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">{dec.rationale}</p>
-
-                            <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg text-[11px] space-y-0.5 border border-emerald-200 dark:border-emerald-700">
-                              <span className="font-bold text-emerald-800 dark:text-emerald-300 uppercase text-[9px] block">Suggested Executive Action:</span>
-                              <p className="text-slate-800 dark:text-slate-200 font-semibold">{dec.action}</p>
-                            </div>
-
-                            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 pt-1">
-                              <span>Estimated Impact:</span>
-                              <span>{dec.impact}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB 5: WHAT-IF SIMULATION */}
-                  {activeTab === 'whatif' && (
-                    <div className="space-y-4">
-                      <div className="p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-xl text-xs space-y-1">
-                        <div className="flex items-center justify-between font-black text-purple-800 dark:text-purple-300">
-                          <span className="flex items-center gap-1 uppercase tracking-wider text-[10px]">
-                            <Sliders className="w-3.5 h-3.5" /> What-If Scenario Simulator
-                          </span>
-                          <span className="px-2 py-0.5 bg-purple-200 dark:bg-purple-800 text-purple-900 dark:text-purple-100 rounded text-[9px] font-mono font-bold">
-                            SIMULATED / ESTIMATED
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-purple-700 dark:text-purple-300 leading-relaxed">
-                          Test municipal decisions before execution. All before/after impacts are <strong>clearly labeled as simulated estimates</strong>.
-                        </p>
-                      </div>
-
-                      {/* Scenario Selector */}
-                      <div className="grid grid-cols-2 gap-2">
-                        {aiEngine.WHATIF_SCENARIOS.map(sc => (
-                          <button
-                            key={sc.id}
-                            onClick={() => setSelectedScenarioId(sc.id)}
-                            className={`p-2.5 rounded-xl border text-left text-xs transition-all cursor-pointer ${
-                              selectedScenarioId === sc.id
-                                ? 'bg-[#0B2545] text-white border-[#0B2545] shadow-xs'
-                                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300'
+                {/* TAB 1: CHAT INTERFACE */}
+                {activeTab === 'chat' && (
+                  <div className="flex-1 flex flex-col min-h-0 bg-slate-50/50 dark:bg-slate-900/50">
+                    {/* Message Transcript Area */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                      {messages.map((msg, index) => (
+                        <div
+                          key={msg.id || index}
+                          className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
+                        >
+                          <div
+                            className={`max-w-[88%] p-3.5 rounded-2xl text-xs space-y-2 shadow-xs ${
+                              msg.sender === 'user'
+                                ? 'bg-[#0B2545] text-white rounded-br-none'
+                                : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-bl-none'
                             }`}
                           >
-                            <div className="flex items-center gap-1.5 mb-1 font-bold">
-                              <span>{sc.icon}</span>
-                              <span className="truncate">{sc.label}</span>
+                            <div className="whitespace-pre-wrap leading-relaxed font-sans">
+                              {msg.text}
                             </div>
-                            <p className="text-[10px] opacity-80 line-clamp-1">{sc.description}</p>
-                          </button>
-                        ))}
-                      </div>
 
-                      {/* Selected Scenario Impact Simulation */}
-                      {simulationResult && (
-                        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
-                          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-2">
-                            <h4 className="font-extrabold text-xs text-slate-900 dark:text-white flex items-center gap-2">
-                              <span>{selectedScenario.icon}</span>
-                              <span>{selectedScenario.label}</span>
-                            </h4>
-                            <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300 rounded text-[9px] font-black font-mono">
-                              SIMULATED IMPACT
-                            </span>
+                            {/* Action Buttons if present */}
+                            {msg.actions && msg.actions.length > 0 && (
+                              <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex flex-col gap-1.5">
+                                {msg.actions.map((act, actIdx) => (
+                                  <button
+                                    key={actIdx}
+                                    onClick={() => handleActionButtonClick(act)}
+                                    className="w-full text-left px-3 py-1.5 bg-slate-50 dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-xs font-bold text-[#0B2545] dark:text-sky-300 flex items-center justify-between border border-slate-200 dark:border-slate-600 transition-colors cursor-pointer"
+                                  >
+                                    <span>{act.label}</span>
+                                    <ChevronRight className="w-3.5 h-3.5 shrink-0 opacity-70" />
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Copy button */}
+                            {msg.sender === 'ai' && (
+                              <div className="flex items-center justify-between pt-1 text-[10px] text-slate-400">
+                                <span>{msg.timestamp}</span>
+                                <button
+                                  onClick={() => handleCopyText(msg.text, index)}
+                                  className="hover:text-slate-600 dark:hover:text-slate-200 flex items-center gap-1 cursor-pointer"
+                                >
+                                  {copiedIndex === index ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                                  <span>{copiedIndex === index ? 'Copied' : 'Copy'}</span>
+                                </button>
+                              </div>
+                            )}
                           </div>
+                        </div>
+                      ))}
 
-                          <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-semibold">
-                            {simulationResult.summary}
-                          </p>
-
-                          {/* Before / After Comparison Box */}
-                          <div className="grid grid-cols-2 gap-3 pt-2">
-                            <div className="p-2.5 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700 text-xs space-y-1">
-                              <span className="font-black text-red-700 dark:text-red-300 uppercase text-[9px] block">Current State (Before):</span>
-                              {Object.entries(simulationResult.before).map(([k, v]) => (
-                                <div key={k} className="text-[10px] text-slate-700 dark:text-slate-300">
-                                  <span className="font-semibold text-slate-500 capitalize">{k.replace(/([A-Z])/g, ' $1')}:</span> {v}
-                                </div>
-                              ))}
-                            </div>
-
-                            <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-700 text-xs space-y-1">
-                              <span className="font-black text-emerald-700 dark:text-emerald-300 uppercase text-[9px] block">Estimated Impact (After):</span>
-                              {Object.entries(simulationResult.after).map(([k, v]) => (
-                                <div key={k} className="text-[10px] text-slate-700 dark:text-slate-300">
-                                  <span className="font-semibold text-slate-500 capitalize">{k.replace(/([A-Z])/g, ' $1')}:</span> {v}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-1">
-                            <span>Est. Time to Impact: {simulationResult.after.timeToImpact}</span>
-                            <span>Est. Cost: {simulationResult.after.cost}</span>
+                      {isTyping && (
+                        <div className="flex items-start gap-2">
+                          <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs flex items-center gap-2 text-slate-500">
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#0B2545]" />
+                            <span>Evaluating database records & analytical trends...</span>
                           </div>
                         </div>
                       )}
+                      <div ref={messagesEndRef} />
                     </div>
-                  )}
 
-                </div>
+                    {/* Input Composer */}
+                    <div className="p-3 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shrink-0 space-y-2">
+                      {attachedFile && (
+                        <div className="px-3 py-1 bg-sky-50 dark:bg-sky-950/40 text-sky-800 dark:text-sky-300 rounded-lg text-xs font-semibold flex items-center justify-between border border-sky-200 dark:border-sky-800">
+                          <span className="truncate">Attached: {attachedFile.name}</span>
+                          <button onClick={() => setAttachedFile(null)} className="text-slate-400 hover:text-slate-600">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
 
-                {/* Footer Input Form (only shown in chat tab) */}
-                {activeTab === 'chat' && (
-                  <div className="p-3 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shrink-0">
-                    {attachedFile && (
-                      <div className="mb-2 px-2.5 py-1 bg-slate-100 dark:bg-slate-700 rounded-lg text-xs font-medium text-[#0B1F3A] dark:text-white flex items-center justify-between">
-                        <span className="truncate">📎 Attached: {attachedFile.name}</span>
-                        <button onClick={() => setAttachedFile(null)} className="text-rose-500 p-0.5">
-                          <X className="w-3.5 h-3.5" />
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileChange}
+                          className="hidden"
+                          accept="image/*,.pdf"
+                        />
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="p-2 text-slate-400 hover:text-[#0B2545] dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
+                          title="Attach Image / Document"
+                        >
+                          <Paperclip className="w-4 h-4" />
+                        </button>
+
+                        <input
+                          type="text"
+                          value={inputQuery}
+                          onChange={(e) => setInputQuery(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                          placeholder="Ask real database questions..."
+                          className="flex-1 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-[#0B2545]"
+                        />
+
+                        <button
+                          onClick={toggleVoiceInput}
+                          className={`p-2 rounded-xl cursor-pointer ${
+                            isListening
+                              ? 'bg-red-500 text-white animate-pulse'
+                              : 'text-slate-400 hover:text-[#0B2545] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700'
+                          }`}
+                          title="Voice Input"
+                        >
+                          {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                        </button>
+
+                        <button
+                          onClick={() => handleSendMessage()}
+                          disabled={!inputQuery.trim() && !attachedFile}
+                          className="p-2.5 bg-[#0B2545] hover:bg-[#07192E] text-white rounded-xl disabled:opacity-40 transition-all cursor-pointer"
+                        >
+                          <Send className="w-4 h-4" />
                         </button>
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 2: AI PREDICTIONS & FORECASTS */}
+                {activeTab === 'predictions' && (
+                  <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-slate-50/50 dark:bg-slate-900/50">
+                    <div className="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-xl border border-amber-200 dark:border-amber-900/50 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span className="font-bold">Database Grounded Forecast Models</span>
+                      </div>
+                      <span className="text-[10px] font-mono font-bold bg-amber-200 dark:bg-amber-900 px-2 py-0.5 rounded">
+                        ESTIMATED
+                      </span>
+                    </div>
+
+                    {aiEngine.predictions.map((p) => (
+                      <div
+                        key={p.id}
+                        className="p-3.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2 shadow-xs"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base">{p.icon}</span>
+                            <h4 className="font-black text-xs text-slate-900 dark:text-slate-100">{p.title}</h4>
+                          </div>
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded">
+                            {p.confidence}% Confidence
+                          </span>
+                        </div>
+
+                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">{p.summary}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{p.detail}</p>
+
+                        <div className="p-2.5 bg-sky-50 dark:bg-sky-950/40 rounded-lg text-xs border border-sky-200 dark:border-sky-900/50">
+                          <span className="font-bold text-sky-900 dark:text-sky-300 block">AI Recommended Action:</span>
+                          <span className="text-sky-800 dark:text-sky-400">{p.recommendation}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* TAB 3: DECISION SUPPORT PRIORITIES */}
+                {activeTab === 'decisions' && (
+                  <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-slate-50/50 dark:bg-slate-900/50">
+                    <div className="p-3 bg-blue-50 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-900/50 text-xs text-blue-800 dark:text-blue-300">
+                      <span className="font-bold block">Municipal Action Matrix (Prioritized Facts)</span>
+                      <span className="text-[11px]">Directly derived from open complaints, ward hotspots, and SLA breaches.</span>
+                    </div>
+
+                    {aiEngine.decisionSupport.map((d) => (
+                      <div
+                        key={d.id}
+                        className="p-3.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2 shadow-xs"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${d.priorityColor}`}>
+                            {d.priority} PRIORITY
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-400">{d.department}</span>
+                        </div>
+
+                        <h4 className="font-bold text-xs text-slate-900 dark:text-slate-100">{d.title}</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{d.rationale}</p>
+
+                        <div className="p-2.5 bg-slate-50 dark:bg-slate-700/60 rounded-lg text-xs space-y-1">
+                          <span className="font-bold text-slate-800 dark:text-slate-200 block">Required Action:</span>
+                          <span className="text-slate-600 dark:text-slate-300">{d.action}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* TAB 4: WHAT-IF SIMULATIONS */}
+                {activeTab === 'whatif' && (
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-slate-50/50 dark:bg-slate-900/50">
+                    <div className="p-3 bg-purple-50 dark:bg-purple-950/40 rounded-xl border border-purple-200 dark:border-purple-900/50 text-xs text-purple-800 dark:text-purple-300 flex items-center justify-between">
+                      <span className="font-bold">Policy & Resource Simulation Engine</span>
+                      <span className="text-[10px] font-mono font-bold bg-purple-200 dark:bg-purple-900 px-2 py-0.5 rounded">
+                        SIMULATED
+                      </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
+                        Select Action Scenario:
+                      </label>
+                      <select
+                        value={selectedScenarioId}
+                        onChange={(e) => setSelectedScenarioId(e.target.value)}
+                        className="w-full p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100 cursor-pointer"
+                      >
+                        {aiEngine.WHATIF_SCENARIOS.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.icon} {s.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {scenarioResult && (
+                      <div className="p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3 shadow-xs">
+                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                          {scenarioResult.summary}
+                        </p>
+
+                        <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl text-xs">
+                          <div>
+                            <span className="text-[10px] font-bold uppercase text-slate-400 block">Time to Impact</span>
+                            <span className="font-bold text-slate-800 dark:text-slate-200">{scenarioResult.after.timeToImpact}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold uppercase text-slate-400 block">Est. Cost</span>
+                            <span className="font-bold text-slate-800 dark:text-slate-200">{scenarioResult.after.cost}</span>
+                          </div>
+                        </div>
+                      </div>
                     )}
-
-                    <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex items-center gap-2">
-                      <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,.pdf" />
-
-                      <button type="button" onClick={() => fileInputRef.current?.click()} className="p-2 text-slate-400 hover:text-[#0B1F3A] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
-                        <Paperclip className="w-4 h-4" />
-                      </button>
-
-                      <button type="button" onClick={toggleVoiceInput} className={`p-2 rounded-xl transition-colors ${isListening ? 'bg-rose-600 text-white animate-pulse' : 'text-slate-400 hover:text-[#0B1F3A] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
-                        {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                      </button>
-
-                      <input
-                        type="text"
-                        value={inputQuery}
-                        onChange={(e) => setInputQuery(e.target.value)}
-                        placeholder="Ask weather, traffic, hospital, tax..."
-                        className="flex-1 p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#0B1F3A] text-slate-900 dark:text-white"
-                      />
-
-                      <button type="submit" className="p-2.5 bg-[#0B1F3A] hover:bg-[#071426] text-white rounded-xl shadow-md transition-all border border-[#0B1F3A] cursor-pointer">
-                        <Send className="w-4 h-4" />
-                      </button>
-                    </form>
                   </div>
                 )}
               </>

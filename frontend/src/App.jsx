@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
 import { Toast } from './components/Toast';
+import { AccessDeniedView } from './components/AccessDeniedView';
+import { SessionExpiredModal } from './components/SessionExpiredModal';
 
 // Layout Shells
 import { CitizenLayout } from './layouts/CitizenLayout';
@@ -26,11 +28,14 @@ import { AnnouncementManager } from './components/AnnouncementManager';
 import { IncidentArchive } from './components/IncidentArchive';
 import { NotFoundPage } from './pages/NotFoundPage';
 
-// Protected Route Wrappers (Require valid JWT session)
+// Protected Route Wrappers (Require valid JWT session & Role Clearance)
 const ProtectedCitizenRoute = ({ children }) => {
-  const { isCitizenAuthenticated } = useApp();
+  const { isCitizenAuthenticated, citizenUser } = useApp();
   if (!isCitizenAuthenticated) {
     return <Navigate to="/citizen/login" replace />;
+  }
+  if (citizenUser && citizenUser.role !== 'citizen') {
+    return <AccessDeniedView requiredRole="Citizen" attemptedPath="/citizen/dashboard" />;
   }
   return children;
 };
@@ -39,6 +44,17 @@ const ProtectedOfficerRoute = ({ children }) => {
   const { isOfficerAuthenticated } = useApp();
   if (!isOfficerAuthenticated) {
     return <Navigate to="/municipality/login" replace />;
+  }
+  return children;
+};
+
+const ProtectedAdminRoute = ({ children }) => {
+  const { isOfficerAuthenticated, officerUser } = useApp();
+  if (!isOfficerAuthenticated) {
+    return <Navigate to="/municipality/login" replace />;
+  }
+  if (officerUser && officerUser.role !== 'admin') {
+    return <AccessDeniedView requiredRole="Smart City Commissioner (Admin)" attemptedPath="/municipality/higher-authority" />;
   }
   return children;
 };
@@ -61,9 +77,22 @@ const PublicOnlyOfficerRoute = ({ children }) => {
 };
 
 export function AppContent() {
+  const { isSessionExpired, setIsSessionExpired, logoutCitizen, logoutOfficer } = useApp();
+
   return (
     <>
       <Toast />
+
+      {/* Global Session Expired Re-authentication Modal */}
+      <SessionExpiredModal
+        isOpen={isSessionExpired}
+        onReAuthenticate={() => setIsSessionExpired(false)}
+        onLogout={() => {
+          setIsSessionExpired(false);
+          logoutCitizen();
+          logoutOfficer();
+        }}
+      />
 
       <Routes>
         {/* Landing Page */}
@@ -147,7 +176,16 @@ export function AppContent() {
           <Route path="/municipality/reports" element={<MunicipalityDashboard defaultTab="reports_analytics" embedded />} />
           <Route path="/municipality/ai-assistant" element={<MunicipalityDashboard defaultTab="ai_assistant" embedded />} />
           <Route path="/municipality/settings" element={<MunicipalityDashboard defaultTab="settings" embedded />} />
-          <Route path="/municipality/higher-authority" element={<HigherAuthorityDashboard />} />
+
+          {/* ADMIN ONLY ROUTE: Higher Authority Dashboard */}
+          <Route 
+            path="/municipality/higher-authority" 
+            element={
+              <ProtectedAdminRoute>
+                <HigherAuthorityDashboard />
+              </ProtectedAdminRoute>
+            } 
+          />
         </Route>
 
         {/* 404 Fallback */}
