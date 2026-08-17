@@ -19,7 +19,7 @@ import { ShieldAlert } from 'lucide-react';
 export const CitizenLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { citizenUser, notifications = [], announcements = [], logoutCitizen } = useApp();
+  const { citizenUser, officerUser, notifications = [], announcements = [], logoutCitizen } = useApp();
 
   const [isNotifDrawerOpen, setIsNotifDrawerOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -42,7 +42,7 @@ export const CitizenLayout = () => {
     <div className="h-screen w-screen flex flex-col bg-[#F8FAFC] overflow-hidden text-slate-800 font-sans selection:bg-[#0B2545] selection:text-white">
       {/* 1. PERSISTENT TOP HEADER (FULL WIDTH AT TOP) */}
       <GovHeader
-        citizenUser={citizenUser}
+        citizenUser={officerUser || citizenUser}
         unreadCount={unreadCount}
         onOpenNotifications={() => setIsNotifDrawerOpen(true)}
         onOpenProfile={() => navigate('/citizen/profile')}

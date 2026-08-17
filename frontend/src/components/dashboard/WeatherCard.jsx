@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import {
   Sun,
+  Moon,
   CloudSun,
   CloudRain,
   Zap,
@@ -126,6 +127,16 @@ export const WeatherCard = () => {
             <CloudFog className="w-full h-full" />
           </motion.div>
         );
+      case 'moon':
+        return (
+          <motion.div
+            animate={{ y: [0, -3, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+            className="w-16 h-16 sm:w-20 sm:h-20 text-indigo-200 drop-shadow-[0_0_15px_rgba(199,210,254,0.4)]"
+          >
+            <Moon className="w-full h-full" />
+          </motion.div>
+        );
       default:
         return (
           <motion.div
@@ -157,8 +168,12 @@ export const WeatherCard = () => {
                 <MapPin className="w-4 h-4 text-emerald-400" />
                 <span>Kopargaon, Maharashtra</span>
               </h2>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                LIVE METEOROLOGY
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border transition-all ${
+                weather?.source && (weather.source.includes('Simulation') || weather.source.includes('Offline'))
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse'
+                  : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+              }`}>
+                {weather?.source && (weather.source.includes('Simulation') || weather.source.includes('Offline')) ? 'OFFLINE SIMULATION' : 'LIVE METEOROLOGY'}
               </span>
             </div>
             <p className="text-xs text-slate-300 font-medium">
@@ -349,6 +364,60 @@ export const WeatherCard = () => {
               </div>
             </div>
           </div>
+
+          {/* 5-Day Weather Forecast */}
+          {weather.forecast && weather.forecast.length > 0 && (
+            <div className="pt-5 border-t border-slate-700/40 dark:border-slate-800/60">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-sky-400" />
+                <span>5-Day Spatial Forecast</span>
+              </h3>
+              <div className="grid grid-cols-5 gap-2 sm:gap-3">
+                {weather.forecast.map((day, idx) => {
+                  return (
+                    <div
+                      key={idx}
+                      className="bg-slate-800/40 border border-slate-700/40 hover:border-slate-600/55 rounded-2xl p-2.5 sm:p-3 text-center transition-all duration-300 hover:bg-slate-800/60 flex flex-col items-center justify-between min-h-[110px]"
+                    >
+                      <span className="text-xs font-bold text-slate-300 block">{day.day}</span>
+                      <span className="text-[10px] text-slate-500 block font-mono -mt-0.5 mb-1">{day.date.substring(5)}</span>
+                      
+                      {/* Forecast Icon */}
+                      <div className="my-1.5 text-sky-400 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center">
+                        {day.condition.toLowerCase().includes('rain') ? (
+                          <CloudRain className="w-full h-full text-blue-400" />
+                        ) : day.condition.toLowerCase().includes('thunder') ? (
+                          <Zap className="w-full h-full text-amber-400 animate-pulse" />
+                        ) : day.condition.toLowerCase().includes('sunny') || day.condition.toLowerCase().includes('clear') ? (
+                          <Sun className="w-full h-full text-amber-400" />
+                        ) : (
+                          <CloudSun className="w-full h-full text-slate-300" />
+                        )}
+                      </div>
+                      
+                      {/* Temp High / Low */}
+                      <div className="text-xs font-extrabold font-mono text-white flex items-center gap-1 justify-center">
+                        <span className="text-amber-300">{day.tempMax}°</span>
+                        <span className="text-slate-400 text-[10px] font-normal">/</span>
+                        <span className="text-sky-300">{day.tempMin}°</span>
+                      </div>
+                      
+                      {/* Rain Probability */}
+                      {day.rainProb > 0 ? (
+                        <span className="text-[9px] font-bold text-blue-400 block mt-1.5">
+                          {day.rainProb}% Rain
+                        </span>
+                      ) : (
+                        <span className="text-[9px] text-slate-500 block mt-1.5">
+                          Dry
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       ) : null}
     </div>

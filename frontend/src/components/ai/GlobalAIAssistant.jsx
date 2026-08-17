@@ -38,7 +38,7 @@ export const GlobalAIAssistant = () => {
   const { i18n } = useTranslation();
   const navigate = useNavigate();
 
-  const { complaints = [], notifications = [], announcements = [], auditLogs = [] } = useApp();
+  const { complaints = [], notifications = [], announcements = [], auditLogs = [], weatherData } = useApp();
   const cityIntel = useCityIntelligence({ complaints, notifications, announcements, auditLogs });
   const aiEngine = useAIEngine(cityIntel);
 
@@ -268,12 +268,60 @@ export const GlobalAIAssistant = () => {
     if (cityContextResp) return cityContextResp;
 
     // 5. Live Weather Query
-    if (q.includes('weather') || q.includes('rain') || q.includes('temperature') || q.includes('temp')) {
-      const weatherRes = await fetchKopargaonWeather();
-      if (weatherRes.success) {
+    if (q.includes('weather') || q.includes('rain') || q.includes('temperature') || q.includes('temp') || q.includes('wind') || q.includes('forecast') || q.includes('humidity') || q.includes('pressure') || q.includes('uv index')) {
+      const activeWeather = weatherData || await fetchKopargaonWeather();
+      if (activeWeather && activeWeather.success) {
+        let answer = `🌤 **Live Kopargaon Weather Telemetry** (Updated at ${activeWeather.updatedAt}):\n\n`;
+        answer += `• **Temperature**: ${activeWeather.temperature}°C (Feels like ${activeWeather.feelsLike}°C)\n`;
+        answer += `• **Condition**: ${activeWeather.conditionText}\n`;
+        answer += `• **Humidity**: ${activeWeather.humidity}%\n`;
+        answer += `• **Wind**: ${activeWeather.windSpeed} km/h from ${activeWeather.windDirection || 'N'}\n`;
+        answer += `• **Pressure**: ${activeWeather.pressure} hPa\n`;
+        answer += `• **Visibility**: ${activeWeather.visibility} km\n`;
+        answer += `• **UV Index**: ${activeWeather.uvIndex}\n`;
+        answer += `• **Precipitation Probability**: ${activeWeather.rainProbability}%\n`;
+        answer += `• **Rainfall**: ${activeWeather.rainfall} mm\n`;
+        answer += `• **Sunrise**: ${activeWeather.sunrise} | **Sunset**: ${activeWeather.sunset}\n`;
+        answer += `• **DataSource**: ${activeWeather.source}\n\n`;
+        
+        // Handle specific follow-up questions
+        if (q.includes('tomorrow')) {
+          const tom = activeWeather.forecast?.[1];
+          if (tom) {
+            answer += `📅 **Tomorrow's Forecast**:\n• **Condition**: ${tom.condition}\n• **Temps**: High ${tom.tempMax}°C / Low ${tom.tempMin}°C\n• **Precipitation**: ${tom.rainProb}% chance (${tom.rainfall} mm expected)\n\n`;
+          }
+        } else if (q.includes('forecast') || q.includes('week') || q.includes('next days')) {
+          answer += `📅 **7-Day Forecast Highlights**:\n`;
+          activeWeather.forecast?.slice(0, 5).forEach(day => {
+            answer += `• **${day.day}**: ${day.condition} (${day.tempMax}°/${day.tempMin}°C, Rain ${day.rainProb}%)\n`;
+          });
+          answer += `\n`;
+        }
+        
+        // Weather impact connection
+        if (q.includes('traffic') || q.includes('affect') || q.includes('impact') || q.includes('city') || q.includes('kopargaon')) {
+          let trafficImpact = 'Normal';
+          let waterloggingRisk = 'Low';
+          if (activeWeather.rainfall > 4 || activeWeather.rainProbability > 70) {
+            trafficImpact = 'High Delay (estimated +40% travel times)';
+            waterloggingRisk = 'High in low-lying wards (Wards 4, 8)';
+          } else if (activeWeather.rainfall > 0 || activeWeather.rainProbability > 40) {
+            trafficImpact = 'Medium Delay (+15%)';
+            waterloggingRisk = 'Low (minor puddles)';
+          }
+          
+          answer += `🏙️ **AI Estimated City Impact**:\n`;
+          answer += `• **Traffic Flow**: ${trafficImpact}\n`;
+          answer += `• **Waterlogging**: ${waterloggingRisk}\n`;
+          answer += `• **Garbage Services**: ${activeWeather.rainfall > 4 ? 'Delayed routes (1-2h)' : 'Normal Operations'}\n`;
+          answer += `• *Note: These are estimates derived from live conditions and municipal guidelines.*`;
+        } else {
+          answer += `💡 *Tip: Ask "Will rain affect city traffic?" or "How does today's weather affect Kopargaon?" to inspect digital twin impact predictions.*`;
+        }
+
         return {
-          text: `🌤 **Live Kopargaon Weather Telemetry**:\n\n• **Temperature**: ${weatherRes.temperature}°C (Feels like ${weatherRes.feelsLike}°C)\n• **Condition**: ${weatherRes.conditionText}\n• **Humidity**: ${weatherRes.humidity}%\n• **Wind Speed**: ${weatherRes.windSpeed} km/h\n• **UV Index**: ${weatherRes.uvIndex}\n• **Sunrise**: ${weatherRes.sunrise} | **Sunset**: ${weatherRes.sunset}\n• **Source**: ${weatherRes.source} (Updated at ${weatherRes.updatedAt})`,
-          actions: [{ label: "🌤 Weather & Traffic Page", tab: "weather" }]
+          text: answer,
+          actions: [{ label: "🌤 Open Weather Center", tab: "weather" }]
         };
       }
     }

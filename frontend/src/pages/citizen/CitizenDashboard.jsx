@@ -69,6 +69,7 @@ export const CitizenDashboard = ({ activeTab: propActiveTab, initialActiveTab, e
   const location = useLocation();
   const {
     citizenUser,
+    officerUser,
     complaints,
     addComplaint,
     notifications,
@@ -202,8 +203,8 @@ export const CitizenDashboard = ({ activeTab: propActiveTab, initialActiveTab, e
               
               {/* WELCOME BANNER WITH DYNAMIC GREETING & CLOCK */}
               <WelcomeWidget 
-                citizenName={citizenUser?.fullName || citizenUser?.name || 'Swanandi Kathale'} 
-                wardNumber={citizenUser?.ward || 4} 
+                citizenName={officerUser?.name || citizenUser?.fullName || citizenUser?.name || 'Swanandi Kathale'} 
+                wardNumber={officerUser ? 'N/A' : (citizenUser?.ward || 4)} 
               />
 
               {/* QUICK ACTION BAR */}
@@ -553,13 +554,9 @@ export const CitizenDashboard = ({ activeTab: propActiveTab, initialActiveTab, e
 
           {/* TAB 9: WEATHER DETAIL */}
           {activeTab === 'weather' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              <div className="lg:col-span-6">
-                <WeatherWidget />
-              </div>
-              <div className="lg:col-span-6">
-                <TrafficWidget />
-              </div>
+            <div className="grid grid-cols-1 gap-6">
+              <WeatherWidget />
+              <TrafficWidget />
             </div>
           )}
 

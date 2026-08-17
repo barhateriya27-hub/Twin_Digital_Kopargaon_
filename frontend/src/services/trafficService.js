@@ -54,14 +54,49 @@ export const fetchKopargaonTraffic = async () => {
     };
   }
 };
-
 /**
  * Legacy alias for backwards compatibility with legacy TrafficWidget
  */
 export const getKopargaonTrafficData = () => {
-  return [
-    { id: 'TR-01', road: 'Station Road Major Arterial', status: 'Smooth Flow', speed: '44 km/h', color: 'emerald' },
-    { id: 'TR-02', road: 'Shirdi Highway Bypass Sector', status: 'Smooth Flow', speed: '52 km/h', color: 'emerald' },
-    { id: 'TR-03', road: 'Ganj Bazaar Central Junction', status: 'Moderate Traffic', speed: '24 km/h', color: 'amber' }
-  ];
+  return {
+    overallStatus: 'Smooth Flow',
+    overallSpeedAvg: '44 km/h',
+    corridors: [
+      {
+        id: 'TR-01',
+        name: 'Station Road Major Arterial',
+        status: 'Smooth Flow',
+        avgSpeed: '44 km/h',
+        delay: '0 mins',
+        levelColor: 'bg-emerald-500',
+        textColor: 'text-emerald-700 dark:text-emerald-400'
+      },
+      {
+        id: 'TR-02',
+        name: 'Shirdi Highway Bypass Sector',
+        status: 'Smooth Flow',
+        avgSpeed: '52 km/h',
+        delay: '0 mins',
+        levelColor: 'bg-emerald-500',
+        textColor: 'text-emerald-700 dark:text-emerald-400'
+      },
+      {
+        id: 'TR-03',
+        name: 'Ganj Bazaar Central Junction',
+        status: 'Moderate Traffic',
+        avgSpeed: '24 km/h',
+        delay: '4 mins',
+        levelColor: 'bg-amber-500',
+        textColor: 'text-amber-700 dark:text-amber-400'
+      }
+    ],
+    roadClosures: [
+      {
+        id: 'rc-1',
+        location: 'Ward 4 Main Drainage Pipeline Work',
+        details: 'One-lane diverted via Manmad Road diversion. Estimated completion: 6:00 PM today.',
+        type: 'Municipal Pipeline Work'
+      }
+    ]
+  };
 };

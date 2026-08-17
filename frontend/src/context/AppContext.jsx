@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { calculateSLADueDate, createAuditLog, createNotification } from '../utils/governanceUtils';
 import { isTokenValid, generateClientJwtToken } from '../utils/jwtUtils';
 import { fetchInfrastructureAssets, fetchLiveSensors, fetchMunicipalTeams, fetchCityOverview } from '../services/digitalTwinService';
+import { fetchKopargaonWeather } from '../services/weatherService';
 
 const AppContext = createContext();
 
@@ -305,6 +306,12 @@ export const AppProvider = ({ children }) => {
       }
     ];
   });
+
+  // Weather Telemetry State
+  const [weatherData, setWeatherData] = useState(null);
+  const [loadingWeather, setLoadingWeather] = useState(true);
+  const [weatherError, setWeatherError] = useState(null);
+  const [weatherRefreshStatus, setWeatherRefreshStatus] = useState('');
 
   // Public Announcements State
   const [announcements, setAnnouncements] = useState(() => {
@@ -882,6 +889,86 @@ export const AppProvider = ({ children }) => {
     setNotifications([]);
   };
 
+  const addNotification = (title, description, recipientRole = 'citizen', priority = 'Normal', department = 'General') => {
+    const newNotif = {
+      id: `NOTIF-${Date.now()}`,
+      recipientRole,
+      title,
+      description,
+      priority,
+      department,
+      timestamp: new Date().toISOString(),
+      read: false
+    };
+    setNotifications(prev => [newNotif, ...prev]);
+  };
+
+  const checkAndGenerateWeatherNotifications = (weather) => {
+    if (!weather) return;
+    const todayStr = new Date().toISOString().split('T')[0];
+    const lastAlertDate = localStorage.getItem('kpg_last_weather_alert_date');
+    if (lastAlertDate === todayStr) return; // Already alerted today, don't spam
+
+    let alertTitle = '';
+    let alertDesc = '';
+    let isSignificant = false;
+
+    if (weather.temperature > 39) {
+      alertTitle = '⚠️ Extreme Heat Advisory';
+      alertDesc = `High temperatures of ${weather.temperature}°C expected in Kopargaon today. Stay hydrated and avoid direct sunlight.`;
+      isSignificant = true;
+    } else if (weather.rainfall > 4 || (weather.rainProbability > 85 && weather.conditionText.toLowerCase().includes('rain'))) {
+      alertTitle = '🌧️ Heavy Rain Alert';
+      alertDesc = `Heavy rain is expected in Kopargaon. Drive safely, avoid low-lying underpasses, and expect minor traffic delays.`;
+      isSignificant = true;
+    } else if (weather.windSpeed > 30) {
+      alertTitle = '💨 Strong Wind Advisory';
+      alertDesc = `Strong winds of ${weather.windSpeed} km/h detected. Secure loose outdoor objects and stay clear of weak structures.`;
+      isSignificant = true;
+    }
+
+    if (isSignificant) {
+      addNotification(alertTitle, alertDesc, 'citizen', 'High', 'Emergency Management');
+      localStorage.setItem('kpg_last_weather_alert_date', todayStr);
+    }
+  };
+
+  const refreshWeather = async (silent = false) => {
+    if (!silent) {
+      setLoadingWeather(true);
+      setWeatherRefreshStatus('Updating live weather data...');
+    }
+    try {
+      const data = await fetchKopargaonWeather();
+      if (data && data.success) {
+        setWeatherData(data);
+        setWeatherError(null);
+        checkAndGenerateWeatherNotifications(data);
+        if (!silent) {
+          setWeatherRefreshStatus('Weather updated successfully.');
+          setTimeout(() => setWeatherRefreshStatus(''), 3000);
+        }
+      } else {
+        setWeatherError(data?.error || 'Weather data is temporarily unavailable. Please try again.');
+        if (!silent) setWeatherRefreshStatus('');
+      }
+    } catch (e) {
+      setWeatherError('Weather data is temporarily unavailable. Please try again.');
+      if (!silent) setWeatherRefreshStatus('');
+    } finally {
+      if (!silent) setLoadingWeather(false);
+    }
+  };
+
+  // Weather Initialization & Periodic Refresh
+  useEffect(() => {
+    refreshWeather(true);
+    const interval = setInterval(() => {
+      refreshWeather(true);
+    }, 5 * 60 * 1000); // Refresh every 5 minutes
+    return () => clearInterval(interval);
+  }, []);
+
   const addComplaint = (newCompData) => {
     const categoriesMap = {
       'Garbage': 'Sanitation & Solid Waste Management',
@@ -1250,9 +1337,15 @@ export const AppProvider = ({ children }) => {
     createTaxRecord,
     processTaxPayment,
     notifications,
+    addNotification,
     markNotificationRead,
     markAllNotificationsRead,
     clearNotifications,
+    weatherData,
+    loadingWeather,
+    weatherError,
+    weatherRefreshStatus,
+    refreshWeather,
     announcements,
     auditLogs,
     toastMessage,

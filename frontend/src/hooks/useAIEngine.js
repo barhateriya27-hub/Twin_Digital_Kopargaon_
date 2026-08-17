@@ -392,6 +392,36 @@ export const WHATIF_SCENARIOS = [
       };
     },
   },
+  {
+    id: 'heavy-rain',
+    label: 'Simulate Heavy Rain',
+    icon: '🌧️',
+    description: 'Simulate a heavy precipitation event (estimated 45mm rainfall) over Kopargaon',
+    simulate: (metrics) => {
+      const roadOpen = Object.entries(metrics.byCategory)
+        .filter(([k]) => k.includes('Pothole') || k.includes('Road'))
+        .reduce((sum, [, v]) => sum + v.open, 0);
+      return {
+        before: {
+          congestion: 'Normal Flow',
+          waterloggingRisk: 'Low / None',
+          roadComplaints: roadOpen,
+          garbageDelays: 'Minimal',
+          emergencyWorkload: 'Normal (102 helpline standard load)'
+        },
+        after: {
+          congestion: 'High (estimated +40% travel delays on NH-222 & Station Rd)',
+          waterloggingRisk: 'High in low-lying areas (Ward 4, Ward 8, Yeola Naka)',
+          roadComplaints: roadOpen + Math.max(2, Math.round(roadOpen * 0.4)),
+          garbageDelays: 'Moderate (Estimated 2-3 hr delays in route completion)',
+          emergencyWorkload: 'Elevated (Estimated 30% increase in water drainage assistance requests)',
+          timeToImpact: 'Starts 1 hour after rainfall onset',
+          cost: '₹75,000 estimated emergency pumping & clean-up costs'
+        },
+        summary: 'Simulation / Estimated Impact: Heavy rain is projected to cause significant traffic slowdowns on primary corridors (+40% delay), high waterlogging risk in low-lying wards (Wards 4 & 8), and increase road-related complaints by ~40%. Service delivery routes for sanitation will face minor delays.'
+      };
+    }
+  }
 ];
 
 // ─── SMART CHAT CONTEXT RESPONSES ─────────────────────────────────────────────

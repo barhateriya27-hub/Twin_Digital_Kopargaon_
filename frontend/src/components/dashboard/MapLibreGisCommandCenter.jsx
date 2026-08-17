@@ -25,6 +25,7 @@ import {
   ShieldAlert
 } from 'lucide-react';
 import { fetchLiveKopargaonPOIs } from '../../services/poiService';
+import { fetchKopargaonWeather } from '../../services/weatherService';
 import { searchKopargaonPlaces } from '../../services/geocodingService';
 
 /**
@@ -136,7 +137,8 @@ const getGisCategorySvg = (type, color = "#0B2545") => {
     cctv: `<path d="M23 7l-7 5 7 5V7zM2 5h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" stroke="white" stroke-width="2"/>`,
     road_work: `<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01" stroke="white" stroke-width="2"/>`,
     complaint: `<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01" stroke="white" stroke-width="2"/>`,
-    parking: `<path d="M9 17V7h4a3 3 0 0 1 0 6H9" stroke="white" stroke-width="2.5" stroke-linecap="round"/>`
+    parking: `<path d="M9 17V7h4a3 3 0 0 1 0 6H9" stroke="white" stroke-width="2.5" stroke-linecap="round"/>`,
+    weather: `<path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10z" stroke="white" stroke-width="2"/>`
   };
 
   const svgInner = iconPaths[type] || iconPaths.municipal_office;
@@ -183,6 +185,7 @@ export const MapLibreGisCommandCenter = ({
   const [isLoadingPois, setIsLoadingPois] = useState(true);
 
   // Layer Visibility
+  const [weatherData, setWeatherData] = useState(null);
   const [activeLayers, setActiveLayers] = useState({
     hospitals: true,
     police: true,
@@ -190,8 +193,17 @@ export const MapLibreGisCommandCenter = ({
     civic: true,
     utilities: true,
     complaints: true,
-    schools: true
+    schools: true,
+    weather: false
   });
+
+  useEffect(() => {
+    fetchKopargaonWeather().then(res => {
+      if (res && res.success) {
+        setWeatherData(res);
+      }
+    });
+  }, []);
 
   // Load OpenStreetMap Overpass POIs
   useEffect(() => {
@@ -358,7 +370,49 @@ export const MapLibreGisCommandCenter = ({
       });
     }
 
-  }, [livePois, complaints, activeLayers, searchQuery, userLocation]);
+    // Render Weather Layer Markers
+    if (activeLayers.weather && weatherData) {
+      const wLat = 19.8923;
+      const wLng = 74.4784;
+
+      const el = document.createElement('div');
+      el.className = 'gis-marker-container';
+      el.innerHTML = getGisCategorySvg('weather', '#0284C7'); // Sky blue for weather
+
+      const popupHtml = `
+        <div style="font-family: Inter, sans-serif; padding: 10px; max-width: 250px; color: #0F172A; line-height: 1.4;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <span style="background: #0284C7; color: white; font-size: 8px; font-weight: 900; padding: 3px 6px; border-radius: 4px; text-transform: uppercase;">
+              🌦️ WEATHER TELEMETRY
+            </span>
+            <span style="font-size: 9px; font-weight: 800; color: #138808;">● Connected</span>
+          </div>
+          <h4 style="margin: 0 0 4px 0; font-size: 13px; font-weight: 900; color: #0B2545;">Kopargaon GIS Node</h4>
+          <p style="margin: 0 0 10px 0; font-size: 10px; color: #64748B;">Central Command Weather Station</p>
+          
+          <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 8px 10px; border-radius: 8px; font-size: 11px; color: #334155; margin-bottom: 6px;">
+            <div style="margin-bottom: 4px;">🌡️ <strong>Temp</strong>: ${weatherData.temperature}°C (Feels ${weatherData.feelsLike}°C)</div>
+            <div style="margin-bottom: 4px;">🌤️ <strong>Condition</strong>: ${weatherData.conditionText}</div>
+            <div style="margin-bottom: 4px;">💧 <strong>Humidity</strong>: ${weatherData.humidity}%</div>
+            <div>💨 <strong>Wind</strong>: ${weatherData.windSpeed} km/h ${weatherData.windDirection || 'N'}</div>
+          </div>
+          <div style="font-size: 9px; color: #94A3B8; text-align: right; font-style: italic;">
+            Source: ${weatherData.source}
+          </div>
+        </div>
+      `;
+
+      const popup = new Popup({ offset: 25 }).setHTML(popupHtml);
+
+      const marker = new Marker({ element: el })
+        .setLngLat([wLng, wLat])
+        .setPopup(popup)
+        .addTo(map);
+
+      markersRef.current.push(marker);
+    }
+
+  }, [livePois, complaints, activeLayers, searchQuery, userLocation, weatherData]);
 
   // Handle Search Selection
   const handleSelectSearchResult = (res) => {
@@ -559,7 +613,8 @@ export const MapLibreGisCommandCenter = ({
               { key: 'civic', label: 'Municipal Offices', color: '#0B2545' },
               { key: 'schools', label: 'Schools & Colleges', color: '#138808' },
               { key: 'utilities', label: 'Water & Power Grids', color: '#0077B6' },
-              { key: 'complaints', label: 'Live Grievance Tickets', color: '#FF9933' }
+              { key: 'complaints', label: 'Live Grievance Tickets', color: '#FF9933' },
+              { key: 'weather', label: '🌦️ Weather Station & Risk', color: '#0284C7' }
             ].map(layer => (
               <label key={layer.key} className="flex items-center justify-between p-1.5 hover:bg-slate-50 rounded-lg cursor-pointer">
                 <span className="flex items-center gap-2 font-semibold text-slate-700">

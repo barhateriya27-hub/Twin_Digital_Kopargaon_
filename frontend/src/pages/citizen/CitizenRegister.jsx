@@ -42,7 +42,7 @@ export const CitizenRegister = () => {
     setFormData({ ...formData, [e.target.name]: value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Mandatory Validation: District
@@ -71,7 +71,7 @@ export const CitizenRegister = () => {
       return;
     }
 
-    const success = registerCitizen(formData);
+    const success = await registerCitizen(formData);
     if (success) {
       navigate('/citizen/dashboard');
     }

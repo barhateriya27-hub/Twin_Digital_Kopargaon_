@@ -3,10 +3,12 @@ import { motion } from 'framer-motion';
 import { ShieldX, Lock, ArrowLeft, Home, KeyRound, AlertTriangle } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useApp } from '../context/AppContext';
 
 export const AccessDeniedView = ({ requiredRole = 'Authorized Personnel', attemptedPath = '' }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { logoutCitizen, logoutOfficer } = useApp();
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-between selection:bg-red-500 selection:text-white">
@@ -98,7 +100,15 @@ export const AccessDeniedView = ({ requiredRole = 'Authorized Personnel', attemp
             </button>
 
             <button
-              onClick={() => navigate('/municipality/login')}
+              onClick={() => {
+                if (requiredRole === 'Citizen') {
+                  logoutCitizen();
+                  navigate('/citizen/login');
+                } else {
+                  logoutOfficer();
+                  navigate('/municipality/login');
+                }
+              }}
               className="py-3 px-4 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 transition-colors"
             >
               <KeyRound className="w-4 h-4" />

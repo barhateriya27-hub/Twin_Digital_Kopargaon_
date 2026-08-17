@@ -1,8 +1,9 @@
 import React from 'react';
-import { WeatherCard } from './WeatherCard';
+import { WeatherPanel } from '../weather/WeatherPanel';
 
 export const WeatherWidget = () => {
-  return <WeatherCard />;
+  return <WeatherPanel />;
 };
 
 export default WeatherWidget;
+

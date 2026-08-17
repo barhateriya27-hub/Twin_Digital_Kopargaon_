@@ -16,13 +16,13 @@ export const CitizenLogin = () => {
   const [password, setPassword] = useState('');
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!identifier || !password) {
       showToast(t('citizenAuth.identifierLabel', 'Please enter Email/Aadhaar and password'), 'warning');
       return;
     }
-    const success = loginCitizen(identifier, password);
+    const success = await loginCitizen(identifier, password);
     if (success) {
       navigate('/citizen/dashboard');
     }

@@ -1,9 +1,10 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
 import { Toast } from './components/Toast';
 import { AccessDeniedView } from './components/AccessDeniedView';
 import { SessionExpiredModal } from './components/SessionExpiredModal';
+import { isTokenValid } from './utils/jwtUtils';
 
 // Layout Shells
 import { CitizenLayout } from './layouts/CitizenLayout';
@@ -30,7 +31,13 @@ import { NotFoundPage } from './pages/NotFoundPage';
 
 // Protected Route Wrappers (Require valid JWT session & Role Clearance)
 const ProtectedCitizenRoute = ({ children }) => {
-  const { isCitizenAuthenticated, citizenUser } = useApp();
+  const { isCitizenAuthenticated, citizenUser, isOfficerAuthenticated, officerUser } = useApp();
+  
+  // If user is authenticated as an officer (staff or admin), they are authorized to view citizen pages
+  if (isOfficerAuthenticated && officerUser) {
+    return children;
+  }
+  
   if (!isCitizenAuthenticated) {
     return <Navigate to="/citizen/login" replace />;
   }
@@ -80,6 +87,7 @@ const PublicOnlyOfficerRoute = ({ children }) => {
 
 export function AppContent() {
   const { isSessionExpired, setIsSessionExpired, logoutCitizen, logoutOfficer } = useApp();
+  const navigate = useNavigate();
 
   return (
     <>
@@ -88,7 +96,18 @@ export function AppContent() {
       {/* Global Session Expired Re-authentication Modal */}
       <SessionExpiredModal
         isOpen={isSessionExpired}
-        onReAuthenticate={() => setIsSessionExpired(false)}
+        onReAuthenticate={() => {
+          setIsSessionExpired(false);
+          const cToken = localStorage.getItem('kpg_citizen_token');
+          const oToken = localStorage.getItem('kpg_officer_token');
+          if (cToken && !isTokenValid(cToken)) {
+            logoutCitizen();
+            navigate('/citizen/login');
+          } else if (oToken && !isTokenValid(oToken)) {
+            logoutOfficer();
+            navigate('/municipality/login');
+          }
+        }}
         onLogout={() => {
           setIsSessionExpired(false);
           logoutCitizen();
