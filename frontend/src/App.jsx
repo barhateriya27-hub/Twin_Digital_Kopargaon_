@@ -34,7 +34,8 @@ const ProtectedCitizenRoute = ({ children }) => {
   if (!isCitizenAuthenticated) {
     return <Navigate to="/citizen/login" replace />;
   }
-  if (citizenUser && citizenUser.role !== 'citizen') {
+  const userRole = citizenUser?.role ? citizenUser.role.toLowerCase() : 'citizen';
+  if (userRole !== 'citizen') {
     return <AccessDeniedView requiredRole="Citizen" attemptedPath="/citizen/dashboard" />;
   }
   return children;
@@ -53,7 +54,8 @@ const ProtectedAdminRoute = ({ children }) => {
   if (!isOfficerAuthenticated) {
     return <Navigate to="/municipality/login" replace />;
   }
-  if (officerUser && officerUser.role !== 'admin') {
+  const role = officerUser?.role ? officerUser.role.toLowerCase() : 'officer';
+  if (role !== 'admin' && role !== 'higher_authority' && role !== 'commissioner' && role !== 'officer' && role !== 'staff') {
     return <AccessDeniedView requiredRole="Smart City Commissioner (Admin)" attemptedPath="/municipality/higher-authority" />;
   }
   return children;

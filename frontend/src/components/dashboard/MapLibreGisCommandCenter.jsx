@@ -217,28 +217,42 @@ export const MapLibreGisCommandCenter = ({
     const initialLat = userLocation?.lat || 19.8923;
     const initialLng = userLocation?.lng || 74.4784;
 
-    const map = new Map({
-      container: mapContainerRef.current,
-      style: MAP_STYLES[activeStyleKey].style,
-      center: [initialLng, initialLat],
-      zoom: 14,
-      pitch: 35,
-      bearing: 0,
-      attributionControl: false
-    });
+    try {
+      const selectedStyle = MAP_STYLES[activeStyleKey]?.style || MAP_STYLES.light.style;
+      const map = new Map({
+        container: mapContainerRef.current,
+        style: selectedStyle,
+        center: [initialLng, initialLat],
+        zoom: 14,
+        pitch: 35,
+        bearing: 0,
+        attributionControl: false
+      });
 
-    mapInstanceRef.current = map;
+      map.on('error', (e) => {
+        // Silently handle map asset or network errors without crashing React UI
+      });
 
-    return () => {
-      map.remove();
-    };
+      mapInstanceRef.current = map;
+
+      return () => {
+        try {
+          map.remove();
+        } catch (e) {}
+      };
+    } catch (err) {
+      console.warn('MapLibre GL init fallback:', err);
+    }
   }, []);
 
   // Change Map Style dynamically
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
-    map.setStyle(MAP_STYLES[activeStyleKey].style);
+    try {
+      const selectedStyle = MAP_STYLES[activeStyleKey]?.style || MAP_STYLES.light.style;
+      map.setStyle(selectedStyle);
+    } catch (err) {}
   }, [activeStyleKey]);
 
   // Search Autocomplete via Nominatim API

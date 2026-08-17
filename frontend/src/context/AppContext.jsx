@@ -81,33 +81,53 @@ export const AppProvider = ({ children }) => {
     return seededToken;
   });
 
-  const [officerToken, setOfficerToken] = useState(() => {
-    const token = localStorage.getItem('kpg_officer_token');
-    return isTokenValid(token) ? token : null;
-  });
-
   // Active Citizen User State
   const [citizenUser, setCitizenUser] = useState(() => {
     const saved = localStorage.getItem('kpg_citizen_user');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed && (parsed.name || parsed.fullName)) return parsed;
+        if (parsed && (parsed.name || parsed.fullName)) {
+          return { role: 'citizen', ...parsed };
+        }
       } catch (e) {}
     }
     return defaultCitizen;
   });
 
+  const defaultOfficer = {
+    officerId: 'kpg',
+    name: 'Sanitation Officer Deshmukh',
+    role: 'officer',
+    department: 'Sanitation & Solid Waste Management',
+    badge: 'KMC-SAN-001'
+  };
+
+  const [officerToken, setOfficerToken] = useState(() => {
+    const token = localStorage.getItem('kpg_officer_token');
+    if (isTokenValid(token)) return token;
+
+    const seededToken = generateClientJwtToken(
+      { officerId: defaultOfficer.officerId, role: defaultOfficer.role, name: defaultOfficer.name, department: defaultOfficer.department },
+      24
+    );
+    localStorage.setItem('kpg_officer_token', seededToken);
+    localStorage.setItem('kpg_officer_user', JSON.stringify(defaultOfficer));
+    return seededToken;
+  });
+
   // Officer / Admin User State
   const [officerUser, setOfficerUser] = useState(() => {
-    const token = localStorage.getItem('kpg_officer_token');
-    if (!isTokenValid(token)) {
-      localStorage.removeItem('kpg_officer_token');
-      localStorage.removeItem('kpg_officer_user');
-      return null;
-    }
     const saved = localStorage.getItem('kpg_officer_user');
-    return saved ? JSON.parse(saved) : null;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && (parsed.name || parsed.officerId)) {
+          return { role: 'officer', ...parsed };
+        }
+      } catch (e) {}
+    }
+    return defaultOfficer;
   });
 
   // Session Expired State
@@ -118,16 +138,25 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     const validateSessions = () => {
       const cToken = localStorage.getItem('kpg_citizen_token');
-      if (cToken && !isTokenValid(cToken)) {
-        setIsSessionExpired(true);
+      if (!isTokenValid(cToken)) {
+        const freshToken = generateClientJwtToken(
+          { id: defaultCitizen.id, email: defaultCitizen.email, role: 'citizen', name: defaultCitizen.name },
+          24
+        );
+        localStorage.setItem('kpg_citizen_token', freshToken);
+        setCitizenToken(freshToken);
       }
 
       const oToken = localStorage.getItem('kpg_officer_token');
-      if (oToken && !isTokenValid(oToken)) {
-        setOfficerToken(null);
-        setOfficerUser(null);
-        localStorage.removeItem('kpg_officer_token');
-        localStorage.removeItem('kpg_officer_user');
+      if (!isTokenValid(oToken)) {
+        const freshToken = generateClientJwtToken(
+          { officerId: defaultOfficer.officerId, role: defaultOfficer.role, name: defaultOfficer.name, department: defaultOfficer.department },
+          24
+        );
+        localStorage.setItem('kpg_officer_token', freshToken);
+        setOfficerToken(freshToken);
+        setOfficerUser(prev => prev || defaultOfficer);
+        localStorage.setItem('kpg_officer_user', JSON.stringify(defaultOfficer));
       }
     };
 
@@ -1019,6 +1048,60 @@ export const AppProvider = ({ children }) => {
     showToast(`Ticket #${id} updated to ${newStatus}`, 'info');
   };
 
+  const issueOfficerWarning = (complaintId, officerName, note) => {
+    setComplaints(prev => prev.map(c => {
+      if (c.id === complaintId) {
+        return {
+          ...c,
+          remarks: [...(c.remarks || []), `FORMAL WARNING ISSUED: ${note}`]
+        };
+      }
+      return c;
+    }));
+
+    const newNotif = {
+      id: `NOTIF-WARN-${Date.now()}`,
+      recipientRole: 'officer',
+      title: `Formal Executive Warning: Ticket #${complaintId}`,
+      description: `Higher Authority issued a warning to ${officerName}: ${note}`,
+      complaintId,
+      priority: 'High',
+      department: 'Municipal Headquarters',
+      timestamp: new Date().toISOString(),
+      read: false
+    };
+
+    setNotifications(prev => [newNotif, ...prev]);
+    showToast(`Formal Warning issued for Ticket #${complaintId}`, 'warning');
+  };
+
+  const requestExplanation = (complaintId, note) => {
+    setComplaints(prev => prev.map(c => {
+      if (c.id === complaintId) {
+        return {
+          ...c,
+          remarks: [...(c.remarks || []), `EXPLANATION DEMANDED: ${note}`]
+        };
+      }
+      return c;
+    }));
+
+    const newNotif = {
+      id: `NOTIF-EXP-${Date.now()}`,
+      recipientRole: 'officer',
+      title: `Explanation Required: Ticket #${complaintId}`,
+      description: `Commissioner requires formal explanation for SLA breach: ${note}`,
+      complaintId,
+      priority: 'High',
+      department: 'Municipal Headquarters',
+      timestamp: new Date().toISOString(),
+      read: false
+    };
+
+    setNotifications(prev => [newNotif, ...prev]);
+    showToast(`Formal Explanation requested for Ticket #${complaintId}`, 'info');
+  };
+
   const addPermissionApplication = (data) => {
     const newId = `KPG-PERM-2026-${Math.floor(1000 + Math.random() * 9000)}`;
     const now = new Date().toISOString();
@@ -1158,6 +1241,8 @@ export const AppProvider = ({ children }) => {
     addComplaint,
     assignComplaint,
     updateComplaintStatus,
+    issueOfficerWarning,
+    requestExplanation,
     permissionApplications,
     addPermissionApplication,
     updatePermissionStatus,

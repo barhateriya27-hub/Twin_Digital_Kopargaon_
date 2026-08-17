@@ -69,7 +69,7 @@ export const MunicipalityLayout = () => {
   };
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-[#F8FAFC] overflow-hidden text-slate-800 font-sans selection:bg-[#0B2545] selection:text-white">
+    <div className="h-screen w-screen flex flex-col bg-[#F8FAFC] dark:bg-slate-900 overflow-hidden text-slate-800 dark:text-slate-100 font-sans selection:bg-[#0B2545] selection:text-white">
       {/* 1. PERSISTENT TOP HEADER (FULL WIDTH AT TOP) */}
       <AdminHeader
         officerUser={officerUser}
@@ -110,7 +110,7 @@ export const MunicipalityLayout = () => {
           </main>
 
           {/* OFFICIAL GOVERNMENT FOOTER */}
-          <footer className="py-4 px-6 text-center text-xs text-slate-600 border-t border-slate-200 bg-white shrink-0">
+          <footer className="py-4 px-6 text-center text-xs text-slate-600 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
             <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-[#0B2545]">कोपरगाव नगर परिषद</span>
