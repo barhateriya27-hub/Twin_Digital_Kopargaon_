@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 import { dataStore, ROLES, COMPLAINT_STATUS } from './dataStore.js';
 
@@ -256,9 +257,9 @@ const optionalAuthenticate = (req, res, next) => {
   next();
 };
 
-// Grounded AI Query & Data Analytics Assistant Endpoint
-app.post('/api/ai/query', optionalAuthenticate, (req, res) => {
-  const { query } = req.body;
+// Grounded AI Query & Data Analytics Assistant Endpoint (Powered by Google Gemini + Real Data)
+app.post('/api/ai/query', optionalAuthenticate, async (req, res) => {
+  const { query, imageBase64, imageMimeType, language } = req.body;
   const user = req.user || { role: ROLES.CITIZEN, id: 'CIT-GUEST', name: 'Citizen Resident' };
   const userRole = user.role || ROLES.CITIZEN;
 
@@ -343,10 +344,12 @@ app.post('/api/ai/query', optionalAuthenticate, (req, res) => {
   const olderSubmissions = allComplaints.filter(c => new Date(c.submittedAt || c.createdAt).getTime() < cutoff48h);
 
   // Process Query Intent & Build Fact-Grounded Response
-  const qLower = (query || '').toLowerCase();
+  const qLower = (query || '').toLowerCase().trim();
   let responseText = '';
 
-  if (totalCount === 0) {
+  if (qLower.match(/^(hi|hii|hiii|hello|hey|namaste|namaskar|good morning|good evening|good afternoon)/i) || qLower.includes('who are you') || qLower.includes('what can you do') || qLower.includes('give me the reply') || qLower.includes('how are you')) {
+    responseText = `👋 **Hello! Welcome to Kopargaon Smart City AI Assistant.**\n\nI am your AI Governance Assistant connected to the live Kopargaon Municipal Council database.\n\nHere are some questions you can ask me:\n• 📍 **"Which areas have the most unresolved complaints?"**\n• 🚨 **"Which incidents need urgent attention?"**\n• 📊 **"What are the most common problems?"**\n• 🏛 **"How to apply for a building permit?"**\n• 💳 **"How do I pay property tax?"**\n\nHow can I help you today?`;
+  } else if (totalCount === 0) {
     responseText = `📊 **REAL DATABASE FACTS:**\nCurrently, there are no registered complaint records in the Kopargaon municipal database.\n\n🤖 **AI RECOMMENDATION:**\nMaintain proactive monitoring across all 28 wards.`;
   } else if (qLower.includes('unresolved') || qLower.includes('area') || qLower.includes('ward') || qLower.includes('most complaint')) {
     const wardListStr = sortedWards.slice(0, 5).map(w => `• **Ward ${w}**: ${wardOpenMap[w]} unresolved complaint(s)`).join('\n');
@@ -425,6 +428,76 @@ app.post('/api/ai/query', optionalAuthenticate, (req, res) => {
       `🔒 *Data Access Level: ${userRole.toUpperCase()} — Fully Grounded in Kopargaon Single Source Database.*`;
   }
 
+  // 2. Google Gemini Generative AI Execution with Live Grounded Context
+  let finalResponseText = responseText;
+  let responseSource = 'grounded-engine';
+
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  const isGeminiAvailable = Boolean(
+    geminiApiKey &&
+    geminiApiKey.trim() !== '' &&
+    geminiApiKey !== 'xyz' &&
+    geminiApiKey !== 'YOUR_GEMINI_API_KEY'
+  );
+
+  if (isGeminiAvailable && query) {
+    try {
+      const genAI = new GoogleGenerativeAI(geminiApiKey.trim());
+      
+      const candidateModels = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite', 'gemini-3.7-flash'];
+      const langMap = { mr: 'Marathi (मराठी)', hi: 'Hindi (हिन्दी)', en: 'English' };
+      const requestedLang = langMap[language] || 'English';
+
+      const promptContext = `You are the Official AI Governance Assistant for Kopargaon Municipal Council (कोपरगाव नगर परिषद), Ahmednagar, Maharashtra, India.
+User Role: ${userRole.toUpperCase()}
+
+DATABASE FACTS (Use ONLY if the user specifically asks for city statistics, complaints summary, numbers, or ward status):
+- Total Registered Tickets: ${totalCount}
+- Open Complaints: ${openComplaints.length}
+- Resolved Complaints: ${resolvedComplaints.length} (${Math.round((resolvedComplaints.length / Math.max(1, totalCount)) * 100)}%)
+- SLA Breached: ${slaBreachedComplaints.length}
+- Hotspot Ward: Ward ${topHotspotWard || 1} (${hotspotCount} open)
+- Primary Categories: ${sortedCategories.slice(0, 4).map(c => `${c} (${categoryTotalMap[c]} total, ${categoryOpenMap[c] || 0} open)`).join(', ')}
+- Urgent Tickets: ${urgentIncidents.length}
+
+STRICT OUTPUT RULES:
+1. Answer the user's specific question DIRECTLY, CONCISELY, and ACCURATELY in ${requestedLang}.
+2. DO NOT append unsolicited boilerplate sections such as "How I Can Help You", "Current Live Civic Telemetry (Kopargaon Overview)", or "How Would You Like to Proceed Today?".
+3. DO NOT dump telemetry statistics or ticket lists unless the user's query specifically requests city analytics, unresolved complaints, or municipal reports.
+4. Keep explanations short, clear, and cleanly formatted with bullet points.
+5. End cleanly after answering without repetitive questionnaires.`;
+
+      const promptParts = [promptContext, `\nUser Question: ${query}`];
+
+      if (imageBase64) {
+        promptParts.push({
+          inlineData: {
+            data: imageBase64,
+            mimeType: imageMimeType || 'image/jpeg'
+          }
+        });
+      }
+
+      for (const modelName of candidateModels) {
+        try {
+          const model = genAI.getGenerativeModel({ model: modelName });
+          const result = await model.generateContent(promptParts);
+          const geminiRes = await result.response;
+          const text = geminiRes.text();
+          if (text && text.trim()) {
+            finalResponseText = text.trim();
+            responseSource = `gemini (${modelName})`;
+            break;
+          }
+        } catch (modelErr) {
+          console.warn(`Model ${modelName} attempt note:`, modelErr.message);
+        }
+      }
+    } catch (err) {
+      console.warn('Gemini API call error (falling back to grounded telemetry engine):', err.message);
+    }
+  }
+
   // Safe Audit Log Execution
   dataStore.auditLogs.add(
     req,
@@ -432,19 +505,20 @@ app.post('/api/ai/query', optionalAuthenticate, (req, res) => {
     'AI_ENGINE',
     'DataAnalytics',
     'SUCCESS',
-    `Grounded AI query evaluated for role '${userRole}' on ${totalCount} records.`
+    `Grounded AI query evaluated for role '${userRole}' on ${totalCount} records (source: ${responseSource}).`
   );
 
   res.json({
     success: true,
     query: query,
     userRole: userRole,
-    responseText: responseText,
+    responseText: finalResponseText,
+    source: responseSource,
     dataSummary: {
       totalComplaints: totalCount,
       openComplaints: openComplaints.length,
       resolvedComplaints: resolvedComplaints.length,
-      slaBreachedComplaints: slaBreachedComplaints.length,
+      slaBreaches: slaBreachedComplaints.length,
       topHotspotWard: topHotspotWard,
       topCategory: sortedCategories[0] || null
     },

@@ -177,11 +177,61 @@ export const GlobalAIAssistant = () => {
     }
   };
 
+  // Helper: File to Base64
+  const fileToBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      const base64 = reader.result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+
   // Async Live Grounded AI Query Processor
   const processAIQueryAsync = async (queryText, attachedImg = null) => {
-    const q = queryText.toLowerCase().trim();
+    const q = (queryText || '').toLowerCase().trim();
 
-    // 1. Attached image
+    // 1. Call Grounded Backend REST API Endpoint (/api/ai/query) powered by Gemini + Real DB
+    try {
+      let imgBase64 = null;
+      let imgMime = 'image/jpeg';
+      if (attachedImg) {
+        try {
+          imgBase64 = await fileToBase64(attachedImg);
+          imgMime = attachedImg.type || 'image/jpeg';
+        } catch (e) {
+          console.warn('Image base64 encoding failed:', e);
+        }
+      }
+
+      const response = await fetch('/api/ai/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          query: queryText || (attachedImg ? 'Inspect this uploaded municipal issue photo, analyze severity, identify category and ward, and suggest remediation.' : 'Overview of Kopargaon Smart City'),
+          imageBase64: imgBase64,
+          imageMimeType: imgMime,
+          language: currentLang
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.responseText) {
+          return {
+            text: data.responseText,
+            source: data.source,
+            actions: []
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('Backend AI query endpoint unreachable, using local telemetry fallback:', e);
+    }
+
+    // 2. Attached image (Local fallback)
     if (attachedImg) {
       setActiveContext(INTENTS.REGISTER_COMPLAINT);
       return {
@@ -190,7 +240,7 @@ export const GlobalAIAssistant = () => {
       };
     }
 
-    // 2. Call Grounded Backend REST API Endpoint (/api/ai/query)
+    // 3. Call Grounded Backend REST API Endpoint (/api/ai/query)
     try {
       const response = await fetch('/api/ai/query', {
         method: 'POST',
@@ -213,11 +263,11 @@ export const GlobalAIAssistant = () => {
       // Fall through to local engine
     }
 
-    // 3. Real City Data Context Response Fallback
+    // 4. Real City Data Context Response Fallback
     const cityContextResp = aiEngine.buildCityContextResponse(q, cityIntel.aiContext);
     if (cityContextResp) return cityContextResp;
 
-    // 4. Live Weather Query
+    // 5. Live Weather Query
     if (q.includes('weather') || q.includes('rain') || q.includes('temperature') || q.includes('temp')) {
       const weatherRes = await fetchKopargaonWeather();
       if (weatherRes.success) {
@@ -228,7 +278,7 @@ export const GlobalAIAssistant = () => {
       }
     }
 
-    // 5. Standard Knowledge Base Intent classifier
+    // 6. Standard Knowledge Base Intent classifier
     const { intent, isFollowUp } = detectUserIntent(queryText, activeContext);
     if (intent !== INTENTS.UNKNOWN) {
       setActiveContext(intent);

@@ -168,30 +168,52 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
     navigate('/');
   };
 
-  // AI Assistant Handle
-  const handleAiQuery = (queryText) => {
+  // AI Assistant Handle (Connected to backend Gemini AI & Grounded Data Engine)
+  const handleAiQuery = async (queryText) => {
     setAiChatMessages(prev => [...prev, { sender: 'user', text: queryText }]);
     setIsAiThinking(true);
 
-    setTimeout(() => {
-      let response = '';
-      const text = queryText.toLowerCase();
+    try {
+      const res = await fetch('/api/ai/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          query: queryText,
+          language: i18n.language || 'en'
+        })
+      });
 
-      if (text.includes('summary') || text.includes('today') || text.includes('operations')) {
-        response = `Today's Summary: ${totalComplaints} total complaints registered. ${resolvedCount} tickets resolved today, ${pendingCount} pending inspection. Resolution rate is ${totalComplaints > 0 ? Math.round((resolvedCount / totalComplaints) * 100) : 100}%.`;
-      } else if (text.includes('critical') || text.includes('issue') || text.includes('alert')) {
-        response = `Critical Analysis: ${escalatedCount} complaints have exceeded the standard 72-Hour SLA and are flagged for Higher Authority escalation. Ward 4 and Ward 7 require priority field inspection.`;
-      } else if (text.includes('water')) {
-        response = `Water Telemetry: Godavari Headworks intake is operating at 98.4% capacity. Ward 6 & Ward 7 scheduled supply is active from 06:00 to 09:30. 2 pipeline leakage tickets currently assigned.`;
-      } else if (text.includes('gis') || text.includes('map') || text.includes('hotspot')) {
-        response = `GIS Spatial Hotspots: Concentration of sanitation complaints identified in Ward 4 (5 active tickets). Recommend dispatching extra sanitation fleet.`;
-      } else {
-        response = `Municipal Governance AI: Monitored ${totalComplaints} tickets across 28 Wards. SLA compliance engine active. All actions logged to immutable audit ledger.`;
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.responseText) {
+          setAiChatMessages(prev => [...prev, { sender: 'ai', text: data.responseText }]);
+          setIsAiThinking(false);
+          return;
+        }
       }
+    } catch (err) {
+      console.warn('Backend AI query endpoint error, using fallback logic:', err);
+    }
 
-      setAiChatMessages(prev => [...prev, { sender: 'ai', text: response }]);
-      setIsAiThinking(false);
-    }, 600);
+    // Heuristic Fallback
+    let response = '';
+    const text = (queryText || '').toLowerCase();
+
+    if (text.includes('summary') || text.includes('today') || text.includes('operations')) {
+      response = `Today's Summary: ${totalComplaints} total complaints registered. ${resolvedCount} tickets resolved today, ${pendingCount} pending inspection. Resolution rate is ${totalComplaints > 0 ? Math.round((resolvedCount / totalComplaints) * 100) : 100}%.`;
+    } else if (text.includes('critical') || text.includes('issue') || text.includes('alert')) {
+      response = `Critical Analysis: ${escalatedCount} complaints have exceeded the standard 72-Hour SLA and are flagged for Higher Authority escalation. Ward 4 and Ward 7 require priority field inspection.`;
+    } else if (text.includes('water')) {
+      response = `Water Telemetry: Godavari Headworks intake is operating at 98.4% capacity. Ward 6 & Ward 7 scheduled supply is active from 06:00 to 09:30. 2 pipeline leakage tickets currently assigned.`;
+    } else if (text.includes('gis') || text.includes('map') || text.includes('hotspot')) {
+      response = `GIS Spatial Hotspots: Concentration of sanitation complaints identified in Ward 4 (5 active tickets). Recommend dispatching extra sanitation fleet.`;
+    } else {
+      response = `Municipal Governance AI: Monitored ${totalComplaints} tickets across 28 Wards. SLA compliance engine active. All actions logged to immutable audit ledger.`;
+    }
+
+    setAiChatMessages(prev => [...prev, { sender: 'ai', text: response }]);
+    setIsAiThinking(false);
   };
 
   const handleSendAiMessage = (e) => {
