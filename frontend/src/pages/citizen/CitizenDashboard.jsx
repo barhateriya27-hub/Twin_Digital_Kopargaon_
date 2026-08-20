@@ -203,8 +203,8 @@ export const CitizenDashboard = ({ activeTab: propActiveTab, initialActiveTab, e
               
               {/* WELCOME BANNER WITH DYNAMIC GREETING & CLOCK */}
               <WelcomeWidget 
-                citizenName={officerUser?.name || citizenUser?.fullName || citizenUser?.name || 'Swanandi Kathale'} 
-                wardNumber={officerUser ? 'N/A' : (citizenUser?.ward || 4)} 
+                citizenName={citizenUser?.fullName || citizenUser?.name || officerUser?.name || 'Citizen'} 
+                wardNumber={citizenUser?.ward || 4} 
               />
 
               {/* QUICK ACTION BAR */}

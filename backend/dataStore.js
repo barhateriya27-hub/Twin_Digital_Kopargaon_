@@ -1,4 +1,6 @@
 import bcrypt from 'bcryptjs';
+import { isDbConnected } from './db.js';
+import { User, Complaint, Permission, Tax, Asset, Sensor, Team, Notification, AiInsight, AuditLog, Document } from './models.js';
 
 // ─── CONSTANTS & ENUMS ────────────────────────────────────────────────────────
 const SALT_ROUNDS = 10;
@@ -58,8 +60,8 @@ const HASHED_CITIZEN_PASS = bcrypt.hashSync('citizen123', SALT_ROUNDS);
 const HASHED_OFFICER_PASS = bcrypt.hashSync('kpg@123', SALT_ROUNDS);
 const HASHED_ADMIN_PASS = bcrypt.hashSync('admin123', SALT_ROUNDS);
 
-// ─── 1. USERS COLLECTION ──────────────────────────────────────────────────────
-let users = [
+// ─── SYSTEM SEED DATASETS (PRESERVED SYSTEM CONFIGURATIONS) ───────────────────
+const initialUsers = [
   {
     id: 'CIT-8821',
     name: 'Swanandi Kathale',
@@ -77,22 +79,6 @@ let users = [
     registeredAt: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()
   },
   {
-    id: 'CIT-4410',
-    name: 'Anil Kulkarni',
-    email: 'anil.k@kopargaon.gov.in',
-    phone: '+91 98111 22233',
-    aadhaar: '9876-5432-1098',
-    district: 'Ahilyanagar (Ahmednagar)',
-    city: 'Kopargaon',
-    ward: 6,
-    address: 'Station Road, Ward 6, Kopargaon',
-    passwordHash: HASHED_CITIZEN_PASS,
-    role: ROLES.CITIZEN,
-    department: 'Resident',
-    mfaEnabled: false,
-    registeredAt: new Date(Date.now() - 45 * 24 * 3600 * 1000).toISOString()
-  },
-  {
     id: 'KMC-OFFICER-001',
     officerId: 'kpg',
     name: 'Officer Er. Suresh Deshmukh',
@@ -101,19 +87,6 @@ let users = [
     role: ROLES.STAFF,
     department: DEPARTMENTS.SANITATION,
     badge: 'KMC-SAN-001',
-    passwordHash: HASHED_OFFICER_PASS,
-    mfaEnabled: true,
-    registeredAt: new Date(Date.now() - 180 * 24 * 3600 * 1000).toISOString()
-  },
-  {
-    id: 'KMC-OFFICER-002',
-    officerId: 'water_officer',
-    name: 'Er. Rajesh Shinde',
-    email: 'water.officer@kopargaon.gov.in',
-    phone: '+91 98220 11002',
-    role: ROLES.STAFF,
-    department: DEPARTMENTS.WATER,
-    badge: 'KMC-WTR-002',
     passwordHash: HASHED_OFFICER_PASS,
     mfaEnabled: true,
     registeredAt: new Date(Date.now() - 180 * 24 * 3600 * 1000).toISOString()
@@ -133,8 +106,7 @@ let users = [
   }
 ];
 
-// ─── 2. MUNICIPAL TEAMS COLLECTION ───────────────────────────────────────────
-let teams = [
+const initialTeams = [
   {
     id: 'TEAM-SAN-01',
     name: 'Ward 4 Sanitation Quick Response Squad',
@@ -147,38 +119,24 @@ let teams = [
       { vehicleNumber: 'MH-17-BC-8810', type: 'Sweeper Van', status: 'On Duty' }
     ],
     status: 'Deployed',
-    activeTicketsCount: 1
+    activeTicketsCount: 0
   },
   {
     id: 'TEAM-WTR-01',
     name: 'Godavari Emergency Pipeline Repair Unit',
     department: DEPARTMENTS.WATER,
     assignedWard: 2,
-    leaderId: 'KMC-OFFICER-002',
+    leaderId: 'KMC-OFFICER-001',
     membersCount: 6,
     vehicles: [
-      { vehicleNumber: 'MH-17-W-1042', type: 'Excavator & Valve Van', status: 'Deployed' }
-    ],
-    status: 'Deployed',
-    activeTicketsCount: 1
-  },
-  {
-    id: 'TEAM-PWD-01',
-    name: 'Station Road Asphalt & Pothole Squad',
-    department: DEPARTMENTS.PWD,
-    assignedWard: 6,
-    leaderId: 'KMC-OFFICER-002',
-    membersCount: 10,
-    vehicles: [
-      { vehicleNumber: 'MH-17-P-9021', type: 'Road Roller & Hotmix Unit', status: 'Standby' }
+      { vehicleNumber: 'MH-17-W-1042', type: 'Excavator & Valve Van', status: 'Standby' }
     ],
     status: 'Standby',
-    activeTicketsCount: 1
+    activeTicketsCount: 0
   }
 ];
 
-// ─── 3. INFRASTRUCTURE & ASSETS COLLECTION ───────────────────────────────────
-let assets = [
+const initialAssets = [
   {
     id: 'AST-GB-01',
     name: 'Kopargaon Municipal Corporation HQ',
@@ -200,49 +158,24 @@ let assets = [
     status: ASSET_STATUS.OPERATIONAL,
     healthScore: 92,
     capacity: '2.5 Million Liters / Day',
-    managedBy: 'KMC-OFFICER-002',
+    managedBy: 'KMC-OFFICER-001',
     lastInspectedAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString()
-  },
-  {
-    id: 'AST-ELE-01',
-    name: 'Kopargaon 132kV Substation Grid',
-    category: 'Electrical Substation',
-    department: DEPARTMENTS.LIGHTING,
-    location: { address: 'Subhash Road, Ward 6', ward: 6, latitude: 19.8790, longitude: 74.4910 },
-    status: ASSET_STATUS.OPERATIONAL,
-    healthScore: 94,
-    capacity: '132 kV Grid Capacity',
-    managedBy: 'KMC-OFFICER-001',
-    lastInspectedAt: new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString()
-  },
-  {
-    id: 'AST-TRN-01',
-    name: 'MSRTC Central Bus Transit Depot',
-    category: 'Transit Hub',
-    department: DEPARTMENTS.TOWN_PLANNING,
-    location: { address: 'Central Bus Stand, Ward 2', ward: 2, latitude: 19.8912, longitude: 74.4789 },
-    status: ASSET_STATUS.OPERATIONAL,
-    healthScore: 88,
-    capacity: '180 Bus Departures / Day',
-    managedBy: 'KMC-OFFICER-001',
-    lastInspectedAt: new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString()
   }
 ];
 
-// ─── 4. SENSORS & LIVE TELEMETRY COLLECTION ─────────────────────────────────
-let sensors = [
+const initialSensors = [
   {
     id: 'SNS-WTR-01',
     assetId: 'AST-WTR-01',
     sensorType: 'WaterPressure',
     location: { ward: 4, latitude: 19.8855, longitude: 74.4821, landmark: 'Shivaji Chowk Main Valve' },
-    currentValue: 38,
+    currentValue: 42,
     unit: 'psi',
-    status: SENSOR_STATUS.WARNING,
+    status: SENSOR_STATUS.NORMAL,
     lastReadingAt: new Date().toISOString(),
     historicalReadings: [
       { timestamp: new Date(Date.now() - 3600000).toISOString(), value: 45 },
-      { timestamp: new Date().toISOString(), value: 38 }
+      { timestamp: new Date().toISOString(), value: 42 }
     ]
   },
   {
@@ -258,341 +191,143 @@ let sensors = [
       { timestamp: new Date(Date.now() - 3600000).toISOString(), value: 65 },
       { timestamp: new Date().toISOString(), value: 62 }
     ]
-  },
-  {
-    id: 'SNS-TRF-01',
-    assetId: 'AST-TRN-01',
-    sensorType: 'TrafficDensity',
-    location: { ward: 2, latitude: 19.8912, longitude: 74.4789, landmark: 'Bus Stand Junction' },
-    currentValue: 74,
-    unit: '% density',
-    status: SENSOR_STATUS.WARNING,
-    lastReadingAt: new Date().toISOString(),
-    historicalReadings: [
-      { timestamp: new Date(Date.now() - 3600000).toISOString(), value: 50 },
-      { timestamp: new Date().toISOString(), value: 74 }
-    ]
-  },
-  {
-    id: 'SNS-WST-01',
-    assetId: 'AST-GB-01',
-    sensorType: 'WasteBinLevel',
-    location: { ward: 4, latitude: 19.8855, longitude: 74.4821, landmark: 'Shivaji Chowk Market Bin' },
-    currentValue: 88,
-    unit: '% full',
-    status: SENSOR_STATUS.CRITICAL,
-    lastReadingAt: new Date().toISOString(),
-    historicalReadings: [
-      { timestamp: new Date(Date.now() - 3600000).toISOString(), value: 70 },
-      { timestamp: new Date().toISOString(), value: 88 }
-    ]
   }
 ];
 
-// ─── 5. COMPLAINTS COLLECTION ────────────────────────────────────────────────
-let complaints = [
-  {
-    id: 'CMP1023',
-    citizenId: 'CIT-8821',
-    submittedBy: 'Swanandi Kathale',
-    citizenEmail: 'citizen@kopargaon.gov.in',
-    category: 'Street Light',
-    title: 'Streetlight Malfunction near Shivaji Chowk',
-    description: 'LED streetlamp fixture flickering and failing at night near Shivaji Chowk.',
-    department: DEPARTMENTS.LIGHTING,
-    priority: COMPLAINT_PRIORITY.NORMAL,
-    status: COMPLAINT_STATUS.RESOLVED,
-    location: { address: 'Shivaji Chowk, Ward 4', ward: 4, latitude: 19.8855, longitude: 74.4821 },
-    imageUrl: 'https://images.unsplash.com/photo-1517420704952-d9f39e95b43e?auto=format&fit=crop&w=800&q=80',
-    supportingDocuments: ['KPG-DOC-101'],
-    assignedOfficerId: 'KMC-OFFICER-001',
-    assignedOfficer: 'Er. Ramesh Shinde',
-    assignedTeamId: 'TEAM-SAN-01',
-    submittedAt: new Date(Date.now() - 72 * 3600 * 1000).toISOString(),
-    dueDate: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-    workStartedAt: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
-    completedAt: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-    isEscalated: false,
-    remarks: ['Replacement LED bulb installed and tested.'],
-    timeline: [
-      {
-        id: 'EVT-1001',
-        status: COMPLAINT_STATUS.REPORTED,
-        timestamp: new Date(Date.now() - 72 * 3600 * 1000).toISOString(),
-        actor: { id: 'CIT-8821', name: 'Swanandi Kathale', role: ROLES.CITIZEN, department: 'Resident' },
-        action: 'Complaint Registered',
-        note: 'Submitted ticket via Citizen Portal.'
-      },
-      {
-        id: 'EVT-1001B',
-        status: COMPLAINT_STATUS.ASSIGNED,
-        timestamp: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
-        actor: { id: 'KMC-OFFICER-001', name: 'Er. Ramesh Shinde', role: ROLES.STAFF, department: DEPARTMENTS.LIGHTING },
-        action: 'Squad Assigned',
-        note: 'Assigned to Electrical Maintenance Unit.'
-      },
-      {
-        id: 'EVT-1002',
-        status: COMPLAINT_STATUS.RESOLVED,
-        timestamp: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-        actor: { id: 'KMC-OFFICER-001', name: 'Er. Ramesh Shinde', role: ROLES.STAFF, department: DEPARTMENTS.LIGHTING },
-        action: 'Complaint Resolved',
-        note: 'Lighting fixture replaced.'
-      }
-    ]
-  },
-  {
-    id: 'CMP1032',
-    citizenId: 'CIT-8821',
-    submittedBy: 'Swanandi Kathale',
-    citizenEmail: 'citizen@kopargaon.gov.in',
-    category: 'Water Leakage',
-    title: 'Water Supply Pipeline Leakage',
-    description: 'Underground main line valve seepage near Ward 4 market street causing low water pressure.',
-    department: DEPARTMENTS.WATER,
-    priority: COMPLAINT_PRIORITY.HIGH,
-    status: COMPLAINT_STATUS.IN_PROGRESS,
-    location: { address: 'Market Yard, Ward 4', ward: 4, latitude: 19.8890, longitude: 74.4810 },
-    imageUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb186a5b7?auto=format&fit=crop&w=800&q=80',
-    supportingDocuments: ['KPG-DOC-102'],
-    assignedOfficerId: 'KMC-OFFICER-002',
-    assignedOfficer: 'Er. Suresh Deshmukh',
-    assignedTeamId: 'TEAM-WTR-01',
-    submittedAt: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-    dueDate: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
-    workStartedAt: new Date(Date.now() - 6 * 3600 * 1000).toISOString(),
-    completedAt: null,
-    isEscalated: false,
-    remarks: ['Excavation and valve replacement squad deployed.'],
-    timeline: [
-      {
-        id: 'EVT-1003A',
-        status: COMPLAINT_STATUS.REPORTED,
-        timestamp: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-        actor: { id: 'CIT-8821', name: 'Swanandi Kathale', role: ROLES.CITIZEN, department: 'Resident' },
-        action: 'Complaint Registered',
-        note: 'Submitted ticket via Citizen Portal.'
-      },
-      {
-        id: 'EVT-1003',
-        status: COMPLAINT_STATUS.IN_PROGRESS,
-        timestamp: new Date(Date.now() - 6 * 3600 * 1000).toISOString(),
-        actor: { id: 'KMC-OFFICER-002', name: 'Er. Suresh Deshmukh', role: ROLES.STAFF, department: DEPARTMENTS.WATER },
-        action: 'Work Commenced',
-        note: 'Repair team assigned.'
-      }
-    ]
-  },
-  {
-    id: 'KPG-2026-0988',
-    citizenId: 'CIT-4410',
-    submittedBy: 'Anil Kulkarni',
-    citizenEmail: 'anil.k@kopargaon.gov.in',
-    category: 'Pothole',
-    title: 'Hazardous Road Cave-in on Station Road',
-    description: 'Deep road cave-in causing traffic bottleneck and vehicle damage.',
-    department: DEPARTMENTS.PWD,
-    priority: COMPLAINT_PRIORITY.HIGH,
-    status: COMPLAINT_STATUS.ESCALATED,
-    location: { address: 'Station Road Flyover, Ward 6', ward: 6, latitude: 19.8790, longitude: 74.4910 },
-    imageUrl: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80',
-    supportingDocuments: [],
-    assignedOfficerId: 'KMC-OFFICER-002',
-    assignedOfficer: 'Rajesh Shinde',
-    assignedTeamId: 'TEAM-PWD-01',
-    submittedAt: new Date(Date.now() - 96 * 3600 * 1000).toISOString(),
-    dueDate: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-    workStartedAt: null,
-    completedAt: null,
-    isEscalated: true,
-    remarks: ['SLA breached. Escalated to Higher Authority.'],
-    timeline: []
+// Cleaned / empty initial datasets for transactional collections
+const initialComplaints = [];
+const initialPermissions = [];
+const initialTaxes = [];
+const initialDocuments = [];
+const initialNotifications = [];
+const initialAiInsights = [];
+const initialAuditLogs = [];
+
+// Helper to strictly enforce DB availability
+const ensureDbConnected = () => {
+  if (!isDbConnected()) {
+    throw new Error('Database is offline or not configured. All database access operations are disabled.');
   }
-];
+};
 
-// ─── 6. PERMISSIONS & APPLICATIONS COLLECTION ───────────────────────────────
-let permissions = [
-  {
-    id: 'KPG-PERM-2026-0041',
-    applicantId: 'CIT-8821',
-    applicantName: 'Swanandi Kathale',
-    citizenEmail: 'citizen@kopargaon.gov.in',
-    permissionType: 'New House Construction',
-    category: 'Residential',
-    plotAreaSqFt: 1800,
-    location: { propertyAddress: 'Plot 12, Sai Nagar, Ward 4, Kopargaon', ward: 4, propertyNumber: 'KPG-PROP-4218', latitude: 19.8855, longitude: 74.4821 },
-    architectName: 'Ar. Vilas Deshmukh',
-    status: 'Approved',
-    submittedAt: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString(),
-    dueDate: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
-    inspectionDate: new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString(),
-    approvedAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
-    scrutinyFeeAmount: 1500,
-    scrutinyFeePaid: true,
-    certificateNumber: 'KMC-PERM-2026-0041',
-    certificateIssued: true,
-    documentId: 'KPG-DOC-201',
-    notes: 'Approved under Kopargaon Town Planning DCR 2026.'
+// ─── DATABASE INITIALIZATION / SEEDING ROUTINE ────────────────────────────────
+export const initializeDatabase = async () => {
+  ensureDbConnected();
+
+  try {
+    const userCount = await User.countDocuments();
+    if (userCount === 0) {
+      console.log('[DB Seeding] User collection is empty. Seeding initial users...');
+      await User.insertMany(initialUsers);
+    }
+
+    const complaintCount = await Complaint.countDocuments();
+    if (complaintCount === 0 && initialComplaints.length > 0) {
+      await Complaint.insertMany(initialComplaints);
+    }
+
+    const permissionCount = await Permission.countDocuments();
+    if (permissionCount === 0 && initialPermissions.length > 0) {
+      await Permission.insertMany(initialPermissions);
+    }
+
+    const taxCount = await Tax.countDocuments();
+    if (taxCount === 0 && initialTaxes.length > 0) {
+      await Tax.insertMany(initialTaxes);
+    }
+
+    const assetCount = await Asset.countDocuments();
+    if (assetCount === 0) {
+      console.log('[DB Seeding] Seeding initial infrastructure assets...');
+      await Asset.insertMany(initialAssets);
+    }
+
+    const sensorCount = await Sensor.countDocuments();
+    if (sensorCount === 0) {
+      console.log('[DB Seeding] Seeding initial telemetry sensors...');
+      await Sensor.insertMany(initialSensors);
+    }
+
+    const teamCount = await Team.countDocuments();
+    if (teamCount === 0) {
+      console.log('[DB Seeding] Seeding initial municipal teams...');
+      await Team.insertMany(initialTeams);
+    }
+
+    console.log('✅ [DB Seeding] Database collections populated/verified successfully.');
+  } catch (err) {
+    console.error('❌ [DB Seeding Error] Failed to seed database collections:', err.message);
   }
-];
+};
 
-// ─── 7. PAYMENTS & TAXES COLLECTION ────────────────────────────────────────
-let taxes = [
-  {
-    id: 'KPG-TAX-2026-0102',
-    billNumber: 'BILL-2026-0102',
-    citizenId: 'CIT-8821',
-    citizenName: 'Swanandi Kathale',
-    citizenEmail: 'citizen@kopargaon.gov.in',
-    propertyNumber: 'KPG-PROP-4218',
-    location: { address: 'Shivaji Chowk, Ward 4, Kopargaon', ward: 4, latitude: 19.8855, longitude: 74.4821 },
-    taxCategory: 'Property Tax',
-    amount: 4200,
-    penalty: 0,
-    totalAmount: 4200,
-    status: 'Paid',
-    dueDate: new Date(Date.now() + 20 * 24 * 3600 * 1000).toISOString().split('T')[0],
-    createdAt: new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString(),
-    paidAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
-    paymentMethod: 'UPI / NetBanking',
-    receiptNumber: 'REC-2026-9812',
-    receiptDocId: 'KPG-DOC-301'
-  }
-];
-
-// ─── 8. PRIVATE DOCUMENTS COLLECTION ────────────────────────────────────────
-let documents = [
-  {
-    id: 'KPG-DOC-101',
-    title: 'Streetlight Site Photo & Verification',
-    ownerId: 'CIT-8821',
-    ownerEmail: 'citizen@kopargaon.gov.in',
-    documentType: 'ComplaintAttachment',
-    fileType: 'image/png',
-    isPrivate: true,
-    createdAt: new Date(Date.now() - 72 * 3600 * 1000).toISOString()
-  },
-  {
-    id: 'KPG-DOC-201',
-    title: 'Approved Building Plan Certificate',
-    ownerId: 'CIT-8821',
-    ownerEmail: 'citizen@kopargaon.gov.in',
-    documentType: 'PermissionCertificate',
-    fileType: 'application/pdf',
-    isPrivate: true,
-    createdAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString()
-  },
-  {
-    id: 'KPG-DOC-301',
-    title: 'Property Tax Official Payment Receipt 2026',
-    ownerId: 'CIT-8821',
-    ownerEmail: 'citizen@kopargaon.gov.in',
-    documentType: 'TaxReceipt',
-    fileType: 'application/pdf',
-    isPrivate: true,
-    createdAt: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString()
-  }
-];
-
-// ─── 9. NOTIFICATIONS COLLECTION ─────────────────────────────────────────────
-let notifications = [
-  {
-    id: 'NOTIF-101',
-    recipientRole: ROLES.CITIZEN,
-    recipientId: 'CIT-8821',
-    title: 'Complaint CMP1023 Status Updated',
-    description: 'Your complaint CMP1023 (Street Light) has been marked Resolved.',
-    relatedEntityType: 'Complaint',
-    relatedEntityId: 'CMP1023',
-    priority: COMPLAINT_PRIORITY.NORMAL,
-    department: DEPARTMENTS.LIGHTING,
-    timestamp: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-    read: false,
-    actionLink: '/citizen/track-complaint'
-  }
-];
-
-// ─── 10. AI INSIGHTS & PREDICTIONS COLLECTION ───────────────────────────────
-let aiInsights = [
-  {
-    id: 'INS-TRF-01',
-    domain: 'Traffic',
-    title: 'Station Road Peak Traffic Congestion',
-    summary: 'High congestion risk detected at Station Road junction.',
-    detail: 'Morning and evening rush hours experience 40% density increase.',
-    confidence: 82,
-    severity: 'high',
-    hotspotWard: 4,
-    basis: 'Time-of-day traffic sensor data SNS-TRF-01',
-    recommendation: 'Deploy 2 traffic wardens during 08:00-10:00 AM.',
-    generatedAt: new Date().toISOString(),
-    label: 'ESTIMATED'
-  },
-  {
-    id: 'INS-WST-01',
-    domain: 'Garbage',
-    title: 'Ward 4 Market Garbage Overflow Warning',
-    summary: 'Sanitation bin level reaches 88% capacity.',
-    detail: 'High bin telemetry reading requires immediate van dispatch.',
-    confidence: 88,
-    severity: 'critical',
-    hotspotWard: 4,
-    basis: 'IoT Sensor SNS-WST-01',
-    recommendation: 'Deploy Compactor Truck MH-17-BC-4412 to clear market bin.',
-    generatedAt: new Date().toISOString(),
-    label: 'LIVE_TELEMETRY'
-  }
-];
-
-// ─── 11. AUDIT & SECURITY LOGS COLLECTION ───────────────────────────────────
-let auditLogs = [
-  {
-    id: 'AUD-9001',
-    timestamp: new Date(Date.now() - 96 * 3600 * 1000).toISOString(),
-    user: { id: 'CIT-4410', name: 'Anil Kulkarni', role: ROLES.CITIZEN, department: 'Resident' },
-    ipAddress: '192.168.1.45',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0)',
-    action: 'COMPLAINT_SUBMITTED',
-    entityId: 'KPG-2026-0988',
-    entityType: 'Complaint',
-    status: 'SUCCESS',
-    details: 'Pothole complaint registered in Ward 6.'
-  }
-];
-
-// ─── UNIFIED DATA ACCESS API & HELPER METHODS ────────────────────────────────
-
+// ─── STRICT UNIFIED DATA ACCESS API ───────────────────────────────────────────
 export const dataStore = {
   // Users Repository
   users: {
-    find: (predicate) => users.find(predicate),
-    filter: (predicate) => users.filter(predicate),
-    getAll: () => [...users],
-    add: (newUser) => {
-      users.unshift(newUser);
-      return newUser;
-    },
-    update: (id, updates) => {
-      const idx = users.findIndex(u => u.id === id);
-      if (idx !== -1) {
-        users[idx] = { ...users[idx], ...updates };
-        return users[idx];
+    find: async (predicateOrQuery) => {
+      ensureDbConnected();
+      if (typeof predicateOrQuery === 'function') {
+        const all = await User.find({});
+        return all.find(predicateOrQuery);
       }
-      return null;
+      return await User.findOne(predicateOrQuery);
+    },
+    filter: async (predicateOrQuery) => {
+      ensureDbConnected();
+      if (typeof predicateOrQuery === 'function') {
+        const all = await User.find({});
+        return all.filter(predicateOrQuery);
+      }
+      return await User.find(predicateOrQuery);
+    },
+    getAll: async () => {
+      ensureDbConnected();
+      return await User.find({});
+    },
+    add: async (newUser) => {
+      ensureDbConnected();
+      const doc = new User(newUser);
+      await doc.save();
+      return doc.toObject();
+    },
+    update: async (id, updates) => {
+      ensureDbConnected();
+      const updated = await User.findOneAndUpdate({ id }, { $set: updates }, { new: true });
+      return updated ? updated.toObject() : null;
     }
   },
 
   // Complaints Repository
   complaints: {
-    find: (predicate) => complaints.find(predicate),
-    filter: (predicate) => complaints.filter(predicate),
-    getAll: () => [...complaints],
-    add: (newComp) => {
-      complaints.unshift(newComp);
-      return newComp;
+    find: async (predicateOrQuery) => {
+      ensureDbConnected();
+      if (typeof predicateOrQuery === 'function') {
+        const all = await Complaint.find({});
+        return all.find(predicateOrQuery);
+      }
+      return await Complaint.findOne(predicateOrQuery);
     },
-    assignOfficer: (id, assignedOfficer, assignedTeamId, note, actorName, officerRole, department) => {
-      const comp = complaints.find(c => c.id === id);
+    filter: async (predicateOrQuery) => {
+      ensureDbConnected();
+      if (typeof predicateOrQuery === 'function') {
+        const all = await Complaint.find({});
+        return all.filter(predicateOrQuery);
+      }
+      return await Complaint.find(predicateOrQuery);
+    },
+    getAll: async () => {
+      ensureDbConnected();
+      return await Complaint.find({}).sort({ submittedAt: -1 });
+    },
+    add: async (newComp) => {
+      ensureDbConnected();
+      const doc = new Complaint(newComp);
+      await doc.save();
+      return doc.toObject();
+    },
+    assignOfficer: async (id, assignedOfficer, assignedTeamId, note, actorName, officerRole, department) => {
+      ensureDbConnected();
+      const comp = await Complaint.findOne({ id });
       if (comp) {
         comp.assignedOfficer = assignedOfficer || comp.assignedOfficer;
         comp.assignedOfficerId = assignedOfficer || comp.assignedOfficerId;
@@ -601,34 +336,37 @@ export const dataStore = {
         comp.timeline.push({
           id: `EVT-${Date.now()}`,
           status: COMPLAINT_STATUS.ASSIGNED,
-          timestamp: new Date().toISOString(),
+          timestamp: new Date(),
           actor: { name: actorName || 'Municipal Control Center', role: officerRole || ROLES.STAFF, department: department || comp.department },
           action: `Assigned to ${assignedOfficer || assignedTeamId || 'Field Squad'}`,
           note: note || `Maintenance team assigned: ${assignedOfficer || assignedTeamId}`
         });
-        return comp;
+        await comp.save();
+        return comp.toObject();
       }
       return null;
     },
-    updateStatus: (id, status, note, actorName, officerRole, department) => {
-      const comp = complaints.find(c => c.id === id);
+    updateStatus: async (id, status, note, actorName, officerRole, department) => {
+      ensureDbConnected();
+      const comp = await Complaint.findOne({ id });
       if (comp) {
         comp.status = status;
         if ((status === COMPLAINT_STATUS.IN_PROGRESS || status === 'In Progress') && !comp.workStartedAt) {
-          comp.workStartedAt = new Date().toISOString();
+          comp.workStartedAt = new Date();
         }
         if (status === COMPLAINT_STATUS.RESOLVED || status === 'Resolved' || status === COMPLAINT_STATUS.COMPLETED || status === COMPLAINT_STATUS.CLOSED || status === 'Closed') {
-          comp.completedAt = new Date().toISOString();
+          comp.completedAt = new Date();
         }
         comp.timeline.push({
           id: `EVT-${Date.now()}`,
           status,
-          timestamp: new Date().toISOString(),
+          timestamp: new Date(),
           actor: { name: actorName, role: officerRole, department: department || comp.department },
           action: `Status modified to ${status}`,
           note: note || `Updated by ${actorName}`
         });
-        return comp;
+        await comp.save();
+        return comp.toObject();
       }
       return null;
     }
@@ -636,77 +374,166 @@ export const dataStore = {
 
   // Permissions Repository
   permissions: {
-    find: (predicate) => permissions.find(predicate),
-    filter: (predicate) => permissions.filter(predicate),
-    getAll: () => [...permissions],
-    add: (newPerm) => {
-      permissions.unshift(newPerm);
-      return newPerm;
+    find: async (predicateOrQuery) => {
+      ensureDbConnected();
+      if (typeof predicateOrQuery === 'function') {
+        const all = await Permission.find({});
+        return all.find(predicateOrQuery);
+      }
+      return await Permission.findOne(predicateOrQuery);
+    },
+    filter: async (predicateOrQuery) => {
+      ensureDbConnected();
+      if (typeof predicateOrQuery === 'function') {
+        const all = await Permission.find({});
+        return all.filter(predicateOrQuery);
+      }
+      return await Permission.find(predicateOrQuery);
+    },
+    getAll: async () => {
+      ensureDbConnected();
+      return await Permission.find({}).sort({ submittedAt: -1 });
+    },
+    add: async (newPerm) => {
+      ensureDbConnected();
+      const doc = new Permission(newPerm);
+      await doc.save();
+      return doc.toObject();
     }
   },
 
   // Taxes Repository
   taxes: {
-    find: (predicate) => taxes.find(predicate),
-    filter: (predicate) => taxes.filter(predicate),
-    getAll: () => [...taxes],
-    add: (newTax) => {
-      taxes.unshift(newTax);
-      return newTax;
+    find: async (predicateOrQuery) => {
+      ensureDbConnected();
+      if (typeof predicateOrQuery === 'function') {
+        const all = await Tax.find({});
+        return all.find(predicateOrQuery);
+      }
+      return await Tax.findOne(predicateOrQuery);
     },
-    processPayment: (id, paymentMethod) => {
-      const tax = taxes.find(t => t.id === id);
+    filter: async (predicateOrQuery) => {
+      ensureDbConnected();
+      if (typeof predicateOrQuery === 'function') {
+        const all = await Tax.find({});
+        return all.filter(predicateOrQuery);
+      }
+      return await Tax.find(predicateOrQuery);
+    },
+    getAll: async () => {
+      ensureDbConnected();
+      return await Tax.find({});
+    },
+    add: async (newTax) => {
+      ensureDbConnected();
+      const doc = new Tax(newTax);
+      await doc.save();
+      return doc.toObject();
+    },
+    processPayment: async (id, paymentMethod) => {
+      ensureDbConnected();
+      const tax = await Tax.findOne({ id });
       if (tax) {
         tax.status = 'Paid';
-        tax.paidAt = new Date().toISOString();
+        tax.paidAt = new Date();
         tax.paymentMethod = paymentMethod || 'UPI / NetBanking';
         tax.receiptNumber = `REC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-        return tax;
+        await tax.save();
+        return tax.toObject();
       }
       return null;
     }
   },
 
-  // Infrastructure Assets Repository
+  // Assets Repository
   assets: {
-    getAll: () => [...assets],
-    find: (predicate) => assets.find(predicate)
+    getAll: async () => {
+      ensureDbConnected();
+      return await Asset.find({});
+    },
+    find: async (predicateOrQuery) => {
+      ensureDbConnected();
+      if (typeof predicateOrQuery === 'function') {
+        const all = await Asset.find({});
+        return all.find(predicateOrQuery);
+      }
+      return await Asset.findOne(predicateOrQuery);
+    }
   },
 
   // Sensors Repository
   sensors: {
-    getAll: () => [...sensors],
-    find: (predicate) => sensors.find(predicate)
+    getAll: async () => {
+      ensureDbConnected();
+      return await Sensor.find({});
+    },
+    find: async (predicateOrQuery) => {
+      ensureDbConnected();
+      if (typeof predicateOrQuery === 'function') {
+        const all = await Sensor.find({});
+        return all.find(predicateOrQuery);
+      }
+      return await Sensor.findOne(predicateOrQuery);
+    }
   },
 
   // Teams Repository
   teams: {
-    getAll: () => [...teams],
-    find: (predicate) => teams.find(predicate)
+    getAll: async () => {
+      ensureDbConnected();
+      return await Team.find({});
+    },
+    find: async (predicateOrQuery) => {
+      ensureDbConnected();
+      if (typeof predicateOrQuery === 'function') {
+        const all = await Team.find({});
+        return all.find(predicateOrQuery);
+      }
+      return await Team.findOne(predicateOrQuery);
+    }
   },
 
   // Notifications Repository
   notifications: {
-    getAll: () => [...notifications],
-    filter: (predicate) => notifications.filter(predicate),
-    add: (newNotif) => {
-      notifications.unshift(newNotif);
-      return newNotif;
+    getAll: async () => {
+      ensureDbConnected();
+      return await Notification.find({}).sort({ timestamp: -1 });
+    },
+    filter: async (predicateOrQuery) => {
+      ensureDbConnected();
+      if (typeof predicateOrQuery === 'function') {
+        const all = await Notification.find({});
+        return all.filter(predicateOrQuery);
+      }
+      return await Notification.find(predicateOrQuery);
+    },
+    add: async (newNotif) => {
+      ensureDbConnected();
+      const doc = new Notification(newNotif);
+      await doc.save();
+      return doc.toObject();
     }
   },
 
   // AI Insights Repository
   aiInsights: {
-    getAll: () => [...aiInsights]
+    getAll: async () => {
+      ensureDbConnected();
+      return await AiInsight.find({});
+    }
   },
 
   // Audit Logs Repository
   auditLogs: {
-    getAll: () => [...auditLogs],
-    add: (req, action, entityId, entityType, status = 'SUCCESS', details = '') => {
+    getAll: async () => {
+      ensureDbConnected();
+      return await AuditLog.find({}).sort({ timestamp: -1 });
+    },
+    add: async (req, action, entityId, entityType, status = 'SUCCESS', details = '') => {
+      ensureDbConnected();
       const logEntry = {
-        id: `AUD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-        timestamp: new Date().toISOString(),
+        id: `AUD-${Date.now()}-${Math.floor(Math.random() * 100)}`,
+        timestamp: new Date(),
         user: req.user
           ? { id: req.user.id, name: req.user.name, role: req.user.role, department: req.user.department || 'Resident' }
           : { id: 'UNAUTHENTICATED', name: req.body?.email || req.body?.identifier || 'Anonymous', role: 'guest', department: 'Public' },
@@ -718,31 +545,50 @@ export const dataStore = {
         status,
         details
       };
-      auditLogs.unshift(logEntry);
-      return logEntry;
+      const doc = new AuditLog(logEntry);
+      await doc.save();
+      return doc.toObject();
     }
   },
 
-  // Private Documents Repository
+  // Documents Repository
   documents: {
-    find: (predicate) => documents.find(predicate),
-    getAll: () => [...documents]
+    find: async (predicateOrQuery) => {
+      ensureDbConnected();
+      if (typeof predicateOrQuery === 'function') {
+        const all = await Document.find({});
+        return all.find(predicateOrQuery);
+      }
+      return await Document.findOne(predicateOrQuery);
+    },
+    getAll: async () => {
+      ensureDbConnected();
+      return await Document.find({});
+    }
   },
 
   // Aggregate City Overview Metrics
-  getCityOverview: () => {
-    const totalComplaints = complaints.length;
-    const openComplaints = complaints.filter(c => c.status === COMPLAINT_STATUS.REPORTED || c.status === COMPLAINT_STATUS.PENDING || c.status === COMPLAINT_STATUS.ASSIGNED || c.status === COMPLAINT_STATUS.IN_PROGRESS).length;
-    const resolvedComplaints = complaints.filter(c => c.status === COMPLAINT_STATUS.RESOLVED || c.status === COMPLAINT_STATUS.COMPLETED || c.status === COMPLAINT_STATUS.CLOSED).length;
-    const escalatedComplaints = complaints.filter(c => c.status === COMPLAINT_STATUS.ESCALATED).length;
+  getCityOverview: async () => {
+    ensureDbConnected();
+
+    const uList = await User.find({});
+    const aList = await Asset.find({});
+    const sList = await Sensor.find({});
+    const tList = await Team.find({});
+    const cList = await Complaint.find({});
+
+    const totalComplaints = cList.length;
+    const openComplaints = cList.filter(c => c.status === COMPLAINT_STATUS.REPORTED || c.status === COMPLAINT_STATUS.PENDING || c.status === COMPLAINT_STATUS.ASSIGNED || c.status === COMPLAINT_STATUS.IN_PROGRESS).length;
+    const resolvedComplaints = cList.filter(c => c.status === COMPLAINT_STATUS.RESOLVED || c.status === COMPLAINT_STATUS.COMPLETED || c.status === COMPLAINT_STATUS.CLOSED).length;
+    const escalatedComplaints = cList.filter(c => c.status === COMPLAINT_STATUS.ESCALATED).length;
     const resolutionRate = totalComplaints > 0 ? Math.round((resolvedComplaints / totalComplaints) * 100) : 100;
 
     return {
-      totalCitizens: users.filter(u => u.role === ROLES.CITIZEN).length,
-      totalStaff: users.filter(u => u.role === ROLES.STAFF || u.role === ROLES.ADMIN).length,
-      totalAssets: assets.length,
-      totalSensors: sensors.length,
-      activeTeams: teams.filter(t => t.status === 'Deployed' || t.status === 'On Duty').length,
+      totalCitizens: uList.filter(u => u.role === ROLES.CITIZEN).length,
+      totalStaff: uList.filter(u => u.role === ROLES.STAFF || u.role === ROLES.ADMIN).length,
+      totalAssets: aList.length,
+      totalSensors: sList.length,
+      activeTeams: tList.filter(t => t.status === 'Deployed' || t.status === 'On Duty').length,
       complaints: {
         total: totalComplaints,
         open: openComplaints,

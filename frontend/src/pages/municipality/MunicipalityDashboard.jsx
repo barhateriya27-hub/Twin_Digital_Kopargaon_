@@ -16,6 +16,7 @@ import {
   ShieldAlert, 
   LineChart, 
   Bot, 
+  Sparkles,
   Settings, 
   LogOut, 
   CheckCircle2, 
@@ -133,7 +134,7 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
   // AI Floating Assistant state
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [aiChatMessages, setAiChatMessages] = useState([
-    { sender: 'ai', text: 'Kopargaon Municipal Governance AI ready. Monitoring SLA deadlines, ward telemetry, and water supply grids.' }
+    { sender: 'ai', text: 'Kopargaon Municipal Governance AI ready. Monitoring SLA deadlines, ward telemetry, and water supply grids.', source: 'local-knowledge-base' }
   ]);
   const [aiInput, setAiInput] = useState('');
   const [isAiThinking, setIsAiThinking] = useState(false);
@@ -187,7 +188,7 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.responseText) {
-          setAiChatMessages(prev => [...prev, { sender: 'ai', text: data.responseText }]);
+          setAiChatMessages(prev => [...prev, { sender: 'ai', text: data.responseText, source: data.source }]);
           setIsAiThinking(false);
           return;
         }
@@ -212,7 +213,7 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
       response = `Municipal Governance AI: Monitored ${totalComplaints} tickets across 28 Wards. SLA compliance engine active. All actions logged to immutable audit ledger.`;
     }
 
-    setAiChatMessages(prev => [...prev, { sender: 'ai', text: response }]);
+    setAiChatMessages(prev => [...prev, { sender: 'ai', text: response, source: 'local-grounded-heuristics' }]);
     setIsAiThinking(false);
   };
 
@@ -222,6 +223,54 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
     const msg = aiInput;
     setAiInput('');
     handleAiQuery(msg);
+  };
+
+  const renderMessageText = (text) => {
+    if (!text) return null;
+    const lines = text.split('\n');
+    return lines.map((line, lineIdx) => {
+      const isBullet = line.trim().startsWith('•') || line.trim().startsWith('*') || line.trim().startsWith('-');
+      let cleanLine = line;
+      if (isBullet) {
+        cleanLine = line.trim().replace(/^[•*\-]\s*/, '');
+      }
+      
+      const parts = [];
+      let currentIndex = 0;
+      const boldRegex = /\*\*(.*?)\*\*/g;
+      let match;
+      
+      while ((match = boldRegex.exec(cleanLine)) !== null) {
+        const textBefore = cleanLine.substring(currentIndex, match.index);
+        const boldText = match[1];
+        
+        if (textBefore) {
+          parts.push(textBefore);
+        }
+        parts.push(<strong key={match.index} className="font-extrabold text-[#0B2545]">{boldText}</strong>);
+        currentIndex = boldRegex.lastIndex;
+      }
+      
+      const textRemaining = cleanLine.substring(currentIndex);
+      if (textRemaining) {
+        parts.push(textRemaining);
+      }
+      
+      if (isBullet) {
+        return (
+          <div key={lineIdx} className="flex items-start gap-2 ml-2 my-1">
+            <span className="text-[#FF9933] font-black shrink-0">•</span>
+            <span className="leading-relaxed text-slate-700">{parts}</span>
+          </div>
+        );
+      }
+      
+      return (
+        <p key={lineIdx} className="leading-relaxed min-h-[1em] text-slate-700">
+          {parts}
+        </p>
+      );
+    });
   };
 
   // Filtered Complaints List
@@ -1188,8 +1237,31 @@ export const MunicipalityDashboard = ({ defaultTab = 'dashboard', embedded = tru
               <div className="h-72 overflow-y-auto space-y-3 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
                 {aiChatMessages.map((m, idx) => (
                   <div key={idx} className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-md p-3 rounded-xl ${m.sender === 'user' ? 'bg-[#0B2545] text-white' : 'bg-white border border-slate-200 text-slate-800'}`}>
-                      {m.text}
+                    <div className={`max-w-md p-3.5 rounded-xl ${m.sender === 'user' ? 'bg-[#0B2545] text-white' : 'bg-white border border-slate-200 text-slate-800'} space-y-1.5 shadow-xs`}>
+                      {m.sender === 'ai' && m.source && (
+                        <div className="flex items-center gap-1.5 text-[9px] font-mono tracking-wider text-slate-400 pb-1.5 border-b border-slate-100 mb-1.5">
+                          {m.source.includes('gemini') ? (
+                            <>
+                              <Sparkles className="w-3 h-3 text-amber-500 animate-pulse" />
+                              <span className="font-bold text-[#FF9933]">Gemini Cloud AI ({m.source.replace('gemini (', '').replace(')', '')})</span>
+                            </>
+                          ) : (
+                            <>
+                              <Bot className="w-3 h-3 text-sky-500" />
+                              <span className="font-bold text-sky-500">Live Grounded DB Engine</span>
+                            </>
+                          )}
+                        </div>
+                      )}
+                      {m.sender === 'user' ? (
+                        <div className="whitespace-pre-wrap leading-relaxed font-sans text-white">
+                          {m.text}
+                        </div>
+                      ) : (
+                        <div className="whitespace-pre-wrap leading-relaxed font-sans text-slate-800">
+                          {renderMessageText(m.text)}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

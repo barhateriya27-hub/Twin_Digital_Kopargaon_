@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { calculateSLADueDate, createAuditLog, createNotification } from '../utils/governanceUtils';
-import { isTokenValid, generateClientJwtToken } from '../utils/jwtUtils';
+import { calculateSLADueDate } from '../utils/governanceUtils';
+import { isTokenValid } from '../utils/jwtUtils';
 import { fetchInfrastructureAssets, fetchLiveSensors, fetchMunicipalTeams, fetchCityOverview } from '../services/digitalTwinService';
 import { fetchKopargaonWeather } from '../services/weatherService';
 
@@ -27,59 +27,10 @@ export const AppProvider = ({ children }) => {
     setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
   };
 
-  // Default Citizen Entity
-  const defaultCitizen = {
-    id: 'CIT-8821',
-    name: 'Swanandi Kathale',
-    fullName: 'Swanandi Kathale',
-    email: 'citizen@kopargaon.gov.in',
-    phone: '+91 98765 43210',
-    aadhaar: '1234-5678-9012',
-    district: 'Ahilyanagar (Ahmednagar)',
-    city: 'Kopargaon',
-    ward: 4,
-    address: 'Shivaji Chowk, Ward 4, Kopargaon - 423601',
-    role: 'citizen',
-    registeredAt: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()
-  };
-
-  // Registered Citizens Database in Storage
-  const [registeredCitizens, setRegisteredCitizens] = useState(() => {
-    const saved = localStorage.getItem('kpg_registered_citizens');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    return [defaultCitizen];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('kpg_registered_citizens', JSON.stringify(registeredCitizens));
-  }, [registeredCitizens]);
-
   // JWT Token State for Citizen and Municipal Officer / Admin Sessions
   const [citizenToken, setCitizenToken] = useState(() => {
     const token = localStorage.getItem('kpg_citizen_token');
-    if (isTokenValid(token)) return token;
-    
-    const savedUserStr = localStorage.getItem('kpg_citizen_user');
-    let userObj = defaultCitizen;
-    if (savedUserStr) {
-      try {
-        const parsed = JSON.parse(savedUserStr);
-        if (parsed && (parsed.name || parsed.fullName)) userObj = parsed;
-      } catch (e) {}
-    }
-
-    const seededToken = generateClientJwtToken(
-      { id: userObj.id, email: userObj.email, role: 'citizen', name: userObj.name || userObj.fullName },
-      24
-    );
-    localStorage.setItem('kpg_citizen_token', seededToken);
-    localStorage.setItem('kpg_citizen_user', JSON.stringify(userObj));
-    return seededToken;
+    return isTokenValid(token) ? token : null;
   });
 
   // Active Citizen User State
@@ -93,28 +44,12 @@ export const AppProvider = ({ children }) => {
         }
       } catch (e) {}
     }
-    return defaultCitizen;
+    return null;
   });
-
-  const defaultOfficer = {
-    officerId: 'kpg',
-    name: 'Sanitation Officer Deshmukh',
-    role: 'officer',
-    department: 'Sanitation & Solid Waste Management',
-    badge: 'KMC-SAN-001'
-  };
 
   const [officerToken, setOfficerToken] = useState(() => {
     const token = localStorage.getItem('kpg_officer_token');
-    if (isTokenValid(token)) return token;
-
-    const seededToken = generateClientJwtToken(
-      { officerId: defaultOfficer.officerId, role: defaultOfficer.role, name: defaultOfficer.name, department: defaultOfficer.department },
-      24
-    );
-    localStorage.setItem('kpg_officer_token', seededToken);
-    localStorage.setItem('kpg_officer_user', JSON.stringify(defaultOfficer));
-    return seededToken;
+    return isTokenValid(token) ? token : null;
   });
 
   // Officer / Admin User State
@@ -124,11 +59,11 @@ export const AppProvider = ({ children }) => {
       try {
         const parsed = JSON.parse(saved);
         if (parsed && (parsed.name || parsed.officerId)) {
-          return { role: 'officer', ...parsed };
+          return { role: parsed.role || 'officer', ...parsed };
         }
       } catch (e) {}
     }
-    return defaultOfficer;
+    return null;
   });
 
   // Session Expired State
@@ -139,25 +74,19 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     const validateSessions = () => {
       const cToken = localStorage.getItem('kpg_citizen_token');
-      if (!isTokenValid(cToken)) {
-        const freshToken = generateClientJwtToken(
-          { id: defaultCitizen.id, email: defaultCitizen.email, role: 'citizen', name: defaultCitizen.name },
-          24
-        );
-        localStorage.setItem('kpg_citizen_token', freshToken);
-        setCitizenToken(freshToken);
+      if (cToken && !isTokenValid(cToken)) {
+        setCitizenToken(null);
+        setCitizenUser(null);
+        localStorage.removeItem('kpg_citizen_token');
+        localStorage.removeItem('kpg_citizen_user');
       }
 
       const oToken = localStorage.getItem('kpg_officer_token');
-      if (!isTokenValid(oToken)) {
-        const freshToken = generateClientJwtToken(
-          { officerId: defaultOfficer.officerId, role: defaultOfficer.role, name: defaultOfficer.name, department: defaultOfficer.department },
-          24
-        );
-        localStorage.setItem('kpg_officer_token', freshToken);
-        setOfficerToken(freshToken);
-        setOfficerUser(prev => prev || defaultOfficer);
-        localStorage.setItem('kpg_officer_user', JSON.stringify(defaultOfficer));
+      if (oToken && !isTokenValid(oToken)) {
+        setOfficerToken(null);
+        setOfficerUser(null);
+        localStorage.removeItem('kpg_officer_token');
+        localStorage.removeItem('kpg_officer_user');
       }
     };
 
@@ -187,125 +116,13 @@ export const AppProvider = ({ children }) => {
   const [aiInsights, setAiInsights] = useState([]);
   const [cityOverview, setCityOverview] = useState(null);
 
-  // Complaints State
-  const [complaints, setComplaints] = useState(() => {
-    const saved = localStorage.getItem('kpg_complaints');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    const now = Date.now();
-    return [
-      {
-        id: 'CMP1023',
-        citizenId: 'CIT-8821',
-        submittedBy: 'Swanandi Kathale',
-        citizenEmail: 'citizen@kopargaon.gov.in',
-        category: 'Street Light',
-        title: 'Streetlight Malfunction near Shivaji Chowk',
-        description: 'LED streetlamp fixture flickering and failing at night near Shivaji Chowk.',
-        address: 'Shivaji Chowk, Ward 4',
-        ward: 4,
-        latitude: 19.8855,
-        longitude: 74.4821,
-        imageUrl: 'https://images.unsplash.com/photo-1517420704952-d9f39e95b43e?auto=format&fit=crop&w=800&q=80',
-        status: 'Resolved',
-        priority: 'Normal',
-        department: 'Electrical & Street Lighting',
-        assignedOfficer: 'Er. Ramesh Shinde',
-        createdAt: new Date(now - 72 * 3600 * 1000).toISOString(),
-        submittedAt: new Date(now - 72 * 3600 * 1000).toISOString(),
-        dueDate: new Date(now - 24 * 3600 * 1000).toISOString(),
-        workStartedAt: new Date(now - 48 * 3600 * 1000).toISOString(),
-        completedAt: new Date(now - 24 * 3600 * 1000).toISOString(),
-        isEscalated: false,
-        remarks: ['Replacement LED bulb installed and tested by electrical squad.'],
-        supportingDocuments: [],
-        timeline: []
-      },
-      {
-        id: 'CMP1032',
-        citizenId: 'CIT-8821',
-        submittedBy: 'Swanandi Kathale',
-        citizenEmail: 'citizen@kopargaon.gov.in',
-        category: 'Water Leakage',
-        title: 'Water Supply Pipeline Leakage',
-        description: 'Underground main line valve seepage near Ward 4 market street causing low water pressure.',
-        address: 'Market Yard, Ward 4',
-        ward: 4,
-        latitude: 19.8890,
-        longitude: 74.4810,
-        imageUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb186a5b7?auto=format&fit=crop&w=800&q=80',
-        status: 'In Progress',
-        priority: 'High',
-        department: 'Water Supply & Sewerage Department',
-        assignedOfficer: 'Er. Suresh Deshmukh',
-        createdAt: new Date(now - 24 * 3600 * 1000).toISOString(),
-        submittedAt: new Date(now - 24 * 3600 * 1000).toISOString(),
-        dueDate: new Date(now + 48 * 3600 * 1000).toISOString(),
-        workStartedAt: new Date(now - 6 * 3600 * 1000).toISOString(),
-        completedAt: null,
-        isEscalated: false,
-        remarks: ['Excavation and valve replacement squad deployed.'],
-        supportingDocuments: [],
-        timeline: []
-      },
-      {
-        id: 'KPG-2026-0988',
-        citizenId: 'CIT-4410',
-        submittedBy: 'Anil Kulkarni',
-        citizenEmail: 'anil.k@kopargaon.gov.in',
-        category: 'Pothole',
-        title: 'Hazardous Road Cave-in on Station Road',
-        description: 'Deep road cave-in causing traffic bottleneck and vehicle damage.',
-        address: 'Station Road Flyover, Ward 6',
-        ward: 6,
-        latitude: 19.8790,
-        longitude: 74.4910,
-        imageUrl: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=800&q=80',
-        status: 'Escalated',
-        priority: 'High',
-        department: 'Public Works (PWD)',
-        assignedOfficer: 'Rajesh Shinde',
-        createdAt: new Date(now - 96 * 3600 * 1000).toISOString(),
-        submittedAt: new Date(now - 96 * 3600 * 1000).toISOString(),
-        dueDate: new Date(now - 24 * 3600 * 1000).toISOString(),
-        workStartedAt: null,
-        completedAt: null,
-        isEscalated: true,
-        remarks: ['SLA breached. Escalated to Higher Authority.'],
-        supportingDocuments: [],
-        timeline: []
-      }
-    ];
-  });
-
-  // Enterprise Notifications State
-  const [notifications, setNotifications] = useState(() => {
-    const saved = localStorage.getItem('kpg_notifications');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
-      } catch (e) {}
-    }
-    const now = Date.now();
-    return [
-      {
-        id: 'NOTIF-101',
-        recipientRole: 'citizen',
-        title: 'Complaint CMP1023 Status Updated',
-        description: 'Your complaint CMP1023 (Street Light) has been marked Resolved by Electrical Department.',
-        complaintId: 'CMP1023',
-        priority: 'Normal',
-        department: 'Electrical & Street Lighting',
-        timestamp: new Date(now - 24 * 3600 * 1000).toISOString(),
-        read: false
-      }
-    ];
-  });
+  // Clean Transactional States (No local storage fallback/mock seeding)
+  const [complaints, setComplaints] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [permissionApplications, setPermissionApplications] = useState([]);
+  const [taxRecords, setTaxRecords] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
 
   // Weather Telemetry State
   const [weatherData, setWeatherData] = useState(null);
@@ -313,114 +130,12 @@ export const AppProvider = ({ children }) => {
   const [weatherError, setWeatherError] = useState(null);
   const [weatherRefreshStatus, setWeatherRefreshStatus] = useState('');
 
-  // Public Announcements State
-  const [announcements, setAnnouncements] = useState(() => {
-    const saved = localStorage.getItem('kpg_announcements');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
-      } catch (e) {}
-    }
-    const now = Date.now();
-    return [
-      {
-        id: 'ANN-2026-001',
-        title: 'Water supply interruption tomorrow',
-        description: 'Water supply pipeline maintenance scheduled tomorrow from 08:00 AM to 04:00 PM. Ward 2 & Ward 4 residents are requested to store adequate water.',
-        category: 'Water Supply Shutdown',
-        priority: 'High',
-        targetWards: [2, 4],
-        publishedBy: 'Chief Water Engineer',
-        publishDate: new Date(now - 12 * 3600 * 1000).toISOString(),
-        expiryDate: new Date(now + 48 * 3600 * 1000).toISOString(),
-        status: 'Published'
-      }
-    ];
-  });
-
-  // Permission Applications State
-  const [permissionApplications, setPermissionApplications] = useState(() => {
-    const saved = localStorage.getItem('kpg_permission_apps');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    const now = Date.now();
-    return [
-      {
-        id: 'KPG-PERM-2026-0041',
-        applicantName: 'Swanandi Kathale',
-        citizenEmail: 'citizen@kopargaon.gov.in',
-        permissionType: 'New House Construction',
-        category: 'Residential',
-        plotAreaSqFt: 1800,
-        ward: 4,
-        propertyAddress: 'Plot 12, Sai Nagar, Ward 4, Kopargaon',
-        architectName: 'Ar. Vilas Deshmukh',
-        status: 'Approved',
-        submittedAt: new Date(now - 5 * 24 * 3600 * 1000).toISOString(),
-        certificateIssued: true
-      }
-    ];
-  });
-
-  // Tax Records State
-  const [taxRecords, setTaxRecords] = useState(() => {
-    const saved = localStorage.getItem('kpg_tax_records');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {}
-    }
-    const now = Date.now();
-    return [
-      {
-        id: 'KPG-TAX-2026-0102',
-        citizenId: 'CIT-8821',
-        citizenName: 'Swanandi Kathale',
-        citizenEmail: 'citizen@kopargaon.gov.in',
-        propertyNumber: 'KPG-PROP-4218',
-        address: 'Shivaji Chowk, Ward 4, Kopargaon',
-        ward: 4,
-        taxCategory: 'Property Tax',
-        amount: 4200,
-        dueDate: new Date(now + 20 * 24 * 3600 * 1000).toISOString().split('T')[0],
-        status: 'Paid',
-        paidAt: new Date(now - 2 * 24 * 3600 * 1000).toISOString(),
-        receiptNumber: 'REC-2026-9812',
-        paymentMethod: 'UPI / NetBanking'
-      }
-    ];
-  });
-
-  // Audit Logs State
-  const [auditLogs, setAuditLogs] = useState(() => {
-    const saved = localStorage.getItem('kpg_audit_logs');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
-      } catch (e) {}
-    }
-    const now = Date.now();
-    return [
-      {
-        id: 'AUD-9001',
-        timestamp: new Date(now - 96 * 3600 * 1000).toISOString(),
-        user: { name: 'Anil Kulkarni', role: 'citizen', department: 'Resident' },
-        ipAddress: '192.168.1.45',
-        action: 'COMPLAINT_SUBMITTED',
-        entityId: 'KPG-2026-0988',
-        entityType: 'Complaint',
-        status: 'SUCCESS',
-        details: 'Pothole complaint registered.'
-      }
-    ];
-  });
+  // Toast notifications helper
+  const [toastMessage, setToastMessage] = useState(null);
+  const showToast = (message, type = 'success') => {
+    setToastMessage({ id: Date.now(), message, type });
+    setTimeout(() => setToastMessage(null), 4000);
+  };
 
   // REAL-TIME SSE & BROADCAST CHANNEL ENGINE
   useEffect(() => {
@@ -456,6 +171,18 @@ export const AppProvider = ({ children }) => {
         });
       } else if (type === 'CITY_OVERVIEW_UPDATED') {
         setCityOverview(payload);
+      } else if (type === 'TAX_CREATED') {
+        setTaxRecords(prev => {
+          if (prev.some(t => t.id === payload.id)) return prev;
+          return [payload, ...prev];
+        });
+      } else if (type === 'TAX_PAID') {
+        setTaxRecords(prev => prev.map(t => t.id === payload.id ? { ...t, ...payload } : t));
+      } else if (type === 'PERMISSION_CREATED') {
+        setPermissionApplications(prev => {
+          if (prev.some(p => p.id === payload.id)) return prev;
+          return [payload, ...prev];
+        });
       }
     };
 
@@ -498,60 +225,87 @@ export const AppProvider = ({ children }) => {
     };
   }, []);
 
-  // Load Initial Unified Single Source of Truth Data from Backend APIs
-  useEffect(() => {
-    const loadUnifiedData = async () => {
+  // Load Initial Unified Data from Backend APIs dynamically
+  const loadUnifiedData = async () => {
+    try {
       const [assetsData, sensorsData, teamsData, overviewData] = await Promise.all([
-        fetchInfrastructureAssets(),
-        fetchLiveSensors(),
-        fetchMunicipalTeams(),
-        fetchCityOverview()
+        fetchInfrastructureAssets().catch(() => []),
+        fetchLiveSensors().catch(() => []),
+        fetchMunicipalTeams().catch(() => []),
+        fetchCityOverview().catch(() => null)
       ]);
 
       if (assetsData && assetsData.length > 0) setAssets(assetsData);
       if (sensorsData && sensorsData.length > 0) setSensors(sensorsData);
       if (teamsData && teamsData.length > 0) setTeams(teamsData);
       if (overviewData) setCityOverview(overviewData);
-    };
 
-    loadUnifiedData();
-    const interval = setInterval(loadUnifiedData, 30000);
-    return () => clearInterval(interval);
-  }, []);
+      // Fetch transactional states dynamically based on JWT token
+      if (citizenToken) {
+        const headers = { 'Authorization': `Bearer ${citizenToken}` };
+        const [cRes, pRes, tRes, nRes] = await Promise.all([
+          fetch('/api/complaints', { headers }),
+          fetch('/api/permissions', { headers }),
+          fetch('/api/taxes', { headers }),
+          fetch('/api/notifications', { headers })
+        ]);
 
-  // Toast System
-  const [toastMessage, setToastMessage] = useState(null);
+        const [cData, pData, tData, nData] = await Promise.all([
+          cRes.json().catch(() => ({ success: false })),
+          pRes.json().catch(() => ({ success: false })),
+          tRes.json().catch(() => ({ success: false })),
+          nRes.json().catch(() => ({ success: false }))
+        ]);
 
-  const showToast = (message, type = 'success') => {
-    setToastMessage({ id: Date.now(), message, type });
-    setTimeout(() => setToastMessage(null), 4000);
+        if (cData.success) setComplaints(cData.data || []);
+        if (pData.success) setPermissionApplications(pData.permissions || []);
+        if (tData.success) setTaxRecords(tData.taxes || []);
+        if (nData.success) setNotifications(nData.data || []);
+      } else if (officerToken) {
+        const headers = { 'Authorization': `Bearer ${officerToken}` };
+        const isAdmin = officerUser && officerUser.role === 'admin';
+
+        const fetches = [
+          fetch('/api/complaints', { headers }),
+          fetch('/api/permissions', { headers }),
+          fetch('/api/taxes', { headers }),
+          fetch('/api/notifications', { headers })
+        ];
+
+        if (isAdmin) {
+          fetches.push(fetch('/api/audit-logs', { headers }));
+        }
+
+        const responses = await Promise.all(fetches);
+        const [cData, pData, tData, nData] = await Promise.all([
+          responses[0].json().catch(() => ({ success: false })),
+          responses[1].json().catch(() => ({ success: false })),
+          responses[2].json().catch(() => ({ success: false })),
+          responses[3].json().catch(() => ({ success: false }))
+        ]);
+
+        if (cData.success) setComplaints(cData.data || []);
+        if (pData.success) setPermissionApplications(pData.permissions || []);
+        if (tData.success) setTaxRecords(tData.taxes || []);
+        if (nData.success) setNotifications(nData.data || []);
+
+        if (isAdmin && responses[4]) {
+          const aData = await responses[4].json().catch(() => ({ success: false }));
+          if (aData.success) setAuditLogs(aData.data || []);
+        }
+      }
+    } catch (e) {
+      console.warn('[API Load Error] Connection error during initial load:', e.message);
+    }
   };
 
-  // Synchronize LocalStorage
   useEffect(() => {
-    localStorage.setItem('kpg_complaints', JSON.stringify(complaints));
-  }, [complaints]);
+    loadUnifiedData();
+    const interval = setInterval(loadUnifiedData, 20000);
+    return () => clearInterval(interval);
+  }, [citizenToken, officerToken]);
 
-  useEffect(() => {
-    localStorage.setItem('kpg_permission_apps', JSON.stringify(permissionApplications));
-  }, [permissionApplications]);
-
-  useEffect(() => {
-    localStorage.setItem('kpg_tax_records', JSON.stringify(taxRecords));
-  }, [taxRecords]);
-
-  useEffect(() => {
-    localStorage.setItem('kpg_notifications', JSON.stringify(notifications));
-  }, [notifications]);
-
-  useEffect(() => {
-    localStorage.setItem('kpg_announcements', JSON.stringify(announcements));
-  }, [announcements]);
-
-  useEffect(() => {
-    localStorage.setItem('kpg_audit_logs', JSON.stringify(auditLogs));
-  }, [auditLogs]);
-
+  // Synchronize User objects in LocalStorage (only auth credentials)
   useEffect(() => {
     if (citizenUser) {
       localStorage.setItem('kpg_citizen_user', JSON.stringify(citizenUser));
@@ -614,37 +368,12 @@ export const AppProvider = ({ children }) => {
       setCitizenUser(user);
       localStorage.setItem('kpg_citizen_token', token);
       localStorage.setItem('kpg_citizen_user', JSON.stringify(user));
-      setRegisteredCitizens(prev => [user, ...prev]);
 
       showToast(`Account Created Successfully! Welcome to Kopargaon Citizen Portal, ${user.name}.`);
       return true;
     } catch (err) {
-      const formattedAadhaar = `${cleanAadhaar.slice(0,4)}-${cleanAadhaar.slice(4,8)}-${cleanAadhaar.slice(8,12)}`;
-      const fullName = data.fullName || data.name || 'Registered Citizen';
-      const newCitizen = {
-        id: `CIT-${Math.floor(1000 + Math.random() * 9000)}`,
-        name: fullName,
-        fullName: fullName,
-        email: (data.email || '').toLowerCase(),
-        phone: data.mobile || data.phone || '+91 98000 00000',
-        aadhaar: formattedAadhaar,
-        district: 'Ahilyanagar (Ahmednagar)',
-        city: 'Kopargaon',
-        ward: parseInt(data.wardNumber) || 4,
-        address: data.address || 'Kopargaon, Maharashtra',
-        role: 'citizen',
-        registeredAt: new Date().toISOString()
-      };
-
-      const fallbackToken = generateClientJwtToken({ id: newCitizen.id, email: newCitizen.email, role: 'citizen', name: newCitizen.name }, 24);
-      setCitizenToken(fallbackToken);
-      setCitizenUser(newCitizen);
-      localStorage.setItem('kpg_citizen_token', fallbackToken);
-      localStorage.setItem('kpg_citizen_user', JSON.stringify(newCitizen));
-      setRegisteredCitizens(prev => [newCitizen, ...prev]);
-
-      showToast(`Account Created Successfully! Welcome to Kopargaon Citizen Portal, ${newCitizen.name}.`);
-      return true;
+      showToast('Registration failed. Database / API server is unreachable.', 'error');
+      return false;
     }
   };
 
@@ -678,29 +407,8 @@ export const AppProvider = ({ children }) => {
       showToast(`Welcome back, ${user.name}!`);
       return true;
     } catch (err) {
-      const cleanInput = identifier.trim().toLowerCase();
-      const cleanDigits = identifier.replace(/\D/g, '');
-
-      const found = registeredCitizens.find(c => {
-        const matchEmail = c.email && c.email.toLowerCase() === cleanInput;
-        const matchAadhaar = c.aadhaar && c.aadhaar.replace(/\D/g, '') === cleanDigits && cleanDigits.length === 12;
-        return matchEmail || matchAadhaar;
-      });
-
-      if (found) {
-        const userName = found.name || found.fullName || 'Citizen';
-        const userObj = { ...found, role: 'citizen' };
-        const token = generateClientJwtToken({ id: userObj.id, email: userObj.email, role: 'citizen', name: userObj.name }, 24);
-        setCitizenToken(token);
-        setCitizenUser(userObj);
-        localStorage.setItem('kpg_citizen_token', token);
-        localStorage.setItem('kpg_citizen_user', JSON.stringify(userObj));
-        showToast(`Welcome back, ${userName}!`);
-        return true;
-      } else {
-        showToast('Invalid Email/Aadhaar or Password.', 'error');
-        return false;
-      }
+      showToast('Login failed. Database / API server is unreachable.', 'error');
+      return false;
     }
   };
 
@@ -743,26 +451,8 @@ export const AppProvider = ({ children }) => {
       showToast(`Welcome, ${officer.name}! Clearances verified.`);
       return true;
     } catch (err) {
-      if ((officerId === 'kpg' && password === 'kpg@123') || (officerId === 'admin' && password === 'admin123')) {
-        const role = officerId === 'admin' ? 'admin' : 'staff';
-        const officer = {
-          officerId: officerId,
-          name: officerId === 'admin' ? 'Smart City Commissioner' : 'Sanitation Officer Deshmukh',
-          role: role,
-          department: role === 'admin' ? 'Municipal Headquarters' : 'Sanitation & Solid Waste Management',
-          badge: officerId === 'admin' ? 'KMC-COMMISSIONER-01' : 'KMC-SAN-001'
-        };
-        const token = generateClientJwtToken({ officerId, role, name: officer.name, department: officer.department }, 24);
-        setOfficerToken(token);
-        setOfficerUser(officer);
-        localStorage.setItem('kpg_officer_token', token);
-        localStorage.setItem('kpg_officer_user', JSON.stringify(officer));
-        showToast(`Welcome to Control Center, ${officer.name}.`);
-        return true;
-      } else {
-        showToast('Invalid Officer ID or Access Code', 'error');
-        return false;
-      }
+      showToast('Officer login failed. Database / API server is unreachable.', 'error');
+      return false;
     }
   };
 
@@ -812,11 +502,8 @@ export const AppProvider = ({ children }) => {
       fullName: newName
     };
 
-    setCitizenUser(updatedUser);
-    localStorage.setItem('kpg_citizen_user', JSON.stringify(updatedUser));
-
     try {
-      await fetch('/api/citizens/profile', {
+      const response = await fetch('/api/citizens/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -825,10 +512,21 @@ export const AppProvider = ({ children }) => {
         credentials: 'include',
         body: JSON.stringify(updatedUser)
       });
-    } catch (e) {}
 
-    showToast('Profile updated successfully!');
-    return true;
+      const resData = await response.json();
+      if (!response.ok || !resData.success) {
+        showToast(resData.error || 'Profile update failed.', 'error');
+        return false;
+      }
+
+      setCitizenUser(resData.user);
+      localStorage.setItem('kpg_citizen_user', JSON.stringify(resData.user));
+      showToast('Profile updated successfully!');
+      return true;
+    } catch (e) {
+      showToast('Profile update failed. Connection error.', 'error');
+      return false;
+    }
   };
 
   const resetCitizenPassword = async (identifier, newPassword, otp) => {
@@ -849,8 +547,8 @@ export const AppProvider = ({ children }) => {
       showToast(resData.message || 'Password updated successfully!');
       return true;
     } catch (err) {
-      showToast('Password updated successfully!');
-      return true;
+      showToast('Password reset failed. Backend service is offline.', 'error');
+      return false;
     }
   };
 
@@ -862,6 +560,10 @@ export const AppProvider = ({ children }) => {
     setCitizenUser(null);
     localStorage.removeItem('kpg_citizen_token');
     localStorage.removeItem('kpg_citizen_user');
+    setComplaints([]);
+    setPermissionApplications([]);
+    setTaxRecords([]);
+    setNotifications([]);
     showToast('Logged Out Successfully', 'info');
   };
 
@@ -873,6 +575,11 @@ export const AppProvider = ({ children }) => {
     setOfficerUser(null);
     localStorage.removeItem('kpg_officer_token');
     localStorage.removeItem('kpg_officer_user');
+    setComplaints([]);
+    setPermissionApplications([]);
+    setTaxRecords([]);
+    setNotifications([]);
+    setAuditLogs([]);
     showToast('Logged Out Successfully from Control Center', 'info');
   };
 
@@ -969,7 +676,7 @@ export const AppProvider = ({ children }) => {
     return () => clearInterval(interval);
   }, []);
 
-  const addComplaint = (newCompData) => {
+  const addComplaint = async (newCompData) => {
     const categoriesMap = {
       'Garbage': 'Sanitation & Solid Waste Management',
       'Pothole': 'Public Works (PWD)',
@@ -979,104 +686,52 @@ export const AppProvider = ({ children }) => {
     };
 
     const wardNum = parseInt(newCompData.ward) || citizenUser?.ward || 4;
-    const newId = `KPG-2026-${Math.floor(1000 + Math.random() * 9000)}`;
     const category = newCompData.category || 'Garbage';
     const dept = categoriesMap[category] || 'Public Works (PWD)';
-    const now = new Date().toISOString();
-    const dueDate = calculateSLADueDate(now);
-
-    const latOffset = (wardNum % 4) * 0.006 - 0.009;
-    const lngOffset = Math.floor(wardNum / 4) * 0.006 - 0.009;
-    const latitude = Number((19.8833 + latOffset).toFixed(4));
-    const longitude = Number((74.4833 + lngOffset).toFixed(4));
-
-    const created = {
-      id: newId,
-      citizenId: citizenUser ? citizenUser.id : 'CIT-GUEST',
-      submittedBy: citizenUser ? citizenUser.name : 'Resident Citizen',
-      citizenEmail: citizenUser ? citizenUser.email : 'resident@kopargaon.gov.in',
-      title: newCompData.title,
-      category: category,
-      description: newCompData.description,
-      address: newCompData.locationName || `Ward ${wardNum}, Kopargaon`,
-      ward: wardNum,
-      latitude: latitude,
-      longitude: longitude,
-      status: 'Reported',
-      priority: newCompData.priority || 'High',
-      department: dept,
-      assignedOfficer: null,
-      imageUrl: newCompData.imageUrl || '',
-      createdAt: now,
-      submittedAt: now,
-      dueDate: dueDate,
-      workStartedAt: null,
-      completedAt: null,
-      isEscalated: false,
-      remarks: [],
-      supportingDocuments: [],
-      timeline: [
-        {
-          id: `EVT-${Date.now()}`,
-          status: 'Reported',
-          timestamp: now,
-          actor: { name: citizenUser ? citizenUser.name : 'Citizen', role: 'Citizen', department: 'Resident' },
-          action: 'Complaint Registered',
-          note: `Submitted via Citizen Portal. Categorized under ${dept}. SLA target: 3 working days.`
-        }
-      ]
-    };
-
-    setComplaints(prev => [created, ...prev]);
 
     try {
-      fetch('/api/complaints', {
+      const response = await fetch('/api/complaints', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${citizenToken}`
         },
         credentials: 'include',
-        body: JSON.stringify(created)
-      }).catch(() => {});
-    } catch (e) {}
+        body: JSON.stringify({
+          category: category,
+          title: newCompData.title,
+          description: newCompData.description,
+          department: dept,
+          priority: newCompData.priority || 'High',
+          ward: wardNum,
+          address: newCompData.locationName || `Ward ${wardNum}, Kopargaon`,
+          imageUrl: newCompData.imageUrl || ''
+        })
+      });
 
-    showToast(`Complaint ${newId} Submitted Successfully! SLA tracking active.`);
-    return created;
+      const resData = await response.json();
+      if (!response.ok || !resData.success) {
+        showToast(resData.error || 'Failed to submit complaint.', 'error');
+        return null;
+      }
+
+      const created = resData.data;
+      setComplaints(prev => [created, ...prev]);
+      showToast(`Complaint ${created.id} Submitted Successfully! SLA tracking active.`);
+      
+      const overview = await fetchCityOverview().catch(() => null);
+      if (overview) setCityOverview(overview);
+
+      return created;
+    } catch (err) {
+      showToast('Failed to submit complaint. Database is unreachable.', 'error');
+      return null;
+    }
   };
 
-  const assignComplaint = (id, assignedOfficer, note = '') => {
-    const now = new Date().toISOString();
-
-    setComplaints(prev => prev.map(c => {
-      if (c.id === id) {
-        const actorName = officerUser?.name || 'Municipal Officer';
-        const updatedTimeline = [
-          ...(c.timeline || []),
-          {
-            id: `EVT-${Date.now()}`,
-            status: 'Assigned',
-            timestamp: now,
-            actor: { name: actorName, role: officerUser?.role || 'Officer', department: c.department },
-            action: `Assigned to ${assignedOfficer}`,
-            note: note || `Maintenance unit assigned: ${assignedOfficer}`
-          }
-        ];
-
-        return {
-          ...c,
-          status: 'Assigned',
-          assignedOfficer: assignedOfficer,
-          assignedOfficerId: assignedOfficer,
-          updatedAt: now,
-          timeline: updatedTimeline
-        };
-      }
-      return c;
-    }));
-
+  const assignComplaint = async (id, assignedOfficer, note = '') => {
     try {
-      fetch(`/api/complaints/${id}/assign`, {
+      const response = await fetch(`/api/complaints/${id}/assign`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1084,44 +739,31 @@ export const AppProvider = ({ children }) => {
         },
         credentials: 'include',
         body: JSON.stringify({ assignedOfficer, note })
-      }).catch(() => {});
-    } catch (e) {}
+      });
 
-    showToast(`Ticket #${id} assigned to ${assignedOfficer}`, 'info');
+      const resData = await response.json();
+      if (!response.ok || !resData.success) {
+        showToast(resData.error || 'Failed to assign complaint.', 'error');
+        return false;
+      }
+
+      const updated = resData.data;
+      setComplaints(prev => prev.map(c => c.id === id ? updated : c));
+      showToast(`Ticket #${id} assigned to ${assignedOfficer}`, 'info');
+      
+      const overview = await fetchCityOverview().catch(() => null);
+      if (overview) setCityOverview(overview);
+
+      return true;
+    } catch (err) {
+      showToast('Failed to assign complaint. Connection error.', 'error');
+      return false;
+    }
   };
 
-  const updateComplaintStatus = (id, newStatus, note = '', officerName = null) => {
-    const now = new Date().toISOString();
-
-    setComplaints(prev => prev.map(c => {
-      if (c.id === id) {
-        const actorName = officerName || officerUser?.name || 'Municipal Officer';
-        const updatedTimeline = [
-          ...(c.timeline || []),
-          {
-            id: `EVT-${Date.now()}`,
-            status: newStatus,
-            timestamp: now,
-            actor: { name: actorName, role: officerUser?.role || 'Officer', department: c.department },
-            action: `Status Updated to ${newStatus}`,
-            note: note || `Complaint status modified to ${newStatus}.`
-          }
-        ];
-
-        return {
-          ...c,
-          status: newStatus,
-          assignedOfficer: officerName || c.assignedOfficer,
-          workStartedAt: newStatus === 'In Progress' ? (c.workStartedAt || now) : c.workStartedAt,
-          updatedAt: now,
-          timeline: updatedTimeline
-        };
-      }
-      return c;
-    }));
-
+  const updateComplaintStatus = async (id, newStatus, note = '', officerName = null) => {
     try {
-      fetch(`/api/complaints/${id}/status`, {
+      const response = await fetch(`/api/complaints/${id}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1129,100 +771,118 @@ export const AppProvider = ({ children }) => {
         },
         credentials: 'include',
         body: JSON.stringify({ status: newStatus, note, assignedOfficer: officerName })
-      }).catch(() => {});
-    } catch (e) {}
+      });
 
-    showToast(`Ticket #${id} updated to ${newStatus}`, 'info');
-  };
-
-  const issueOfficerWarning = (complaintId, officerName, note) => {
-    setComplaints(prev => prev.map(c => {
-      if (c.id === complaintId) {
-        return {
-          ...c,
-          remarks: [...(c.remarks || []), `FORMAL WARNING ISSUED: ${note}`]
-        };
+      const resData = await response.json();
+      if (!response.ok || !resData.success) {
+        showToast(resData.error || 'Failed to update status.', 'error');
+        return false;
       }
-      return c;
-    }));
 
-    const newNotif = {
-      id: `NOTIF-WARN-${Date.now()}`,
-      recipientRole: 'officer',
-      title: `Formal Executive Warning: Ticket #${complaintId}`,
-      description: `Higher Authority issued a warning to ${officerName}: ${note}`,
-      complaintId,
-      priority: 'High',
-      department: 'Municipal Headquarters',
-      timestamp: new Date().toISOString(),
-      read: false
-    };
+      const updated = resData.data;
+      setComplaints(prev => prev.map(c => c.id === id ? updated : c));
+      showToast(`Ticket #${id} updated to ${newStatus}`, 'info');
 
-    setNotifications(prev => [newNotif, ...prev]);
-    showToast(`Formal Warning issued for Ticket #${complaintId}`, 'warning');
+      const overview = await fetchCityOverview().catch(() => null);
+      if (overview) setCityOverview(overview);
+
+      return true;
+    } catch (err) {
+      showToast('Failed to update status. Connection error.', 'error');
+      return false;
+    }
   };
 
-  const requestExplanation = (complaintId, note) => {
-    setComplaints(prev => prev.map(c => {
-      if (c.id === complaintId) {
-        return {
-          ...c,
-          remarks: [...(c.remarks || []), `EXPLANATION DEMANDED: ${note}`]
-        };
-      }
-      return c;
-    }));
-
-    const newNotif = {
-      id: `NOTIF-EXP-${Date.now()}`,
-      recipientRole: 'officer',
-      title: `Explanation Required: Ticket #${complaintId}`,
-      description: `Commissioner requires formal explanation for SLA breach: ${note}`,
-      complaintId,
-      priority: 'High',
-      department: 'Municipal Headquarters',
-      timestamp: new Date().toISOString(),
-      read: false
-    };
-
-    setNotifications(prev => [newNotif, ...prev]);
-    showToast(`Formal Explanation requested for Ticket #${complaintId}`, 'info');
-  };
-
-  const addPermissionApplication = (data) => {
-    const newId = `KPG-PERM-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-    const now = new Date().toISOString();
-    const newApp = {
-      id: newId,
-      applicantName: data.applicantName || citizenUser?.name || 'Swanandi Kathale',
-      citizenEmail: citizenUser?.email || 'citizen@kopargaon.gov.in',
-      permissionType: data.permissionType || 'New House Construction',
-      category: data.category || 'Residential',
-      plotAreaSqFt: Number(data.plotAreaSqFt) || 1200,
-      ward: Number(data.ward) || 4,
-      propertyAddress: data.propertyAddress || `Ward ${data.ward || 4}, Kopargaon`,
-      architectName: data.architectName || 'Licensed Architect',
-      status: 'Under Verification',
-      submittedAt: now,
-      certificateIssued: false
-    };
-
-    setPermissionApplications(prev => [newApp, ...prev]);
-
+  const issueOfficerWarning = async (complaintId, officerName, note) => {
     try {
-      fetch('/api/permissions', {
+      const response = await fetch(`/api/complaints/${complaintId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${officerToken}`
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          status: 'Escalated',
+          note: `FORMAL WARNING ISSUED to ${officerName}: ${note}`
+        })
+      });
+      const resData = await response.json();
+      if (!response.ok || !resData.success) {
+        showToast(resData.error || 'Failed to issue warning.', 'error');
+        return false;
+      }
+      setComplaints(prev => prev.map(c => c.id === complaintId ? resData.data : c));
+      showToast(`Formal Warning issued for Ticket #${complaintId}`, 'warning');
+      return true;
+    } catch (e) {
+      showToast('Connection error issuing warning.', 'error');
+      return false;
+    }
+  };
+
+  const requestExplanation = async (complaintId, note) => {
+    try {
+      const response = await fetch(`/api/complaints/${complaintId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${officerToken}`
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          status: 'Escalated',
+          note: `EXPLANATION DEMANDED: ${note}`
+        })
+      });
+      const resData = await response.json();
+      if (!response.ok || !resData.success) {
+        showToast(resData.error || 'Failed to request explanation.', 'error');
+        return false;
+      }
+      setComplaints(prev => prev.map(c => c.id === complaintId ? resData.data : c));
+      showToast(`Formal Explanation requested for Ticket #${complaintId}`, 'info');
+      return true;
+    } catch (e) {
+      showToast('Connection error demanding explanation.', 'error');
+      return false;
+    }
+  };
+
+  const addPermissionApplication = async (data) => {
+    try {
+      const response = await fetch('/api/permissions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${citizenToken}`
         },
         credentials: 'include',
-        body: JSON.stringify(newApp)
-      }).catch(() => {});
-    } catch (e) {}
+        body: JSON.stringify({
+          permissionType: data.permissionType,
+          category: data.category,
+          plotAreaSqFt: Number(data.plotAreaSqFt),
+          ward: Number(data.ward),
+          propertyAddress: data.propertyAddress,
+          architectName: data.architectName,
+          propertyNumber: data.propertyNumber || `KPG-PROP-${Math.floor(1000 + Math.random() * 9000)}`
+        })
+      });
 
-    showToast(`Permission Application ${newId} Submitted!`);
-    return newApp;
+      const resData = await response.json();
+      if (!response.ok || !resData.success) {
+        showToast(resData.error || 'Failed to submit application.', 'error');
+        return null;
+      }
+
+      const created = resData.permission;
+      setPermissionApplications(prev => [created, ...prev]);
+      showToast(`Permission Application ${created.id} Submitted!`);
+      return created;
+    } catch (err) {
+      showToast('Failed to submit building permission application.', 'error');
+      return null;
+    }
   };
 
   const updatePermissionStatus = (id, newStatus, note = '') => {
@@ -1239,47 +899,47 @@ export const AppProvider = ({ children }) => {
     showToast(`Permission ${id} updated to ${newStatus}`);
   };
 
-  const createTaxRecord = (data) => {
-    const newId = `KPG-TAX-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-    const newRecord = {
-      id: newId,
-      citizenId: citizenUser?.id || 'CIT-8821',
-      citizenName: data.citizenName || 'Resident',
-      citizenEmail: data.citizenEmail || 'citizen@kopargaon.gov.in',
-      propertyNumber: data.propertyNumber || 'KPG-PROP-0000',
-      address: data.address || 'Kopargaon',
-      ward: Number(data.ward) || 4,
-      taxCategory: data.taxCategory || 'Property Tax',
-      amount: Number(data.amount) || 2500,
-      dueDate: data.dueDate || new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().split('T')[0],
-      status: 'Pending',
-      paidAt: null,
-      receiptNumber: null,
-      paymentMethod: null
-    };
-    setTaxRecords(prev => [newRecord, ...prev]);
-    showToast(`Tax Bill ${newId} Created Successfully!`);
-    return newRecord;
+  const createTaxRecord = async (data) => {
+    try {
+      const response = await fetch('/api/taxes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${officerToken}`
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          citizenId: data.citizenId || 'CIT-8821',
+          citizenName: data.citizenName || 'Resident',
+          citizenEmail: data.citizenEmail || 'citizen@kopargaon.gov.in',
+          propertyNumber: data.propertyNumber || 'KPG-PROP-0000',
+          address: data.address || 'Kopargaon',
+          ward: Number(data.ward) || 4,
+          taxCategory: data.taxCategory || 'Property Tax',
+          amount: Number(data.amount) || 2500,
+          dueDate: data.dueDate || new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().split('T')[0]
+        })
+      });
+
+      const resData = await response.json();
+      if (!response.ok || !resData.success) {
+        showToast(resData.error || 'Failed to generate tax bill.', 'error');
+        return null;
+      }
+
+      const created = resData.tax;
+      setTaxRecords(prev => [created, ...prev]);
+      showToast(`Tax Bill ${created.id} Created Successfully!`);
+      return created;
+    } catch (err) {
+      showToast('Failed to generate tax bill. Connection error.', 'error');
+      return null;
+    }
   };
 
-  const processTaxPayment = (taxId, paymentMethod = 'UPI / NetBanking') => {
-    const now = new Date().toISOString();
-    const receiptNum = `REC-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-    setTaxRecords(prev => prev.map(t => {
-      if (t.id === taxId) {
-        return {
-          ...t,
-          status: 'Paid',
-          paidAt: now,
-          receiptNumber: receiptNum,
-          paymentMethod
-        };
-      }
-      return t;
-    }));
-
+  const processTaxPayment = async (taxId, paymentMethod = 'UPI / NetBanking') => {
     try {
-      fetch(`/api/taxes/${taxId}/pay`, {
+      const response = await fetch(`/api/taxes/${taxId}/pay`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1287,10 +947,22 @@ export const AppProvider = ({ children }) => {
         },
         credentials: 'include',
         body: JSON.stringify({ paymentMethod })
-      }).catch(() => {});
-    } catch (e) {}
+      });
 
-    showToast(`Tax Payment Received! Receipt #${receiptNum} generated.`);
+      const resData = await response.json();
+      if (!response.ok || !resData.success) {
+        showToast(resData.error || 'Failed to process tax payment.', 'error');
+        return false;
+      }
+
+      const updated = resData.tax;
+      setTaxRecords(prev => prev.map(t => t.id === taxId ? updated : t));
+      showToast(`Tax Payment Received! Receipt #${updated.receiptNumber} generated.`);
+      return true;
+    } catch (err) {
+      showToast('Failed to complete tax payment. Connection error.', 'error');
+      return false;
+    }
   };
 
   const isCitizenAuthenticated = Boolean(citizenToken && citizenUser);
@@ -1350,7 +1022,7 @@ export const AppProvider = ({ children }) => {
     auditLogs,
     toastMessage,
     showToast,
-    registeredCitizens
+    registeredCitizens: []
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

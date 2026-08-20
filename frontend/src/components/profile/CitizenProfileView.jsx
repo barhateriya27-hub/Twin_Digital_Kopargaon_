@@ -45,13 +45,13 @@ export const CitizenProfileView = ({ onSelectTab }) => {
   const [activeProfileTab, setActiveProfileTab] = useState('overview'); // 'overview' | 'activity' | 'municipal' | 'documents' | 'edit' | 'security'
 
   // Profile Edit State
-  const [fullName, setFullName] = useState(citizenUser?.fullName || citizenUser?.name || 'Swanandi Kathale');
-  const [phone, setPhone] = useState(citizenUser?.phone || '+91 98765 43210');
-  const [email, setEmail] = useState(citizenUser?.email || 'citizen@kopargaon.gov.in');
-  const [ward, setWard] = useState(citizenUser?.ward || 4);
-  const [address, setAddress] = useState(citizenUser?.address || 'Shivaji Chowk, Ward 4, Kopargaon - 423601');
-  const [dob, setDob] = useState(citizenUser?.dob || '1992-06-15');
-  const [gender, setGender] = useState(citizenUser?.gender || 'Female');
+  const [fullName, setFullName] = useState(citizenUser?.fullName || citizenUser?.name || 'Citizen');
+  const [phone, setPhone] = useState(citizenUser?.phone || '');
+  const [email, setEmail] = useState(citizenUser?.email || '');
+  const [ward, setWard] = useState(citizenUser?.ward || 1);
+  const [address, setAddress] = useState(citizenUser?.address || '');
+  const [dob, setDob] = useState(citizenUser?.dob || '');
+  const [gender, setGender] = useState(citizenUser?.gender || 'Prefer not to say');
   const [avatarUrl, setAvatarUrl] = useState(citizenUser?.photoUrl || '');
   const [isSaving, setIsSaving] = useState(false);
 

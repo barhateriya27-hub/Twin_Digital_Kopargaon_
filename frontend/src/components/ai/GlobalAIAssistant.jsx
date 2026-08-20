@@ -74,6 +74,7 @@ export const GlobalAIAssistant = () => {
       id: 1,
       sender: 'ai',
       text: greetings[currentLang] || greetings.en,
+      source: 'local-knowledge-base',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       actions: [
         { label: "📍 Which areas have most unresolved complaints?", query: "Which areas have the most unresolved complaints?" },
@@ -236,38 +237,21 @@ export const GlobalAIAssistant = () => {
       setActiveContext(INTENTS.REGISTER_COMPLAINT);
       return {
         text: `📷 **Photo Attached**: "${attachedImg.name}"\n\n🤖 **AI Telemetry Inspection**:\n• Suggested Category: 🚨 Sanitation / Garbage\n• Ward Location: Ward 4 (Kopargaon Center)\n• SLA Guaranteed: 72 Hours\n\nWould you like to open the Grievance Registration form with this photo attached?`,
+        source: 'local-telemetry-fallback',
         actions: [{ label: "🚨 Register Grievance", tab: "register_complaint" }]
       };
     }
 
-    // 3. Call Grounded Backend REST API Endpoint (/api/ai/query)
-    try {
-      const response = await fetch('/api/ai/query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ query: queryText })
-      });
-      const data = await response.json();
-      if (response.ok && data.success && data.responseText) {
-        return {
-          text: data.responseText,
-          actions: [
-            { label: "📍 Unresolved Areas", query: "Which areas have the most unresolved complaints?" },
-            { label: "🚨 Urgent Incidents", query: "Which incidents need urgent attention?" },
-            { label: "📊 Common Problems", query: "What are the most common problems?" }
-          ]
-        };
-      }
-    } catch (e) {
-      // Fall through to local engine
+    // 3. Real City Data Context Response Fallback
+    const cityContextResp = aiEngine.buildCityContextResponse(q, cityIntel.aiContext);
+    if (cityContextResp) {
+      return {
+        ...cityContextResp,
+        source: 'local-grounded-heuristics'
+      };
     }
 
-    // 4. Real City Data Context Response Fallback
-    const cityContextResp = aiEngine.buildCityContextResponse(q, cityIntel.aiContext);
-    if (cityContextResp) return cityContextResp;
-
-    // 5. Live Weather Query
+    // 4. Live Weather Query
     if (q.includes('weather') || q.includes('rain') || q.includes('temperature') || q.includes('temp') || q.includes('wind') || q.includes('forecast') || q.includes('humidity') || q.includes('pressure') || q.includes('uv index')) {
       const activeWeather = weatherData || await fetchKopargaonWeather();
       if (activeWeather && activeWeather.success) {
@@ -321,22 +305,29 @@ export const GlobalAIAssistant = () => {
 
         return {
           text: answer,
+          source: 'weather-telemetry-engine',
           actions: [{ label: "🌤 Open Weather Center", tab: "weather" }]
         };
       }
     }
 
-    // 6. Standard Knowledge Base Intent classifier
+    // 5. Standard Knowledge Base Intent classifier
     const { intent, isFollowUp } = detectUserIntent(queryText, activeContext);
     if (intent !== INTENTS.UNKNOWN) {
       setActiveContext(intent);
       const response = formatIntentResponse(intent, currentLang, isFollowUp);
-      if (response) return response;
+      if (response) {
+        return {
+          ...response,
+          source: 'local-knowledge-base'
+        };
+      }
     }
 
     // Fallback response with live system stats
     return {
       text: `🤖 **Kopargaon Digital Twin AI Engine**\n\nLive Database Context:\n• City Health Score: **${cityIntel.cityHealth.overall}/100** (${cityIntel.cityHealth.grade})\n• Open Complaints: **${cityIntel.metrics.open}**\n• Active Critical Alerts: **${cityIntel.metrics.slaBreached}**\n\nHow can I help you today?`,
+      source: 'local-grounded-engine',
       actions: [
         { label: "🏛 Building Permits", tab: "permissions" },
         { label: "💳 Property Tax", tab: "property_tax" },
@@ -363,11 +354,12 @@ export const GlobalAIAssistant = () => {
     setAttachedFile(null);
     setIsTyping(true);
 
-    processAIQueryAsync(textToSend, currentAttached).then(({ text, actions }) => {
+    processAIQueryAsync(textToSend, currentAttached).then(({ text, source, actions }) => {
       const aiMsg = {
         id: Date.now() + 1,
         sender: 'ai',
         text,
+        source: source || 'grounded-engine',
         actions: actions || [],
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
@@ -384,6 +376,57 @@ export const GlobalAIAssistant = () => {
     navigator.clipboard.writeText(text);
     setCopiedIndex(index);
     setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  const renderMessageText = (text) => {
+    if (!text) return null;
+    
+    // Split by lines
+    const lines = text.split('\n');
+    
+    return lines.map((line, lineIdx) => {
+      const isBullet = line.trim().startsWith('•') || line.trim().startsWith('*') || line.trim().startsWith('-');
+      let cleanLine = line;
+      if (isBullet) {
+        cleanLine = line.trim().replace(/^[•*\-]\s*/, '');
+      }
+      
+      const parts = [];
+      let currentIndex = 0;
+      const boldRegex = /\*\*(.*?)\*\*/g;
+      let match;
+      
+      while ((match = boldRegex.exec(cleanLine)) !== null) {
+        const textBefore = cleanLine.substring(currentIndex, match.index);
+        const boldText = match[1];
+        
+        if (textBefore) {
+          parts.push(textBefore);
+        }
+        parts.push(<strong key={match.index} className="font-extrabold text-[#0B2545] dark:text-[#FF9933]">{boldText}</strong>);
+        currentIndex = boldRegex.lastIndex;
+      }
+      
+      const textRemaining = cleanLine.substring(currentIndex);
+      if (textRemaining) {
+        parts.push(textRemaining);
+      }
+      
+      if (isBullet) {
+        return (
+          <div key={lineIdx} className="flex items-start gap-2 ml-2 my-1">
+            <span className="text-[#FF9933] font-black shrink-0">•</span>
+            <span className="leading-relaxed text-slate-700 dark:text-slate-200">{parts}</span>
+          </div>
+        );
+      }
+      
+      return (
+        <p key={lineIdx} className="leading-relaxed min-h-[1em] text-slate-700 dark:text-slate-200">
+          {parts}
+        </p>
+      );
+    });
   };
 
   const currentScenario = aiEngine.WHATIF_SCENARIOS.find(s => s.id === selectedScenarioId) || aiEngine.WHATIF_SCENARIOS[0];
@@ -533,9 +576,31 @@ export const GlobalAIAssistant = () => {
                                 : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-bl-none'
                             }`}
                           >
-                            <div className="whitespace-pre-wrap leading-relaxed font-sans">
-                              {msg.text}
-                            </div>
+                            {msg.sender === 'ai' && msg.source && (
+                              <div className="flex items-center gap-1.5 text-[9px] font-mono tracking-wider text-slate-400 dark:text-slate-500 pb-1.5 border-b border-slate-100 dark:border-slate-700/50 mb-2">
+                                {msg.source.includes('gemini') ? (
+                                  <>
+                                    <Sparkles className="w-3 h-3 text-amber-500 animate-pulse animate-duration-1000" />
+                                    <span className="font-bold text-[#FF9933]">Gemini Cloud AI ({msg.source.replace('gemini (', '').replace(')', '')})</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Bot className="w-3 h-3 text-sky-500 animate-duration-1000" />
+                                    <span className="font-bold text-sky-500">Live Grounded DB Engine</span>
+                                  </>
+                                )}
+                              </div>
+                            )}
+
+                            {msg.sender === 'user' ? (
+                              <div className="whitespace-pre-wrap leading-relaxed font-sans text-white">
+                                {msg.text}
+                              </div>
+                            ) : (
+                              <div className="whitespace-pre-wrap leading-relaxed font-sans text-slate-800 dark:text-slate-100">
+                                {renderMessageText(msg.text)}
+                              </div>
+                            )}
 
                             {/* Action Buttons if present */}
                             {msg.actions && msg.actions.length > 0 && (

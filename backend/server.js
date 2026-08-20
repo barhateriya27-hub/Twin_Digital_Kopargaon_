@@ -9,6 +9,8 @@ import helmet from 'helmet';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 import { dataStore, ROLES, COMPLAINT_STATUS } from './dataStore.js';
+import { connectToDatabase } from './db.js';
+import { initializeDatabase } from './dataStore.js';
 
 dotenv.config();
 
@@ -191,12 +193,12 @@ const authenticateToken = (req, res, next) => {
 
 // RBAC Middleware
 const requireRoles = (...allowedRoles) => {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ success: false, error: 'Authentication required.' });
     }
     if (!allowedRoles.includes(req.user.role)) {
-      dataStore.auditLogs.add(req, 'ROLE_ACCESS_DENIED', 'N/A', 'RBAC', 'DENIED', `User role '${req.user.role}' attempted restricted resource requiring [${allowedRoles.join(', ')}].`);
+      await dataStore.auditLogs.add(req, 'ROLE_ACCESS_DENIED', 'N/A', 'RBAC', 'DENIED', `User role '${req.user.role}' attempted restricted resource requiring [${allowedRoles.join(', ')}].`);
       return res.status(403).json({
         success: false,
         error: 'Access Denied: You do not have sufficient permissions to perform this operation.',
@@ -222,28 +224,32 @@ app.get('/api/health', (req, res) => {
 });
 
 // Single Source of Truth Overview Metrics
-app.get('/api/data/overview', (req, res) => {
-  res.json({ success: true, data: dataStore.getCityOverview() });
+app.get('/api/data/overview', async (req, res) => {
+  res.json({ success: true, data: await dataStore.getCityOverview() });
 });
 
 // Infrastructure & Assets Endpoint
-app.get('/api/infrastructure/assets', (req, res) => {
-  res.json({ success: true, count: dataStore.assets.getAll().length, data: dataStore.assets.getAll() });
+app.get('/api/infrastructure/assets', async (req, res) => {
+  const list = await dataStore.assets.getAll();
+  res.json({ success: true, count: list.length, data: list });
 });
 
 // Sensors & Telemetry Endpoint
-app.get('/api/sensors/live', (req, res) => {
-  res.json({ success: true, count: dataStore.sensors.getAll().length, data: dataStore.sensors.getAll() });
+app.get('/api/sensors/live', async (req, res) => {
+  const list = await dataStore.sensors.getAll();
+  res.json({ success: true, count: list.length, data: list });
 });
 
 // Municipal Response Teams Endpoint
-app.get('/api/teams', (req, res) => {
-  res.json({ success: true, count: dataStore.teams.getAll().length, data: dataStore.teams.getAll() });
+app.get('/api/teams', async (req, res) => {
+  const list = await dataStore.teams.getAll();
+  res.json({ success: true, count: list.length, data: list });
 });
 
 // AI Insights & Predictions Endpoint
-app.get('/api/ai/insights', (req, res) => {
-  res.json({ success: true, count: dataStore.aiInsights.getAll().length, data: dataStore.aiInsights.getAll() });
+app.get('/api/ai/insights', async (req, res) => {
+  const list = await dataStore.aiInsights.getAll();
+  res.json({ success: true, count: list.length, data: list });
 });
 
 // Optional/Flexible Auth middleware for AI Query endpoint
@@ -272,9 +278,9 @@ app.post('/api/ai/query', aiLimiter, optionalAuthenticate, async (req, res) => {
   const userRole = user.role || ROLES.CITIZEN;
 
   // 1. Fetch Real Data Collections from Single Source of Truth dataStore
-  const allComplaints = dataStore.complaints.getAll();
-  const allAssets = dataStore.assets.getAll();
-  const allSensors = dataStore.sensors.getAll();
+  const allComplaints = await dataStore.complaints.getAll();
+  const allAssets = await dataStore.assets.getAll();
+  const allSensors = await dataStore.sensors.getAll();
 
   const totalCount = allComplaints.length;
   const nowMs = Date.now();
@@ -452,7 +458,7 @@ app.post('/api/ai/query', aiLimiter, optionalAuthenticate, async (req, res) => {
     try {
       const genAI = new GoogleGenerativeAI(geminiApiKey.trim());
       
-      const candidateModels = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite', 'gemini-3.7-flash'];
+      const candidateModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
       const langMap = { mr: 'Marathi (मराठी)', hi: 'Hindi (हिन्दी)', en: 'English' };
       const requestedLang = langMap[language] || 'English';
 
@@ -485,6 +491,7 @@ DATABASE REFERENCE (Use ONLY if the user specifically asks for statistics or rep
         });
       }
 
+      let geminiSuccess = false;
       for (const modelName of candidateModels) {
         try {
           const model = genAI.getGenerativeModel({ model: modelName });
@@ -494,19 +501,27 @@ DATABASE REFERENCE (Use ONLY if the user specifically asks for statistics or rep
           if (text && text.trim()) {
             finalResponseText = text.trim();
             responseSource = `gemini (${modelName})`;
+            geminiSuccess = true;
+            console.log(`[Gemini Success] Successfully generated response using model: ${modelName}`);
             break;
           }
         } catch (modelErr) {
           console.warn(`Model ${modelName} attempt note:`, modelErr.message);
         }
       }
+
+      if (!geminiSuccess) {
+        console.warn(`[Gemini Fallback] Checked all candidate models but none succeeded. Falling back to Grounded Engine.`);
+      }
     } catch (err) {
       console.warn('Gemini API call error (falling back to grounded telemetry engine):', err.message);
     }
+  } else {
+    console.log(`[Grounded Engine] Gemini API key not available or empty query. Using Grounded telemetry engine response.`);
   }
 
   // Safe Audit Log Execution
-  dataStore.auditLogs.add(
+  await dataStore.auditLogs.add(
     req,
     'AI_QUERY_EXECUTED',
     'AI_ENGINE',
@@ -577,7 +592,7 @@ app.post('/api/auth/otp/verify', (req, res) => {
 });
 
 // Citizen Registration
-app.post('/api/citizens/register', authLimiter, (req, res) => {
+app.post('/api/citizens/register', authLimiter, async (req, res) => {
   const sanitized = sanitizeInput(req.body);
   const { fullName, email, mobile, aadhaar, district, city, wardNumber, address, password } = sanitized;
 
@@ -601,7 +616,7 @@ app.post('/api/citizens/register', authLimiter, (req, res) => {
   }
 
   const cleanEmail = (email || '').trim().toLowerCase();
-  const exists = dataStore.users.find(u => u.email === cleanEmail || (u.aadhaar && u.aadhaar.replace(/\D/g, '') === cleanAadhaar));
+  const exists = await dataStore.users.find(u => u.email === cleanEmail || (u.aadhaar && u.aadhaar.replace(/\D/g, '') === cleanAadhaar));
   if (exists) {
     return res.status(409).json({ success: false, error: 'An account already exists with this Email or Aadhaar Number.' });
   }
@@ -626,7 +641,7 @@ app.post('/api/citizens/register', authLimiter, (req, res) => {
     registeredAt: new Date().toISOString()
   };
 
-  dataStore.users.add(newCitizen);
+  await dataStore.users.add(newCitizen);
 
   const token = jwt.sign(
     { id: newCitizen.id, email: newCitizen.email, role: ROLES.CITIZEN, name: newCitizen.name },
@@ -635,7 +650,7 @@ app.post('/api/citizens/register', authLimiter, (req, res) => {
   );
 
   setSessionCookie(res, token);
-  dataStore.auditLogs.add(
+  await dataStore.auditLogs.add(
     { user: { id: newCitizen.id, name: newCitizen.name, role: ROLES.CITIZEN }, headers: req.headers, socket: req.socket },
     'CITIZEN_REGISTER_SUCCESS',
     newCitizen.id,
@@ -651,7 +666,7 @@ app.post('/api/citizens/register', authLimiter, (req, res) => {
 });
 
 // Citizen Login
-app.post('/api/citizens/login', authLimiter, (req, res) => {
+app.post('/api/citizens/login', authLimiter, async (req, res) => {
   const { identifier, password } = req.body;
   if (!identifier || !password) {
     return res.status(400).json({ success: false, error: 'Email/Aadhaar and password required.' });
@@ -660,7 +675,7 @@ app.post('/api/citizens/login', authLimiter, (req, res) => {
   const cleanInput = identifier.trim().toLowerCase();
   const cleanDigits = identifier.replace(/\D/g, '');
 
-  const user = dataStore.users.find(u => {
+  const user = await dataStore.users.find(u => {
     if (u.role !== ROLES.CITIZEN) return false;
     const matchEmail = u.email && u.email.toLowerCase() === cleanInput;
     const matchAadhaar = u.aadhaar && u.aadhaar.replace(/\D/g, '') === cleanDigits && cleanDigits.length === 12;
@@ -668,7 +683,7 @@ app.post('/api/citizens/login', authLimiter, (req, res) => {
   });
 
   if (!user || !bcrypt.compareSync(password, user.passwordHash)) {
-    dataStore.auditLogs.add(req, 'LOGIN_FAILURE', identifier, 'CitizenAuth', 'FAILURE', 'Invalid credentials provided.');
+    await dataStore.auditLogs.add(req, 'LOGIN_FAILURE', identifier, 'CitizenAuth', 'FAILURE', 'Invalid credentials provided.');
     return res.status(401).json({ success: false, error: 'Invalid Email/Aadhaar or password.' });
   }
 
@@ -679,7 +694,7 @@ app.post('/api/citizens/login', authLimiter, (req, res) => {
   );
 
   setSessionCookie(res, token);
-  dataStore.auditLogs.add(req, 'LOGIN_SUCCESS', user.id, 'CitizenAuth', 'SUCCESS', `Citizen logged in: ${user.name}`);
+  await dataStore.auditLogs.add(req, 'LOGIN_SUCCESS', user.id, 'CitizenAuth', 'SUCCESS', `Citizen logged in: ${user.name}`);
 
   const userSafe = { ...user };
   delete userSafe.passwordHash;
@@ -688,17 +703,17 @@ app.post('/api/citizens/login', authLimiter, (req, res) => {
 });
 
 // Officer & Admin Login (Triggers MFA Challenge)
-app.post('/api/officers/login', authLimiter, (req, res) => {
+app.post('/api/officers/login', authLimiter, async (req, res) => {
   const { officerId, password } = req.body;
   if (!officerId || !password) {
     return res.status(400).json({ success: false, error: 'Officer ID and Password are required.' });
   }
 
   const cleanId = officerId.trim().toLowerCase();
-  const user = dataStore.users.find(u => (u.role === ROLES.STAFF || u.role === ROLES.ADMIN) && u.officerId && u.officerId.toLowerCase() === cleanId);
+  const user = await dataStore.users.find(u => (u.role === ROLES.STAFF || u.role === ROLES.ADMIN) && u.officerId && u.officerId.toLowerCase() === cleanId);
 
   if (!user || !bcrypt.compareSync(password, user.passwordHash)) {
-    dataStore.auditLogs.add(req, 'OFFICER_LOGIN_FAILURE', officerId, 'OfficerAuth', 'FAILURE', 'Invalid officer credentials.');
+    await dataStore.auditLogs.add(req, 'OFFICER_LOGIN_FAILURE', officerId, 'OfficerAuth', 'FAILURE', 'Invalid officer credentials.');
     return res.status(401).json({ success: false, error: 'Invalid Officer ID or Access Password.' });
   }
 
@@ -706,7 +721,7 @@ app.post('/api/officers/login', authLimiter, (req, res) => {
   const mfaCode = Math.floor(100000 + Math.random() * 900000).toString();
   mfaStore[mfaToken] = { userId: user.id, code: mfaCode, expiresAt: Date.now() + 5 * 60 * 1000 };
 
-  dataStore.auditLogs.add(req, 'MFA_CHALLENGE_ISSUED', user.id, 'OfficerAuth', 'PENDING', `MFA challenge generated for ${user.role} (${user.name})`);
+  await dataStore.auditLogs.add(req, 'MFA_CHALLENGE_ISSUED', user.id, 'OfficerAuth', 'PENDING', `MFA challenge generated for ${user.role} (${user.name})`);
 
   res.json({
     success: true,
@@ -718,7 +733,7 @@ app.post('/api/officers/login', authLimiter, (req, res) => {
 });
 
 // MFA Verification
-app.post('/api/auth/mfa/verify', authLimiter, (req, res) => {
+app.post('/api/auth/mfa/verify', authLimiter, async (req, res) => {
   const { mfaToken, mfaCode } = req.body;
   if (!mfaToken || !mfaCode) {
     return res.status(400).json({ success: false, error: 'MFA Token and 6-digit OTP code are required.' });
@@ -734,7 +749,7 @@ app.post('/api/auth/mfa/verify', authLimiter, (req, res) => {
     return res.status(400).json({ success: false, error: '2FA Verification Code expired. Please sign in again.' });
   }
 
-  const user = dataStore.users.find(u => u.id === challenge.userId);
+  const user = await dataStore.users.find(u => u.id === challenge.userId);
   delete mfaStore[mfaToken];
 
   if (!user) {
@@ -749,7 +764,7 @@ app.post('/api/auth/mfa/verify', authLimiter, (req, res) => {
 
   setSessionCookie(res, token);
   req.user = jwt.decode(token);
-  dataStore.auditLogs.add(req, 'MFA_VERIFIED_LOGIN_SUCCESS', user.id, 'OfficerAuth', 'SUCCESS', `2FA verified login for ${user.role}: ${user.name}`);
+  await dataStore.auditLogs.add(req, 'MFA_VERIFIED_LOGIN_SUCCESS', user.id, 'OfficerAuth', 'SUCCESS', `2FA verified login for ${user.role}: ${user.name}`);
 
   const userSafe = { ...user };
   delete userSafe.passwordHash;
@@ -758,8 +773,8 @@ app.post('/api/auth/mfa/verify', authLimiter, (req, res) => {
 });
 
 // Authenticated User Endpoint
-app.get('/api/auth/me', authenticateToken, (req, res) => {
-  const user = dataStore.users.find(u => u.id === req.user.id);
+app.get('/api/auth/me', authenticateToken, async (req, res) => {
+  const user = await dataStore.users.find(u => u.id === req.user.id);
   if (!user) return res.status(404).json({ success: false, error: 'User profile not found.' });
   const userSafe = { ...user };
   delete userSafe.passwordHash;
@@ -767,9 +782,9 @@ app.get('/api/auth/me', authenticateToken, (req, res) => {
 });
 
 // Citizen Profile Update
-app.put('/api/citizens/profile', authenticateToken, (req, res) => {
+app.put('/api/citizens/profile', authenticateToken, async (req, res) => {
   const sanitized = sanitizeInput(req.body);
-  const updated = dataStore.users.update(req.user.id, {
+  const updated = await dataStore.users.update(req.user.id, {
     name: sanitized.name || sanitized.fullName,
     phone: sanitized.phone || sanitized.mobile,
     ward: sanitized.ward !== undefined ? parseInt(sanitized.ward) : undefined,
@@ -778,21 +793,21 @@ app.put('/api/citizens/profile', authenticateToken, (req, res) => {
 
   if (!updated) return res.status(404).json({ success: false, error: 'User profile not found.' });
 
-  dataStore.auditLogs.add(req, 'PROFILE_UPDATED', req.user.id, 'UserAccount', 'SUCCESS', `Updated profile for ${req.user.name}`);
+  await dataStore.auditLogs.add(req, 'PROFILE_UPDATED', req.user.id, 'UserAccount', 'SUCCESS', `Updated profile for ${req.user.name}`);
   const userSafe = { ...updated };
   delete userSafe.passwordHash;
   res.json({ success: true, user: userSafe });
 });
 
 // Password Reset
-app.post('/api/citizens/reset-password', authLimiter, (req, res) => {
+app.post('/api/citizens/reset-password', authLimiter, async (req, res) => {
   const { identifier, newPassword } = req.body;
   if (!identifier || !newPassword) return res.status(400).json({ success: false, error: 'Identifier and new password required.' });
 
   const cleanInput = identifier.trim().toLowerCase();
   const cleanDigits = identifier.replace(/\D/g, '');
 
-  const user = dataStore.users.find(u => {
+  const user = await dataStore.users.find(u => {
     const matchEmail = u.email && u.email.toLowerCase() === cleanInput;
     const matchAadhaar = u.aadhaar && u.aadhaar.replace(/\D/g, '') === cleanDigits && cleanDigits.length === 12;
     return matchEmail || matchAadhaar;
@@ -801,8 +816,8 @@ app.post('/api/citizens/reset-password', authLimiter, (req, res) => {
   if (!user) return res.status(404).json({ success: false, error: 'No citizen account found.' });
   if (newPassword.length < 6) return res.status(400).json({ success: false, error: 'New password must be at least 6 characters.' });
 
-  dataStore.users.update(user.id, { passwordHash: bcrypt.hashSync(newPassword, 10) });
-  dataStore.auditLogs.add({ user: { id: user.id, name: user.name, role: user.role }, headers: req.headers, socket: req.socket }, 'PASSWORD_RESET_SUCCESS', user.id, 'UserAccount', 'SUCCESS', `Password reset for ${user.email}`);
+  await dataStore.users.update(user.id, { passwordHash: bcrypt.hashSync(newPassword, 10) });
+  await dataStore.auditLogs.add({ user: { id: user.id, name: user.name, role: user.role }, headers: req.headers, socket: req.socket }, 'PASSWORD_RESET_SUCCESS', user.id, 'UserAccount', 'SUCCESS', `Password reset for ${user.email}`);
 
   res.json({ success: true, message: 'Password updated successfully.' });
 });
@@ -816,8 +831,8 @@ app.post('/api/auth/logout', (req, res) => {
 // ─── 7. PROTECTED RESOURCE ENDPOINTS ────────────────────────────────────────
 
 // Complaints Endpoint
-app.get('/api/complaints', authenticateToken, (req, res) => {
-  let list = dataStore.complaints.getAll();
+app.get('/api/complaints', authenticateToken, async (req, res) => {
+  let list = await dataStore.complaints.getAll();
 
   if (req.user.role === ROLES.CITIZEN) {
     list = list.filter(c => c.citizenId === req.user.id || c.citizenEmail === req.user.email);
@@ -830,19 +845,19 @@ app.get('/api/complaints', authenticateToken, (req, res) => {
   res.json({ success: true, count: list.length, data: list });
 });
 
-app.get('/api/complaints/:id', authenticateToken, (req, res) => {
-  const item = dataStore.complaints.find(c => c.id === req.params.id);
+app.get('/api/complaints/:id', authenticateToken, async (req, res) => {
+  const item = await dataStore.complaints.find(c => c.id === req.params.id);
   if (!item) return res.status(404).json({ success: false, error: 'Complaint ticket not found.' });
 
   if (req.user.role === ROLES.CITIZEN && item.citizenId !== req.user.id && item.citizenEmail !== req.user.email) {
-    dataStore.auditLogs.add(req, 'UNAUTHORIZED_COMPLAINT_ACCESS', req.params.id, 'Complaint', 'DENIED', 'Citizen attempted to view another citizen complaint.');
+    await dataStore.auditLogs.add(req, 'UNAUTHORIZED_COMPLAINT_ACCESS', req.params.id, 'Complaint', 'DENIED', 'Citizen attempted to view another citizen complaint.');
     return res.status(403).json({ success: false, error: 'Access Denied: You are not authorized to view this ticket.' });
   }
 
   res.json({ success: true, data: item });
 });
 
-app.post('/api/complaints', authenticateToken, (req, res) => {
+app.post('/api/complaints', authenticateToken, async (req, res) => {
   const sanitized = sanitizeInput(req.body);
   const now = new Date().toISOString();
   const dueDate = new Date(Date.now() + 72 * 3600 * 1000).toISOString();
@@ -886,22 +901,22 @@ app.post('/api/complaints', authenticateToken, (req, res) => {
     ]
   };
 
-  dataStore.complaints.add(newComplaint);
-  dataStore.auditLogs.add(req, 'COMPLAINT_CREATED', newComplaint.id, 'Complaint', 'SUCCESS', `Created ticket #${newComplaint.id}`);
+  await dataStore.complaints.add(newComplaint);
+  await dataStore.auditLogs.add(req, 'COMPLAINT_CREATED', newComplaint.id, 'Complaint', 'SUCCESS', `Created ticket #${newComplaint.id}`);
 
   // Broadcast Real-Time Events
   broadcastEvent('COMPLAINT_CREATED', newComplaint);
-  broadcastEvent('CITY_OVERVIEW_UPDATED', dataStore.getCityOverview());
+  broadcastEvent('CITY_OVERVIEW_UPDATED', await dataStore.getCityOverview());
 
   res.status(201).json({ success: true, data: newComplaint });
 });
 
 // Assign Maintenance Squad / Officer to Complaint Endpoint
-app.put('/api/complaints/:id/assign', authenticateToken, requireRoles(ROLES.STAFF, ROLES.ADMIN), (req, res) => {
+app.put('/api/complaints/:id/assign', authenticateToken, requireRoles(ROLES.STAFF, ROLES.ADMIN), async (req, res) => {
   const { id } = req.params;
   const { assignedOfficer, assignedTeamId, note } = req.body;
 
-  const updated = dataStore.complaints.assignOfficer(
+  const updated = await dataStore.complaints.assignOfficer(
     id,
     assignedOfficer,
     assignedTeamId,
@@ -913,7 +928,7 @@ app.put('/api/complaints/:id/assign', authenticateToken, requireRoles(ROLES.STAF
 
   if (!updated) return res.status(404).json({ success: false, error: 'Complaint ticket not found.' });
 
-  const notif = dataStore.notifications.add({
+  const notif = await dataStore.notifications.add({
     id: `NOTIF-${Date.now()}`,
     recipientRole: ROLES.CITIZEN,
     recipientId: updated.citizenId,
@@ -928,21 +943,21 @@ app.put('/api/complaints/:id/assign', authenticateToken, requireRoles(ROLES.STAF
     actionLink: '/citizen/track-complaint'
   });
 
-  dataStore.auditLogs.add(req, 'COMPLAINT_ASSIGNED', id, 'Complaint', 'SUCCESS', `Assigned to ${assignedOfficer || assignedTeamId}`);
+  await dataStore.auditLogs.add(req, 'COMPLAINT_ASSIGNED', id, 'Complaint', 'SUCCESS', `Assigned to ${assignedOfficer || assignedTeamId}`);
 
   // Broadcast Real-Time Events
   broadcastEvent('COMPLAINT_ASSIGNED', updated);
   broadcastEvent('NOTIFICATION_ADDED', notif);
-  broadcastEvent('CITY_OVERVIEW_UPDATED', dataStore.getCityOverview());
+  broadcastEvent('CITY_OVERVIEW_UPDATED', await dataStore.getCityOverview());
 
   res.json({ success: true, data: updated });
 });
 
 // Update Lifecycle Status Endpoint
-app.put('/api/complaints/:id/status', authenticateToken, requireRoles(ROLES.STAFF, ROLES.ADMIN), (req, res) => {
+app.put('/api/complaints/:id/status', authenticateToken, requireRoles(ROLES.STAFF, ROLES.ADMIN), async (req, res) => {
   const { id } = req.params;
   const { status, note, assignedOfficer } = req.body;
-  const updated = dataStore.complaints.updateStatus(id, status, note, req.user.name, req.user.role, req.user.department);
+  const updated = await dataStore.complaints.updateStatus(id, status, note, req.user.name, req.user.role, req.user.department);
 
   if (!updated) return res.status(404).json({ success: false, error: 'Complaint ticket not found.' });
 
@@ -950,7 +965,7 @@ app.put('/api/complaints/:id/status', authenticateToken, requireRoles(ROLES.STAF
     updated.assignedOfficer = assignedOfficer;
   }
 
-  const notif = dataStore.notifications.add({
+  const notif = await dataStore.notifications.add({
     id: `NOTIF-${Date.now()}`,
     recipientRole: ROLES.CITIZEN,
     recipientId: updated.citizenId,
@@ -965,26 +980,26 @@ app.put('/api/complaints/:id/status', authenticateToken, requireRoles(ROLES.STAF
     actionLink: '/citizen/track-complaint'
   });
 
-  dataStore.auditLogs.add(req, 'COMPLAINT_STATUS_UPDATED', id, 'Complaint', 'SUCCESS', `Status changed to ${status}`);
+  await dataStore.auditLogs.add(req, 'COMPLAINT_STATUS_UPDATED', id, 'Complaint', 'SUCCESS', `Status changed to ${status}`);
 
   // Broadcast Real-Time Events
   broadcastEvent('COMPLAINT_UPDATED', updated);
   broadcastEvent('NOTIFICATION_ADDED', notif);
-  broadcastEvent('CITY_OVERVIEW_UPDATED', dataStore.getCityOverview());
+  broadcastEvent('CITY_OVERVIEW_UPDATED', await dataStore.getCityOverview());
 
   res.json({ success: true, data: updated });
 });
 
 // Permissions Endpoint
-app.get('/api/permissions', authenticateToken, (req, res) => {
-  let list = dataStore.permissions.getAll();
+app.get('/api/permissions', authenticateToken, async (req, res) => {
+  let list = await dataStore.permissions.getAll();
   if (req.user.role === ROLES.CITIZEN) {
     list = list.filter(p => p.citizenEmail === req.user.email || p.applicantId === req.user.id);
   }
   res.json({ success: true, count: list.length, permissions: list });
 });
 
-app.post('/api/permissions', authenticateToken, (req, res) => {
+app.post('/api/permissions', authenticateToken, async (req, res) => {
   const sanitized = sanitizeInput(req.body);
   const newApp = {
     id: `KPG-PERM-2026-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -1007,8 +1022,8 @@ app.post('/api/permissions', authenticateToken, (req, res) => {
     certificateIssued: false
   };
 
-  dataStore.permissions.add(newApp);
-  dataStore.auditLogs.add(req, 'PERMISSION_SUBMITTED', newApp.id, 'Permission', 'SUCCESS', `Permission application ${newApp.id} submitted`);
+  await dataStore.permissions.add(newApp);
+  await dataStore.auditLogs.add(req, 'PERMISSION_SUBMITTED', newApp.id, 'Permission', 'SUCCESS', `Permission application ${newApp.id} submitted`);
 
   broadcastEvent('PERMISSION_CREATED', newApp);
 
@@ -1016,19 +1031,51 @@ app.post('/api/permissions', authenticateToken, (req, res) => {
 });
 
 // Taxes Endpoint
-app.get('/api/taxes', authenticateToken, (req, res) => {
-  let list = dataStore.taxes.getAll();
+app.get('/api/taxes', authenticateToken, async (req, res) => {
+  let list = await dataStore.taxes.getAll();
   if (req.user.role === ROLES.CITIZEN) {
     list = list.filter(t => t.citizenId === req.user.id || t.citizenEmail === req.user.email);
   }
   res.json({ success: true, count: list.length, taxes: list });
 });
 
-app.post('/api/taxes/:id/pay', authenticateToken, (req, res) => {
-  const paid = dataStore.taxes.processPayment(req.params.id, req.body.paymentMethod);
+app.post('/api/taxes', authenticateToken, requireRoles(ROLES.STAFF, ROLES.ADMIN), async (req, res) => {
+  const sanitized = sanitizeInput(req.body);
+  const newTax = {
+    id: `KPG-TAX-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+    billNumber: `BILL-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+    citizenId: sanitized.citizenId || 'CIT-8821',
+    citizenName: sanitized.citizenName || 'Resident',
+    citizenEmail: sanitized.citizenEmail || 'citizen@kopargaon.gov.in',
+    propertyNumber: sanitized.propertyNumber || 'KPG-PROP-0000',
+    location: {
+      address: sanitized.address || 'Kopargaon',
+      ward: Number(sanitized.ward) || 4,
+      latitude: 19.8855,
+      longitude: 74.4821
+    },
+    taxCategory: sanitized.taxCategory || 'Property Tax',
+    amount: Number(sanitized.amount) || 2500,
+    penalty: 0,
+    totalAmount: Number(sanitized.amount) || 2500,
+    status: 'Pending',
+    dueDate: sanitized.dueDate || new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().split('T')[0],
+    createdAt: new Date().toISOString()
+  };
+
+  await dataStore.taxes.add(newTax);
+  await dataStore.auditLogs.add(req, 'TAX_BILL_CREATED', newTax.id, 'TaxBill', 'SUCCESS', `Created tax bill of Rs. ${newTax.amount}`);
+
+  broadcastEvent('TAX_CREATED', newTax);
+
+  res.status(201).json({ success: true, tax: newTax });
+});
+
+app.post('/api/taxes/:id/pay', authenticateToken, async (req, res) => {
+  const paid = await dataStore.taxes.processPayment(req.params.id, req.body.paymentMethod);
   if (!paid) return res.status(404).json({ success: false, error: 'Tax record not found.' });
 
-  dataStore.auditLogs.add(req, 'TAX_PAYMENT_PROCESSED', paid.id, 'TaxBill', 'SUCCESS', `Processed tax payment of Rs. ${paid.amount}`);
+  await dataStore.auditLogs.add(req, 'TAX_PAYMENT_PROCESSED', paid.id, 'TaxBill', 'SUCCESS', `Processed tax payment of Rs. ${paid.amount}`);
 
   broadcastEvent('TAX_PAID', paid);
 
@@ -1036,27 +1083,28 @@ app.post('/api/taxes/:id/pay', authenticateToken, (req, res) => {
 });
 
 // Private Documents Endpoint
-app.get('/api/documents/:id', authenticateToken, (req, res) => {
-  const doc = dataStore.documents.find(d => d.id === req.params.id);
+app.get('/api/documents/:id', authenticateToken, async (req, res) => {
+  const doc = await dataStore.documents.find(d => d.id === req.params.id);
   if (!doc) return res.status(404).json({ success: false, error: 'Document not found.' });
 
   if (req.user.role === ROLES.CITIZEN && doc.ownerId !== req.user.id && doc.ownerEmail !== req.user.email) {
-    dataStore.auditLogs.add(req, 'UNAUTHORIZED_DOCUMENT_ACCESS', req.params.id, 'PrivateDocument', 'DENIED', 'Access blocked to non-owned document.');
+    await dataStore.auditLogs.add(req, 'UNAUTHORIZED_DOCUMENT_ACCESS', req.params.id, 'PrivateDocument', 'DENIED', 'Access blocked to non-owned document.');
     return res.status(403).json({ success: false, error: 'Access Denied: You do not have authorization to view this private document.' });
   }
 
-  dataStore.auditLogs.add(req, 'DOCUMENT_VIEWED', doc.id, 'PrivateDocument', 'SUCCESS', `Viewed document ${doc.title}`);
+  await dataStore.auditLogs.add(req, 'DOCUMENT_VIEWED', doc.id, 'PrivateDocument', 'SUCCESS', `Viewed document ${doc.title}`);
   res.json({ success: true, document: doc });
 });
 
 // Security Audit Logs Endpoint (Admin Only)
-app.get('/api/audit-logs', authenticateToken, requireRoles(ROLES.ADMIN), (req, res) => {
-  res.json({ success: true, count: dataStore.auditLogs.getAll().length, data: dataStore.auditLogs.getAll() });
+app.get('/api/audit-logs', authenticateToken, requireRoles(ROLES.ADMIN), async (req, res) => {
+  const allLogs = await dataStore.auditLogs.getAll();
+  res.json({ success: true, count: allLogs.length, data: allLogs });
 });
 
 // Notifications Endpoint
-app.get('/api/notifications', authenticateToken, (req, res) => {
-  let list = dataStore.notifications.getAll();
+app.get('/api/notifications', authenticateToken, async (req, res) => {
+  let list = await dataStore.notifications.getAll();
   if (req.user.role === ROLES.CITIZEN) {
     list = list.filter(n => n.recipientId === req.user.id || n.recipientRole === ROLES.CITIZEN || n.recipientId === 'ALL_CITIZENS');
   }
@@ -1072,10 +1120,19 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`=======================================================`);
-  console.log(`Kopargaon Enterprise Data Architecture Backend Active`);
-  console.log(`Listening on http://localhost:${PORT}`);
-  console.log(`Real-Time SSE Stream Active at /api/events/stream`);
-  console.log(`=======================================================`);
-});
+// Connect to database & seed first, then start listening to prevent race conditions
+try {
+  await connectToDatabase();
+  await initializeDatabase();
+
+  app.listen(PORT, () => {
+    console.log(`=======================================================`);
+    console.log(`Kopargaon Enterprise Data Architecture Backend Active`);
+    console.log(`Listening on http://localhost:${PORT}`);
+    console.log(`Real-Time SSE Stream Active at /api/events/stream`);
+    console.log(`=======================================================`);
+  });
+} catch (err) {
+  console.error('❌ [Critical Server Error] Backend failed to initialize database:', err.message);
+  process.exit(1);
+}

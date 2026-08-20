@@ -117,6 +117,7 @@ export function AppContent() {
 
       <Routes>
         {/* Landing Page */}
+        {/* Landing Page */}
         <Route path="/" element={<LandingPage />} />
 
         {/* Citizen Authentication Routes */}
