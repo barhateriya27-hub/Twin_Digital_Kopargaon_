@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { fetchKopargaonWeather } from '../../services/weatherService';
 import { CurrentWeather } from './CurrentWeather';
 import { HourlyForecast } from './HourlyForecast';
 import { WeeklyForecast } from './WeeklyForecast';
@@ -21,12 +22,24 @@ export const WeatherPanel = () => {
     refreshWeather
   } = useApp();
 
-  // Fetch weather if missing
+  const [fallbackWeather, setFallbackWeather] = useState(null);
+  const [fallbackLoading, setFallbackLoading] = useState(false);
+
+  // Fetch weather if missing in context
   useEffect(() => {
     if (!weatherData) {
-      refreshWeather(true);
+      if (typeof refreshWeather === 'function') {
+        refreshWeather(true);
+      }
+      setFallbackLoading(true);
+      fetchKopargaonWeather().then(res => {
+        if (res && res.success) {
+          setFallbackWeather(res);
+        }
+        setFallbackLoading(false);
+      });
     }
-  }, [weatherData]);
+  }, [weatherData, refreshWeather]);
 
   if (loadingWeather && !weatherData) {
     return (
@@ -76,7 +89,7 @@ export const WeatherPanel = () => {
   }
 
   // Double fallback if somehow weatherData is null despite guard
-  const activeWeather = weatherData || {};
+  const activeWeather = weatherData || fallbackWeather || {};
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto p-2 sm:p-4">
