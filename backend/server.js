@@ -66,6 +66,14 @@ const apiLimiter = rateLimit({
   message: { success: false, error: 'Rate limit exceeded. Please slow down.' }
 });
 
+const aiLimiter = rateLimit({
+  windowMs: 20 * 1000, // 20 seconds
+  max: 10, // 10 requests
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'AI query rate limit exceeded. Please try again after 20 seconds.' }
+});
+
 app.use('/api/', apiLimiter);
 
 // Input Sanitization Helper
@@ -258,7 +266,7 @@ const optionalAuthenticate = (req, res, next) => {
 };
 
 // Grounded AI Query & Data Analytics Assistant Endpoint (Powered by Google Gemini + Real Data)
-app.post('/api/ai/query', optionalAuthenticate, async (req, res) => {
+app.post('/api/ai/query', aiLimiter, optionalAuthenticate, async (req, res) => {
   const { query, imageBase64, imageMimeType, language } = req.body;
   const user = req.user || { role: ROLES.CITIZEN, id: 'CIT-GUEST', name: 'Citizen Resident' };
   const userRole = user.role || ROLES.CITIZEN;
